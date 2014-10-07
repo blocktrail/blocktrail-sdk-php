@@ -6,6 +6,7 @@ at https://www.blocktrail.com/api/docs
 
 [![Latest Stable Version](https://poser.pugx.org/blocktrail/blocktrail-sdk-php/v/stable.png)](https://packagist.org/packages/blocktrail/blocktrail-sdk-php)
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.png)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
+[![tip for next commit](https://tip4commit.com/projects/1009.svg)](https://tip4commit.com/github/blocktrail/blocktrail-sdk-php)
 
 Installation
 ------------
