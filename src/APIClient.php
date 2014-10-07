@@ -61,7 +61,6 @@ class APIClient {
      * @param   string      $address        the address hash to request
      * @return  array|string                returns an array unless a specific format is requested
      *                                       in which case it will return a string with the contents being in that format
-     * @throws  InvalidFormat
      */
     public function address($address) {
         $response = $this->client->get("address/{$address}");

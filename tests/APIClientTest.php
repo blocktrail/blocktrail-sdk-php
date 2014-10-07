@@ -20,7 +20,9 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
      * @TODO: use live env
      */
     public function setupAPIClient() {
-        return new APIClient("MYKEY", "MYSECRET", null, null, null, "http://api.blocktrail.ngrok.com/v1/BTC/");
+        $client = new APIClient("MYKEY", "MYSECRET", null, null, null, "http://api.blocktrail.ngrok.com/v1/BTC/");
+        // $client->setCurlDebugging();
+        return $client;
     }
 
     /**
@@ -33,17 +35,23 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         return new APIClient("TESTKEY-FAIL", "TESTSECRET-FAIL", null, null, null, "http://api.blocktrail.ngrok.com/v1/BTC/");
     }
 
-    public function testSigning() {
+    public function testHMAC() {
         $client = $this->setupBadAPIClient();
 
         try {
-            $client->address("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp");
+            $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
             $this->fail("Bad keys still succeeded");
         } catch (InvalidCredentials $e) {}
 
         $client = $this->setupAPIClient();
 
-        $this->assertTrue(!!$client->address("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp"), "Good keys failed");
+        try {
+            $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
+        } catch (InvalidCredentials $e) {
+            $this->fail("Good keys failed");
+        } catch (\Exception $e) {
+            // ignore other exceptions
+        }
     }
 
     public function testAddress() {
