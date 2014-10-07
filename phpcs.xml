@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset>
+    <description>The BlockTrail PSR-2 Coding Standard</description>
+
+    <rule ref="PSR2">
+        <exclude name="PSR2.Classes.ClassDeclaration.OpenBraceNewLine" />
+        <exclude name="Squiz.Functions.MultiLineFunctionDeclaration.BraceOnSameLine" />
+    </rule>
+
+    <rule ref="Generic.Functions.OpeningFunctionBraceKernighanRitchie" />
+</ruleset>

@@ -1,0 +1,30 @@
+{
+    "name": "blocktrail/blocktrail-sdk-php",
+    "authors": [
+        {
+            "name": "Ruben de Vries",
+            "email": "ruben@blocktrail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "BlockTrail\\SDK\\": "src/"
+        }
+    },
+    "license": "MIT",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/blocktrail/http-signatures-guzzlehttp.git"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "guzzlehttp/guzzle": "4.2.*",
+        "99designs/http-signatures-guzzlehttp": "dev-master"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.3.*",
+        "squizlabs/php_codesniffer": "1.*"
+    }
+}
