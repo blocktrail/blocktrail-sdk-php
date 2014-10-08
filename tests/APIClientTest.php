@@ -112,7 +112,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(23, count($response['data']), "Count of transactions returned is not equal to 23");
 
         //all blocks
-        $response = $client->blocksAll($page=2, $limit=23);
+        $response = $client->allBlocks($page=2, $limit=23);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");

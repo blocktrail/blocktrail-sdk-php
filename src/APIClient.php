@@ -142,7 +142,7 @@ class APIClient {
      * @param  string  $sortDir pagination: sort direction (asc|desc)
      * @return array            associative array containing the response
      */
-    public function blocksAll($page=1, $limit=20, $sortDir='asc') {
+    public function allBlocks($page=1, $limit=20, $sortDir='asc') {
         $queryString = array(
             'page'     => $page,
             'limit'    => $limit,
