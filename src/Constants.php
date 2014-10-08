@@ -14,7 +14,7 @@ abstract class Constants {
 
     const EXCEPTION_INVALID_CREDENTIALS = "Your credentials are incorrect.";
     const EXCEPTION_GENERIC_HTTP_ERROR = "An HTTP Error has occurred!";
-    const EXCEPTION_GENERIC_SERVER_ERROR = "An Server Error has occurred!";
+    const EXCEPTION_GENERIC_SERVER_ERROR = "A Server Error has occurred!";
     const EXCEPTION_EMPTY_RESPONSE = "The HTTP Response was empty.";
     const EXCEPTION_UNKNOWN_ENDPOINT_SPECIFIC_ERROR = "The endpoint returned an unknown error.";
     const EXCEPTION_MISSING_ENDPOINT = "The endpoint you've tried to access does not exist. Check your URL.";
