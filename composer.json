@@ -5,6 +5,10 @@
         {
             "name": "Ruben de Vries",
             "email": "ruben@blocktrail.com"
+        },
+        {
+            "name": "Oisin Akiboye Conolly",
+            "email": "oisin@blocktrail.com"
         }
     ],
     "autoload": {
