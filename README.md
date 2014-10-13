@@ -4,7 +4,7 @@ This is the BlockTrail PHP SDK. This SDK contains methods for easily interacting
 Below are examples to get you started. For additional examples, please see our official documentation
 at https://www.blocktrail.com/api/docs
 
-[![Latest Stable Version](https://poser.pugx.org/blocktrail/blocktrail-sdk-php/v/stable.png)](https://packagist.org/packages/blocktrail/blocktrail-sdk-php)
+[![Latest Stable Version](https://badge.fury.io/ph/blocktrail%2Fblocktrail-sdk.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk-php)
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.png)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
 [![tip for next commit](https://tip4commit.com/projects/1009.svg)](https://tip4commit.com/github/blocktrail/blocktrail-sdk-php)
 
@@ -18,7 +18,7 @@ If you aren't using Composer yet, it's really simple! Here's how to install comp
 curl -sS https://getcomposer.org/installer | php
 
 # Add the BlockTrail SDK as a dependency
-php composer.phar require blocktrail/blocktrail-sdk-php:~1.0
+php composer.phar require blocktrail/blocktrail-sdk:~1.0
 ``` 
 
 Next, require Composer's autoloader, in your application, to automatically load the BlockTrail SDK in your project:
