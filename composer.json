@@ -1,6 +1,6 @@
 {
     "name": "blocktrail/blocktrail-sdk",
-    "version": "0.1.1",
+    "version": "1.0.0",
     "authors": [
         {
             "name": "Ruben de Vries",
@@ -25,6 +25,7 @@
     ],
     "require": {
         "php": ">=5.4.0",
+        "ext-bcmath": "*",
         "guzzlehttp/guzzle": "4.2.*",
         "99designs/http-signatures-guzzlehttp": "dev-master"
     },

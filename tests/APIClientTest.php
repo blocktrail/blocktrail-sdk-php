@@ -3,6 +3,7 @@
 namespace BlockTrail\SDK\Tests;
 
 use BlockTrail\SDK\APIClient;
+use BlockTrail\SDK\BlockTrail;
 use BlockTrail\SDK\Connection\Exceptions\InvalidCredentials;
 
 /**
@@ -16,11 +17,9 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
      * setup an instance of APIClient
      *
      * @return APIClient
-     * @TODO: think of keys to use
-     * @TODO: use live env
      */
     public function setupAPIClient() {
-        $client = new APIClient("MYKEY", "MYSECRET", null, null, null, "http://api.blocktrail.localhost/v1/BTC/");
+        $client = new APIClient("MY_APIKEY", "MY_APISECRET");
         // $client->setCurlDebugging();
         return $client;
     }
@@ -29,10 +28,21 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
      * setup an instance of APIClient
      *
      * @return APIClient
-     * @TODO: use live env
      */
     public function setupBadAPIClient() {
-        return new APIClient("TESTKEY-FAIL", "TESTSECRET-FAIL", null, null, null, "http://api.blocktrail.localhost/v1/BTC/");
+        return new APIClient("TESTKEY-FAIL", "TESTSECRET-FAIL");
+    }
+
+    public function testCoinValue() {
+        $this->assertEquals(1, BlockTrail::toSatoshi(0.00000001));
+        $this->assertEquals(1, BlockTrail::toSatoshi("0.00000001"));
+        $this->assertEquals(1.0, BlockTrail::toBTC(100000000));
+        $this->assertEquals(1.0, BlockTrail::toBTC("100000000"));
+
+        $this->assertEquals(123456789, BlockTrail::toSatoshi(1.23456789));
+        $this->assertEquals(123456789, BlockTrail::toSatoshi("1.23456789"));
+        $this->assertEquals(1.23456789, BlockTrail::toBTC(123456789));
+        $this->assertEquals(1.23456789, BlockTrail::toBTC("123456789"));
     }
 
     public function testSigning() {

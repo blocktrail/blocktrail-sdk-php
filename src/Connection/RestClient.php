@@ -12,7 +12,7 @@ use GuzzleHttp\Post\PostBodyInterface;
 use HttpSignatures\Context;
 use HttpSignatures\GuzzleHttp\RequestSubscriber;
 
-use BlockTrail\SDK\Constants;
+use BlockTrail\SDK\BlockTrail;
 
 use BlockTrail\SDK\Connection\Exceptions\EmptyResponse;
 use BlockTrail\SDK\Connection\Exceptions\InvalidCredentials;
@@ -35,7 +35,7 @@ class RestClient {
             'base_url' => $apiEndpoint,
             'defaults' => array(
                 'headers' => array(
-                    'User-Agent' => Constants::SDK_USER_AGENT . '/' . Constants::SDK_VERSION
+                    'User-Agent' => BlockTrail::SDK_USER_AGENT . '/' . BlockTrail::SDK_VERSION
                 ),
                 'exceptions' => false,
                 'connect_timeout' => 3,
@@ -149,8 +149,6 @@ class RestClient {
      * @param   string      $endpointUrl
      * @param   string      $auth                   http-signatures to enable http-signature signing
      * @return  Response
-     *
-     * @TODO: sign
      */
     public function delete($endpointUrl, $auth = null) {
         $request = $this->guzzle->createRequest('DELETE', $endpointUrl);
@@ -181,8 +179,6 @@ class RestClient {
      * @param   array       $putData
      * @param   string      $auth                   http-signatures to enable http-signature signing
      * @return  Response
-     *
-     * @TODO: sign
      */
     public function put($endpointUrl, $putData, $auth = null) {
         $request = $this->guzzle->createRequest('PUT', $endpointUrl);
@@ -219,7 +215,7 @@ class RestClient {
 
         if ($httpResponseCode == 200) {
             if (!$body) {
-                throw new EmptyResponse(Constants::EXCEPTION_EMPTY_RESPONSE, $httpResponseCode);
+                throw new EmptyResponse(BlockTrail::EXCEPTION_EMPTY_RESPONSE, $httpResponseCode);
             }
 
             $result = new Response($httpResponseCode, $body);
@@ -231,20 +227,20 @@ class RestClient {
             if ($data && isset($data['msg'], $data['code'])) {
                 throw new EndpointSpecificError($data['msg'], $data['code']);
             } else {
-                throw new UnknownEndpointSpecificError(Constants::EXCEPTION_UNKNOWN_ENDPOINT_SPECIFIC_ERROR);
+                throw new UnknownEndpointSpecificError(BlockTrail::EXCEPTION_UNKNOWN_ENDPOINT_SPECIFIC_ERROR);
             }
         } elseif ($httpResponseCode == 401) {
-            throw new InvalidCredentials(Constants::EXCEPTION_INVALID_CREDENTIALS, $httpResponseCode);
+            throw new InvalidCredentials(BlockTrail::EXCEPTION_INVALID_CREDENTIALS, $httpResponseCode);
         } elseif ($httpResponseCode == 404) {
             if ($httpResponsePhrase == "Endpoint Not Found") {
-                throw new MissingEndpoint(Constants::EXCEPTION_MISSING_ENDPOINT, $httpResponseCode);
+                throw new MissingEndpoint(BlockTrail::EXCEPTION_MISSING_ENDPOINT, $httpResponseCode);
             } else {
-                throw new ObjectNotFound(Constants::EXCEPTION_OBJECT_NOT_FOUND, $httpResponseCode);
+                throw new ObjectNotFound(BlockTrail::EXCEPTION_OBJECT_NOT_FOUND, $httpResponseCode);
             }
         } elseif ($httpResponseCode == 500) {
-            throw new GenericServerError(Constants::EXCEPTION_GENERIC_SERVER_ERROR . "\nServer Response: " . $body, $httpResponseCode);
+            throw new GenericServerError(BlockTrail::EXCEPTION_GENERIC_SERVER_ERROR . "\nServer Response: " . $body, $httpResponseCode);
         } else {
-            throw new GenericHTTPError(Constants::EXCEPTION_GENERIC_HTTP_ERROR . "\nServer Response: " . $body, $httpResponseCode);
+            throw new GenericHTTPError(BlockTrail::EXCEPTION_GENERIC_HTTP_ERROR . "\nServer Response: " . $body, $httpResponseCode);
         }
     }
 

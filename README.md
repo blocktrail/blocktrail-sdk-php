@@ -2,11 +2,23 @@ BlockTrail PHP SDK
 ==================
 This is the BlockTrail PHP SDK. This SDK contains methods for easily interacting with the BlockTrail API.
 Below are examples to get you started. For additional examples, please see our official documentation
-at https://www.blocktrail.com/api/docs
+at https://www.blocktrail.com/api/docs/php
 
 [![Latest Stable Version](https://badge.fury.io/ph/blocktrail%2Fblocktrail-sdk.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk-php)
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.png)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
 [![tip for next commit](https://tip4commit.com/projects/1009.svg)](https://tip4commit.com/github/blocktrail/blocktrail-sdk-php)
+
+IMPORTANT! FLOATS ARE EVIL!!
+----------------------------
+As is best practice with financial data, The API returns all values as an integer, the Bitcoin value in Satoshi's.
+**In PHP even more than in other languages it's really easy to make mistakes whem converting from float to integer etc!**
+
+When doing so it's really important that you use the `bcmath` or `gmp` libraries to avoid weird rounding errors!
+The BlockTrail SDK has some easy to use functions to do this for you, we recommend using these
+and we also **strongly** recommend doing all Bitcoin calculation and storing of data in integers
+and only convert to/from Bitcoin float values for displaying it to the user.
+
+A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/python#api_coin_format).
 
 Installation
 ------------
@@ -29,22 +41,17 @@ use BlockTrail\SDK\APIClient;
 
 Usage
 -----
-...
-
-Additional Info
----------------
-For usage examples on each API endpoint, head over to our official documentation pages.
+Please visit our official documentation at https://www.blocktrail.com/api/docs/php for the usage.
 
 Support and Feedback
 --------------------
-Be sure to visit the BlockTrail API official [documentation website](https://www.blocktrail.com/api/docs)
+Be sure to visit the BlockTrail API official [documentation website](https://www.blocktrail.com/api/docs/php)
 for additional information about our API.
 
 If you find a bug, please submit the issue in Github directly. 
 [BlockTrail-PHP-SDK Issues](https://github.com/blocktrail/blocktrail-sdk-php/issues)
 
-As always, if you need additional assistance, drop us a note at 
-[support@blocktrail.com](mailto:support@blocktrail.com).
+If you need additional assistance, contact one of our developers at [devs@blocktrail.com](mailto:devs@blocktrail.com).
 
 Community Donations & Contributions
 -----------------------------------

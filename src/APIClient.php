@@ -35,7 +35,7 @@ class APIClient {
                 $network = "t{$network}";
             }
 
-            $apiEndpoint = "http://api.blocktrail.ngrok.com/{$apiVersion}/{$network}/";
+            $apiEndpoint = "https://api.blocktrail.com/{$apiVersion}/{$network}/";
         }
 
         $this->client = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
