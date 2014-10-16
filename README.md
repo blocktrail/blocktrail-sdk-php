@@ -18,7 +18,7 @@ The BlockTrail SDK has some easy to use functions to do this for you, we recomme
 and we also **strongly** recommend doing all Bitcoin calculation and storing of data in integers
 and only convert to/from Bitcoin float values for displaying it to the user.
 
-```
+```php
 use BlockTrail\SDK\BlockTrail;
 
 echo "123456789 Satoshi to BTC: " . BlockTrail::toBTC(123456789) . " \n";

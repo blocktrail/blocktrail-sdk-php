@@ -75,11 +75,11 @@ class APIClient {
      * @param  string  $sortDir pagination: sort direction (asc|desc)
      * @return array            associative array containing the response
      */
-    public function addressTransactions($address, $page=1, $limit=20, $sortDir='asc') {
+    public function addressTransactions($address, $page = 1, $limit = 20, $sortDir = 'asc') {
         $queryString = array(
-            'page'     => $page,
-            'limit'    => $limit,
-            'sort_dir' => $sortDir  
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
         );
         $response = $this->client->get("address/{$address}/transactions", $queryString);
         return json_decode($response->body(), true);
@@ -93,11 +93,11 @@ class APIClient {
      * @param  string  $sortDir pagination: sort direction (asc|desc)
      * @return array            associative array containing the response
      */
-    public function addressUnconfirmedTransactions($address, $page=1, $limit=20, $sortDir='asc') {
+    public function addressUnconfirmedTransactions($address, $page = 1, $limit = 20, $sortDir = 'asc') {
         $queryString = array(
-            'page'     => $page,
-            'limit'    => $limit,
-            'sort_dir' => $sortDir  
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
         );
         $response = $this->client->get("address/{$address}/unconfirmed-transactions", $queryString);
         return json_decode($response->body(), true);
@@ -111,11 +111,11 @@ class APIClient {
      * @param  string  $sortDir pagination: sort direction (asc|desc)
      * @return array            associative array containing the response
      */
-    public function addressUnspentOutputs($address, $page=1, $limit=20, $sortDir='asc') {
+    public function addressUnspentOutputs($address, $page = 1, $limit = 20, $sortDir = 'asc') {
         $queryString = array(
-            'page'     => $page,
-            'limit'    => $limit,
-            'sort_dir' => $sortDir  
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
         );
         $response = $this->client->get("address/{$address}/unspent-outputs", $queryString);
         return json_decode($response->body(), true);
@@ -142,11 +142,11 @@ class APIClient {
      * @param  string  $sortDir pagination: sort direction (asc|desc)
      * @return array            associative array containing the response
      */
-    public function allBlocks($page=1, $limit=20, $sortDir='asc') {
+    public function allBlocks($page = 1, $limit = 20, $sortDir = 'asc') {
         $queryString = array(
-            'page'     => $page,
-            'limit'    => $limit,
-            'sort_dir' => $sortDir  
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
         );
         $response = $this->client->get("all-blocks", $queryString);
         return json_decode($response->body(), true);
@@ -179,11 +179,11 @@ class APIClient {
      * @param  string           $sortDir pagination: sort direction (asc|desc)
      * @return array                     associative array containing the response
      */
-    public function blockTransactions($block, $page=1, $limit=20, $sortDir='asc') {
+    public function blockTransactions($block, $page = 1, $limit = 20, $sortDir = 'asc') {
         $queryString = array(
-            'page'     => $page,
-            'limit'    => $limit,
-            'sort_dir' => $sortDir  
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
         );
         $response = $this->client->get("block/{$block}/transactions", $queryString);
         return json_decode($response->body(), true);
