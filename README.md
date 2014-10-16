@@ -18,7 +18,15 @@ The BlockTrail SDK has some easy to use functions to do this for you, we recomme
 and we also **strongly** recommend doing all Bitcoin calculation and storing of data in integers
 and only convert to/from Bitcoin float values for displaying it to the user.
 
-A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/python#api_coin_format).
+```
+use BlockTrail\SDK\BlockTrail;
+
+echo "123456789 Satoshi to BTC: " . BlockTrail::toBTC(123456789) . " \n";
+echo "1.23456789 BTC to Satoshi: " . BlockTrail::toSatoshi(1.23456789) . " \n";
+
+```
+
+A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/php#api_coin_format).
 
 Installation
 ------------
