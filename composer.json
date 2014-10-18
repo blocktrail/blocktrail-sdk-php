@@ -17,17 +17,12 @@
         }
     },
     "license": "MIT",
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/blocktrail/http-signatures-guzzlehttp.git"
-        }
-    ],
+    "repositories": [],
     "require": {
         "php": ">=5.4.0",
         "ext-bcmath": "*",
         "guzzlehttp/guzzle": "4.2.*",
-        "99designs/http-signatures-guzzlehttp": "dev-master"
+        "99designs/http-signatures-guzzlehttp": "dev-master#55d7e74e9954486ba0ed9da4b11cbc5d10805f6c"
     },
     "require-dev": {
         "phpunit/phpunit": "4.3.*",
