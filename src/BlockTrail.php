@@ -12,7 +12,7 @@ abstract class BlockTrail {
     const PRECISION = 8;
     const COIN_FORMAT = "%.8f";
 
-    const SDK_VERSION = "0.0.1";
+    const SDK_VERSION = "1.0.2";
     const SDK_USER_AGENT = "blocktrail-sdk-php";
     const DEFAULT_TIME_ZONE = "UTC";
 
