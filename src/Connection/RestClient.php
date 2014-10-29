@@ -9,6 +9,7 @@ use BlockTrail\SDK\Connection\Exceptions\UnknownEndpointSpecificError;
 use GuzzleHttp\Client as Guzzle;
 use GuzzleHttp\Message\ResponseInterface;
 use GuzzleHttp\Post\PostBodyInterface;
+use GuzzleHttp\Stream\Stream;
 use HttpSignatures\Context;
 use HttpSignatures\GuzzleHttp\RequestSubscriber;
 
@@ -128,12 +129,12 @@ class RestClient {
             $request->setHeader('Date', $this->getRFC1123DateString());
         }
 
-        /**
-         * @var PostBodyInterface $postBody
-         */
-        $postBody = $request->getBody();
-        $postBody->replaceFields($postData);
+        if (!$request->hasHeader('Content-Type')) {
+            $request->setHeader('Content-Type', 'application/json');
+        }
 
+        $postBody = json_encode($postData);
+        $request->setBody(Stream::factory($postBody));
         $request->setHeader('Content-MD5', md5((string)$postBody));
 
         if ($auth) {
@@ -191,13 +192,15 @@ class RestClient {
             $request->setHeader('Date', $this->getRFC1123DateString());
         }
 
-        /**
-         * @var PostBodyInterface $postBody
-         */
-        $postBody = $request->getBody();
-        $postBody->replaceFields($putData);
 
-        $request->setHeader('Content-MD5', md5((string)$postBody));
+
+        if (!$request->hasHeader('Content-Type')) {
+            $request->setHeader('Content-Type', 'application/json');
+        }
+
+        $putBody = json_encode($putData);
+        $request->setBody(Stream::factory($putBody));
+        $request->setHeader('Content-MD5', md5((string)$putBody));
 
         if ($auth) {
             $request->getConfig()['auth'] = $auth;
