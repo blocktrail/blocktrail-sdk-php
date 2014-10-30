@@ -160,4 +160,44 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue($response['enough_fee']);
         $this->assertFalse($response['high_priority']);
     }
+
+    public function testWebhooks() {
+        $client = $this->setupAPIClient();
+
+        //create a webhook with custom identity
+        $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test", 'my-webhook-id');
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('url', $response, "'url' key not in response");
+        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
+        $this->assertEquals("my-webhook-id", $response['identifier'], "identifier does not match expected value");
+        $webhookID1 = $response['identifier'];
+
+        //create a webhook without custom identity
+        $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test");
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('url', $response, "'url' key not in response");
+        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
+        $this->assertNotEquals("", $response['identifier'], "identifier does not match expected value");
+        $webhookID2 = $response['identifier'];
+
+        //delete a webhook
+        $response = $client->deleteWebhook($webhookID1);
+        $this->assertTrue($response);
+
+        //update a webhook
+        $newIdentity = "a-new-identity";
+        $newUrl = "https://www.blocktrail.com/new-webhook-url";
+        $response = $client->updateWebhook($webhookID2, $newUrl, $newIdentity);
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('url', $response, "'url' key not in response");
+        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
+        $this->assertEquals($newUrl, $response['url'], "Webhook url does not match expected value");
+        $this->assertEquals($newIdentity, $response['identifier'], "identifier does not match expected value");
+
+        //cleanup
+        $response = $client->deleteWebhook($newIdentity);
+        $this->assertTrue($response);
+    }
 }

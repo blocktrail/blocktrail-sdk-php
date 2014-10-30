@@ -35,7 +35,8 @@ class APIClient {
                 $network = "t{$network}";
             }
 
-            $apiEndpoint = "https://api.blocktrail.com/{$apiVersion}/{$network}/";
+            //$apiEndpoint = "https://api.blocktrail.com/{$apiVersion}/{$network}/";  //nocommit
+            $apiEndpoint = "http://api.blocktrail.localhost/{$apiVersion}/{$network}/";
         }
 
         $this->client = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
@@ -129,9 +130,7 @@ class APIClient {
      */
     public function verifyAddress($address, $signature) {
         $postData = array('signature' => $signature);
-
         $response = $this->client->post("address/{$address}/verify", $postData, 'http-signatures');
-
         return json_decode($response->body(), true);
     }
 
@@ -196,6 +195,35 @@ class APIClient {
      */
     public function transaction($txhash) {
         $response = $this->client->get("transaction/{$txhash}");
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * create a new webhook
+     * @param  string  $url        the url to receive the webhook events
+     * @param  string  $identifier a unique identifier to associate with this webhook (optional)
+     * @return array               associative array containing the response
+     */
+    public function setupWebhook($url, $identifier = null) {
+        $postData = array(
+            'url'        => $url,
+            'identifier' => $identifier
+        );
+        $response = $this->client->post("webhook", $postData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    public function updateWebhook($identifier, $newUrl = null, $newIdentifier = null) {
+        $putData = array(
+            'url'        => $newUrl,
+            'identifier' => $newIdentifier
+        );
+        $response = $this->client->put("webhook/{$identifier}", $putData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    public function deleteWebhook($identifier) {
+        $response = $this->client->delete("webhook/{$identifier}", 'http-signatures');
         return json_decode($response->body(), true);
     }
 }
