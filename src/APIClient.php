@@ -35,8 +35,7 @@ class APIClient {
                 $network = "t{$network}";
             }
 
-            //$apiEndpoint = "https://api.blocktrail.com/{$apiVersion}/{$network}/";  //nocommit
-            $apiEndpoint = "http://api.blocktrail.localhost/{$apiVersion}/{$network}/";
+            $apiEndpoint = "https://api.blocktrail.com/{$apiVersion}/{$network}/";
         }
 
         $this->client = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
@@ -199,6 +198,31 @@ class APIClient {
     }
 
     /**
+     * get a paginated list of all webhooks associated with the api user
+     * @param  integer          $page    pagination: page number
+     * @param  integer          $limit   pagination: records per page
+     * @return array                     associative array containing the response
+     */
+    public function allWebhooks($page = 1, $limit = 20) {
+        $queryString = array(
+            'page' => $page,
+            'limit' => $limit
+        );
+        $response = $this->client->get("webhooks", $queryString);
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * get an existing webhook by it's identifier
+     * @param string    $identifier     a unique identifier associated with the webhook
+     * @return array                    associative array containing the response
+     */
+    public function getWebhook($identifier) {
+        $response = $this->client->get("webhook/".$identifier);
+        return json_decode($response->body(), true);
+    }
+
+    /**
      * create a new webhook
      * @param  string  $url        the url to receive the webhook events
      * @param  string  $identifier a unique identifier to associate with this webhook (optional)
@@ -224,6 +248,43 @@ class APIClient {
 
     public function deleteWebhook($identifier) {
         $response = $this->client->delete("webhook/{$identifier}", 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    public function getWebhookEvents($identity, $page = 1, $limit = 20) {
+        $queryString = array(
+            'page' => $page,
+            'limit' => $limit
+        );
+        $response = $this->client->get("webhook/{$identity}/events", $queryString);
+        return json_decode($response->body(), true);
+    }
+
+    public function subscribeAddressTransactions($identifier, $address, $confirmations = 6) {
+        $postData = array(
+            'event_type'    => 'address-transactions',
+            'address'       => $address,
+            'confirmations' => $confirmations,
+        );
+        $response = $this->client->post("webhook/{$identifier}/events", $postData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    public function subscribeBlock($identifier) {
+        $postData = array(
+            'event_type'    => 'block',
+        );
+        $response = $this->client->post("webhook/{$identifier}/events", $postData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    public function unsubscribeAddressTransactions($identifier, $address) {
+        $response = $this->client->delete("webhook/{$identifier}/address-transactions/{$address}", 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    public function unsubscribeBlock($identifier) {
+        $response = $this->client->delete("webhook/{$identifier}/block", 'http-signatures');
         return json_decode($response->body(), true);
     }
 }
