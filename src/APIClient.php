@@ -296,11 +296,11 @@ class APIClient {
     }
 
     /**
-     * subscribes a webhook to block events
+     * subscribes a webhook to a new block event
      * @param  string  $identifier  the unique identifier of the webhook to be triggered
      * @return array                associative array containing the response
      */
-    public function subscribeBlock($identifier) {
+    public function subscribeNewBlocks($identifier) {
         $postData = array(
             'event_type'    => 'block',
         );

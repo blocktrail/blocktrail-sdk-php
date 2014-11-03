@@ -230,7 +230,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(2, $response['confirmations'], "confirmations does not match expected value");
 
         //add webhook event subscription (block)
-        $response = $client->subscribeBlock($webhookID2);
+        $response = $client->subscribeNewBlocks($webhookID2);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('event_type', $response, "'event_type' key not in response");
         $this->assertArrayHasKey('address', $response, "'address' key not in response");
