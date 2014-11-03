@@ -258,7 +258,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue($response === true, "response does not match expected value");
 
         //unsubscribe webhook event (block)
-        $response = $client->unsubscribeBlock($webhookID2);
+        $response = $client->unsubscribeNewBlocks($webhookID2);
         $this->assertTrue($response === true, "response does not match expected value");
 
         //cleanup

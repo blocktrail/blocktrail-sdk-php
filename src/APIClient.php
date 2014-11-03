@@ -324,7 +324,7 @@ class APIClient {
      * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
      * @return boolean                  true on success
      */
-    public function unsubscribeBlock($identifier) {
+    public function unsubscribeNewBlocks($identifier) {
         $response = $this->client->delete("webhook/{$identifier}/block", 'http-signatures');
         return json_decode($response->body(), true);
     }
