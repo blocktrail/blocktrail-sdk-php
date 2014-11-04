@@ -5,7 +5,7 @@ Below are examples to get you started. For additional examples, please see our o
 at https://www.blocktrail.com/api/docs/php
 
 [![Latest Stable Version](https://badge.fury.io/ph/blocktrail%2Fblocktrail-sdk.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk-php)
-[![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.png)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
+[![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.svg?branch=master)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
 [![tip for next commit](https://tip4commit.com/projects/1009.svg)](https://tip4commit.com/github/blocktrail/blocktrail-sdk-php)
 
 IMPORTANT! FLOATS ARE EVIL!!
