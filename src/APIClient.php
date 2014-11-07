@@ -264,6 +264,7 @@ class APIClient {
     }
 
     /**
+     * get a paginated list of all the events a webhook is subscribed to
      * @param  string  $identifier  the unique identifier of the webhook
      * @param  integer $page        pagination: page number
      * @param  integer $limit       pagination: records per page
