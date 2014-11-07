@@ -164,6 +164,14 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
     public function testWebhooks() {
         $client = $this->setupAPIClient();
 
+        //pre-test cleanup
+        $allWebhooks = $client->allWebhooks(1, 500);
+        if($allWebhooks) {
+            foreach($allWebhooks['data'] as $webhook){
+                $client->deleteWebhook($webhook['identifier']);
+            }
+        }
+
         //create a webhook with custom identity
         $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test", 'my-webhook-id');
         $this->assertTrue(is_array($response), "Default response is not an array");
