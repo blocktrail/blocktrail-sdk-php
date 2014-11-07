@@ -167,8 +167,8 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         //pre-test cleanup
         $allWebhooks = $client->allWebhooks(1, 500);
         if($allWebhooks) {
-            foreach($allWebhooks['data'] as $webhook){
-                $client->deleteWebhook($webhook['identifier']);
+            foreach($allWebhooks['data'] as $webhook) {
+                $this->assertTrue(!!$client->deleteWebhook($webhook['identifier']));
             }
         }
 
@@ -213,7 +213,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
 
         //delete a webhook
         $response = $client->deleteWebhook($webhookID1);
-        $this->assertTrue($response);
+        $this->assertTrue(!!$response);
 
         //update a webhook
         $newIdentity = "a-new-identity";
