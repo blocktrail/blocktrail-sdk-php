@@ -1,16 +1,19 @@
 <?php
 
-namespace BlockTrail\SDK;
+namespace Blocktrail\SDK;
 
 /**
- * Class BlockTrail
+ * Class Blocktrail contains constants for usage throughout the codebase
  *
- * @package BlockTrail\SDK
+ * @package Blocktrail\SDK
  */
-abstract class BlockTrail {
+abstract class Blocktrail {
+
     const COIN = 100000000;
     const PRECISION = 8;
     const COIN_FORMAT = "%.8f";
+
+    const DUST = 546;
 
     const SDK_VERSION = "1.0.2";
     const SDK_USER_AGENT = "blocktrail-sdk-php";
@@ -25,32 +28,38 @@ abstract class BlockTrail {
     const EXCEPTION_OBJECT_NOT_FOUND = "The object you've tried to access does not exist.";
 
     /**
+     * @deprecated use BlocktrailSDK::toBTC instead
+     *
      * convert a Satoshi value (int) to a BTC value (float)
      *
      * @param int       $satoshi
      * @return float
      */
     public static function toBTC($satoshi) {
-        return (float)bcdiv((int)(string)$satoshi, BlockTrail::COIN, BlockTrail::PRECISION);
+        BlocktrailSDK::toBTC($satoshi);
     }
 
     /**
+     * @deprecated use BlocktrailSDK::toBTCString instead
+     *
      * convert a Satoshi value (int) to a BTC value (float) and return it as a string
-
+     *
      * @param int       $satoshi
      * @return string
      */
     public static function toBTCString($satoshi) {
-        return sprintf(BlockTrail::COIN_FORMAT, BlockTrail::toBTC($satoshi));
+        BlocktrailSDK::toBTCString($satoshi);
     }
 
     /**
+     * @deprecated use BlocktrailSDK::toSatoshi instead
+     *
      * convert a BTC value (float) to a Satoshi value (int)
      *
      * @param float     $btc
      * @return int
      */
     public static function toSatoshi($btc) {
-        return (int)bcmul(sprintf("%.8f", (float)(string)$btc), BlockTrail::COIN, 0);
+        BlocktrailSDK::toSatoshi($btc);
     }
 }

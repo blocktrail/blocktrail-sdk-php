@@ -1,10 +1,7 @@
 <?php
 
-namespace BlockTrail\SDK\Tests;
+namespace Blocktrail\SDK\Tests;
 
-use BlockTrail\SDK\APIClient;
-use BlockTrail\SDK\Connection\Exceptions\InvalidCredentials;
-use BlockTrail\SDK\Exceptions\InvalidFormat;
 use GuzzleHttp\Post\PostBody;
 use HttpSignatures\Context;
 use HttpSignatures\GuzzleHttp\Message;
@@ -13,8 +10,6 @@ use HttpSignatures\GuzzleHttp\RequestSubscriber;
 /**
  * Class CrossPlatformTest
  * test cases to validate if the various low-level libraries in our SDKs give the same results
- *
- * @package BlockTrail\SDK\Tests
  */
 class CrossPlatformTest extends \PHPUnit_Framework_TestCase {
 
