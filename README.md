@@ -19,32 +19,46 @@ and we also **strongly** recommend doing all Bitcoin calculation and storing of 
 and only convert to/from Bitcoin float values for displaying it to the user.
 
 ```php
-use BlockTrail\SDK\BlockTrail;
+use Blocktrail\SDK\BlocktrailSDK;
 
-echo "123456789 Satoshi to BTC: " . BlockTrail::toBTC(123456789) . " \n";
-echo "1.23456789 BTC to Satoshi: " . BlockTrail::toSatoshi(1.23456789) . " \n";
+echo "123456789 Satoshi to BTC: " . BlocktrailSDK::toBTC(123456789) . " \n";
+echo "1.23456789 BTC to Satoshi: " . BlocktrailSDK::toSatoshi(1.23456789) . " \n";
 
 ```
 
 A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/php#api_coin_format).
+
+Requirements
+------------
+The SDK requires the Intl, GMP, BCMath and Mcrypt PHP extensions.  
+To install these on Ubuntu use:
+```
+sudo apt-get install php5-bcmath php5-intl php5-gmp php5-mcrypt
+sudo php5enmod mcrypt
+```
 
 Installation
 ------------
 To install the SDK, you will need to be using [Composer](http://getcomposer.org/) in your project.
 If you aren't using Composer yet, it's really simple! Here's how to install composer and the BlockTrail PHP SDK.
 
-```PHP
+```
 # Install Composer
 curl -sS https://getcomposer.org/installer | php
 
 # Add the BlockTrail SDK as a dependency
-php composer.phar require blocktrail/blocktrail-sdk:~1.0
+php composer.phar require blocktrail/blocktrail-sdk
 ``` 
 
 Next, require Composer's autoloader, in your application, to automatically load the BlockTrail SDK in your project:
 ```PHP
 require 'vendor/autoload.php';
-use BlockTrail\SDK\APIClient;
+use Blocktrail\SDK\BlocktrailSDK;
+```
+
+Or if put the following in your `composer.json`:
+```
+"blocktrail/blocktrail-sdk": "1.1.*"
 ```
 
 Usage

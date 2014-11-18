@@ -1,59 +1,108 @@
 <?php
 
-namespace BlockTrail\SDK\Tests;
+namespace Blocktrail\SDK\Tests;
 
-use BlockTrail\SDK\APIClient;
-use BlockTrail\SDK\BlockTrail;
-use BlockTrail\SDK\Connection\Exceptions\InvalidCredentials;
+use Blocktrail\SDK\BlocktrailSDK;
+use Blocktrail\SDK\Connection\Exceptions\InvalidCredentials;
 
-/**
- * Class APIClientTest
- *
- * @package BlockTrail\SDK\Tests
- */
 class APIClientTest extends \PHPUnit_Framework_TestCase {
 
     /**
-     * setup an instance of APIClient
+     * setup an instance of BlocktrailSDK
      *
-     * @return APIClient
+     * @return BlocktrailSDK
      */
-    public function setupAPIClient() {
-        $client = new APIClient("MY_APIKEY", "MY_APISECRET");
+    public function setupBlocktrailSDK() {
+        $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET");
         // $client->setCurlDebugging();
         return $client;
     }
 
     /**
-     * setup an instance of APIClient
+     * setup an instance of BlocktrailSDK
      *
-     * @return APIClient
+     * @return BlocktrailSDK
      */
-    public function setupBadAPIClient() {
-        return new APIClient("TESTKEY-FAIL", "TESTSECRET-FAIL");
+    public function setupBadBlocktrailSDK() {
+        return new BlocktrailSDK("TESTKEY-FAIL", "TESTSECRET-FAIL");
     }
 
-    public function testCoinValue() {
-        $this->assertEquals(1, BlockTrail::toSatoshi(0.00000001));
-        $this->assertEquals(1, BlockTrail::toSatoshi("0.00000001"));
-        $this->assertEquals(1.0, BlockTrail::toBTC(100000000));
-        $this->assertEquals(1.0, BlockTrail::toBTC("100000000"));
+    public function testSatoshiConversion() {
+        $toSatoshi = [
+            ["0.00000001",         "1"],
+            [0.00000001,           "1"],
+            ["0.29560000",         "29560000"],
+            [0.29560000,           "29560000"],
+            ["1.0000009",          "100000090"],
+            [1.0000009,            "100000090"],
+            ["1.00000009",         "100000009"],
+            [1.00000009,           "100000009"],
+            ["21000000.00000001",  "2100000000000001"],
+            [21000000.00000001,    "2100000000000001"],
+            ["21000000.0000009",   "2100000000000090"],
+            [21000000.0000009,     "2100000000000090"],
+            ["21000000.00000009",  "2100000000000009"],
+            [21000000.00000009,    "2100000000000009"],
+            ["210000000.00000009", "21000000000000009"],
+            [210000000.00000009,   "21000000000000009"],
 
-        $this->assertEquals(123456789, BlockTrail::toSatoshi(1.23456789));
-        $this->assertEquals(123456789, BlockTrail::toSatoshi("1.23456789"));
-        $this->assertEquals(1.23456789, BlockTrail::toBTC(123456789));
-        $this->assertEquals(1.23456789, BlockTrail::toBTC("123456789"));
+            // thee fail because when the BTC value is converted to a float it looses precision
+            // ["2100000000.00000009", "210000000000000009"],
+            // [2100000000.00000009,   "210000000000000009"],
+        ];
+
+        $toBTC = [
+            ["1",                  "0.00000001"],
+            [1,                    "0.00000001"],
+            ["29560000",           "0.29560000"],
+            [29560000,             "0.29560000"],
+            ["100000090",          "1.00000090"],
+            [100000090,            "1.00000090"],
+            ["100000009",          "1.00000009"],
+            [100000009,            "1.00000009"],
+            ["2100000000000001",   "21000000.00000001"],
+            [2100000000000001,     "21000000.00000001"],
+            ["2100000000000090",   "21000000.00000090"],
+            [2100000000000090,     "21000000.00000090"],
+            ["2100000000000009",   "21000000.00000009"],
+            [2100000000000009,     "21000000.00000009"],
+            ["21000000000000009",  "210000000.00000009"],
+            [21000000000000009,    "210000000.00000009"],
+            ["210000000000000009",  "2100000000.00000009"],
+            [210000000000000009,    "2100000000.00000009"],
+            ["2100000000000000009",  "21000000000.00000009"],
+            [2100000000000000009,    "21000000000.00000009"],
+            // these fail because they're > PHP_INT_MAX
+            // ["21000000000000000009",  "210000000000.00000009"],
+            // [21000000000000000009,    "210000000000.00000009"],
+        ];
+
+        foreach ($toSatoshi as $i => $test) {
+            $btc = $test[0];
+            $satoshi = $test[1];
+
+            $this->assertEquals($satoshi, BlocktrailSDK::toSatoshi($btc), "[{$i}] {$btc} => {$satoshi}");
+            $this->assertTrue($satoshi === BlocktrailSDK::toSatoshi($btc), "[{$i}] {$btc} => {$satoshi}");
+        }
+
+        foreach ($toBTC as $i => $test) {
+            $satoshi = $test[0];
+            $btc = $test[1];
+
+            $this->assertEquals($btc, BlocktrailSDK::toBTC($satoshi), "[{$i}] {$satoshi} => {$btc}");
+            $this->assertTrue($btc === BlocktrailSDK::toBTC($satoshi), "[{$i}] {$satoshi} => {$btc}");
+        }
     }
 
     public function testSigning() {
-        $client = $this->setupBadAPIClient();
+        $client = $this->setupBadBlocktrailSDK();
 
         try {
             $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
             $this->fail("Bad keys still succeeded");
         } catch (InvalidCredentials $e) {}
 
-        $client = $this->setupAPIClient();
+        $client = $this->setupBlocktrailSDK();
 
         try {
             $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
@@ -65,7 +114,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testAddress() {
-        $client = $this->setupAPIClient();
+        $client = $this->setupBlocktrailSDK();
 
         //address info
         $address = $client->address("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp");
@@ -100,7 +149,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testBlock() {
-        $client = $this->setupAPIClient();
+        $client = $this->setupBlocktrailSDK();
 
         //block info
         $response = $client->block("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf");
@@ -140,7 +189,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testTransaction() {
-        $client = $this->setupAPIClient();
+        $client = $this->setupBlocktrailSDK();
 
         //coinbase TX
         $response = $client->transaction("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b");
@@ -162,7 +211,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testWebhooks() {
-        $client = $this->setupAPIClient();
+        $client = $this->setupBlocktrailSDK();
 
         //pre-test cleanup
         $allWebhooks = $client->allWebhooks(1, 500);

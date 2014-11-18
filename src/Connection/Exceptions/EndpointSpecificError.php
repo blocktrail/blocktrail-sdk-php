@@ -1,11 +1,11 @@
 <?php
 
-namespace BlockTrail\SDK\Connection\Exceptions;
+namespace Blocktrail\SDK\Connection\Exceptions;
 
 /**
  * Class EndpointSpecificError
  *
- * @package BlockTrail\SDK\Connection\Exceptions
+ * @package Blocktrail\SDK\Connection\Exceptions
  */
 class EndpointSpecificError extends \Exception {
 
