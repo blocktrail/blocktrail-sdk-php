@@ -1,14 +1,14 @@
 language: php
-
 php:
-  - 5.4
-  - 5.5
-  - 5.6
-  - hhvm
-
+- 5.4
+- 5.5
+- 5.6
+- hhvm
 install:
- - "composer update"
-
+- composer update
 script:
- - ./vendor/bin/phpunit
- - ./vendor/bin/phpcs --standard=./phpcs.xml -n -a ./src/
+- "./vendor/bin/phpunit"
+- "./vendor/bin/phpcs --standard=./phpcs.xml -n -a ./src/"
+notifications:
+  slack:
+    secure: fwLiJFbxPCyY6+REN3XZ06RlffSVua3tW5Ih/p4xwp2KXNdcCldWCmziVhf65JGYaRU20M4HEOOcD+IpOI/IjpNHjF/+6OmtUGfkT9OfDCmuElqyq8UT6ck+xfb7FVtK42zkx0U3xC1qCclbFjY1Rht7vt5VnGN7Q3qJ3ax7mcM=
