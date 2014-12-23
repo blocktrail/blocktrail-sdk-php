@@ -25,7 +25,10 @@
     ],
     "require": {
         "php": ">=5.4.0",
+        "ext-intl": "*",
+        "ext-gmp": "*",
         "ext-bcmath": "*",
+        "ext-mcrypt": "*",
         "guzzlehttp/guzzle": "4.2.*",
         "99designs/http-signatures-guzzlehttp": "1.0.0",
         "bitwasp/bitcoin-lib": "dev-blocktrail",

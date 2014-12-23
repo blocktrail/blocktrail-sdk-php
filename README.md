@@ -28,12 +28,21 @@ echo "1.23456789 BTC to Satoshi: " . BlocktrailSDK::toSatoshi(1.23456789) . " \n
 
 A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/php#api_coin_format).
 
+Requirements
+------------
+The SDK requires the Intl, GMP, BCMath and Mcrypt PHP extensions.  
+To install these on Ubuntu use:
+```
+sudo apt-get install php5-bcmath php5-intl php5-gmp php5-mcrypt
+sudo php5enmod mcrypt
+```
+
 Installation
 ------------
 To install the SDK, you will need to be using [Composer](http://getcomposer.org/) in your project.
 If you aren't using Composer yet, it's really simple! Here's how to install composer and the BlockTrail PHP SDK.
 
-```PHP
+```
 # Install Composer
 curl -sS https://getcomposer.org/installer | php
 
