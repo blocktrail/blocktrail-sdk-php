@@ -406,26 +406,29 @@ class BlocktrailSDK {
 
         $checksum = $this->createChecksum($primaryPrivateKey);
 
-        $result = $this->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum);
+        $result = $this->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $account);
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
 
         if (isset($result['upgrade_account'])) {
             $account = $result['upgrade_account'];
 
             $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)BIP44::BIP44(($this->testnet ? 1 : 0), $account)->accountPath()));
-            $this->upgradeAccount($identifier, $account, $primaryPublicKey);
+            $result = $this->upgradeAccount($identifier, $account, $primaryPublicKey);
+
+            $blocktrailPublicKeys = $blocktrailPublicKeys + $result['blocktrail_public_keys'];
         }
 
         return array(new Wallet($this, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $account, $this->testnet), $backupMnemonic);
     }
 
-    public function _createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum) {
+    public function _createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $account) {
         $data = [
             'identifier' => $identifier,
             'primary_public_key' => $primaryPublicKey,
             'backup_public_key' => $backupPublicKey,
             'primary_mnemonic' => $primaryMnemonic,
-            'checksum' => $checksum
+            'checksum' => $checksum,
+            'account' => $account
         ];
 
         $response = $this->client->post("wallet", null, $data, 'http-signatures');
@@ -439,7 +442,7 @@ class BlocktrailSDK {
         ];
 
         $response = $this->client->post("wallet/{$identifier}/upgrade", null, $data, 'http-signatures');
-        return json_decode($response->body(), true)['upgraded'];
+        return json_decode($response->body(), true);
     }
 
     public function initWallet($identifier, $password) {
