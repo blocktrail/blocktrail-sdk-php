@@ -1,17 +1,16 @@
 <?php
 
-use BlockTrail\SDK\APIClient;
-use BlockTrail\SDK\BlockTrail;
+use Blocktrail\SDK\BlocktrailSDK;
 
-require_once __DIR__ . "/vendor/autoload.php";
+require_once __DIR__ . "/../vendor/autoload.php";
 
-$client = new APIClient("MY_APIKEY", "MY_APISECRET");
+$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET");
 // $client->setCurlDebugging();
 
 // GET request
 echo "\n -- Get Address Data -- \n";
 $address = $client->address("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp");
-var_dump($address['address'], $address['balance'], BlockTrail::toBTC($address['balance']));
+var_dump($address['address'], $address['balance'], BlocktrailSDK::toBTC($address['balance']));
 
 
 // POST Request
@@ -23,6 +22,6 @@ var_dump($result);
 
 // Dealing with numbers
 echo "\n -- 123456789 Satoshi to BTC -- \n";
-var_dump(BlockTrail::toBTC(123456789));
+var_dump(BlocktrailSDK::toBTC(123456789));
 echo "\n -- 1.23456789 BTC to Satoshi -- \n";
-var_dump(BlockTrail::toSatoshi(1.23456789));
+var_dump(BlocktrailSDK::toSatoshi(1.23456789));

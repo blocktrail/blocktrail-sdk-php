@@ -1,6 +1,5 @@
 {
     "name": "blocktrail/blocktrail-sdk",
-    "version": "1.0.4",
     "authors": [
         {
             "name": "Ruben de Vries",
@@ -13,15 +12,26 @@
     ],
     "autoload": {
         "psr-4": {
-            "BlockTrail\\SDK\\": "src/"
+            "Blocktrail\\SDK\\": "src/"
         }
     },
     "license": "MIT",
+    "repositories": [
+        {
+            "comment": "nocommit",
+            "type": "vcs",
+            "url": "https://github.com/blocktrail/bitcoin-lib-php"
+        }
+    ],
     "require": {
         "php": ">=5.4.0",
         "ext-bcmath": "*",
         "guzzlehttp/guzzle": "4.2.*",
-        "99designs/http-signatures-guzzlehttp": "1.0.0"
+        "99designs/http-signatures-guzzlehttp": "1.0.0",
+        "bitwasp/bitcoin-lib": "dev-blocktrail",
+        "mdanter/ecc": "0.2.0",
+        "rych/hash_pbkdf2-compat": "~1.0",
+        "rhumsaa/array_column": "~1.1"
     },
     "require-dev": {
         "phpunit/phpunit": "4.3.*",

@@ -1,13 +1,13 @@
 <?PHP
 
-namespace BlockTrail\SDK\Connection;
+namespace Blocktrail\SDK\Connection;
 
 use GuzzleHttp\Stream\StreamInterface;
 
 /**
  * Class Response
  *
- * @package BlockTrail\SDK\Connection
+ * @package Blocktrail\SDK\Connection
  */
 class Response {
 
