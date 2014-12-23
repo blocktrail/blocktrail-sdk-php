@@ -129,9 +129,7 @@ class APIClient {
      */
     public function verifyAddress($address, $signature) {
         $postData = array('signature' => $signature);
-
         $response = $this->client->post("address/{$address}/verify", $postData, 'http-signatures');
-
         return json_decode($response->body(), true);
     }
 
@@ -196,6 +194,139 @@ class APIClient {
      */
     public function transaction($txhash) {
         $response = $this->client->get("transaction/{$txhash}");
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * get a paginated list of all webhooks associated with the api user
+     * @param  integer          $page    pagination: page number
+     * @param  integer          $limit   pagination: records per page
+     * @return array                     associative array containing the response
+     */
+    public function allWebhooks($page = 1, $limit = 20) {
+        $queryString = array(
+            'page' => $page,
+            'limit' => $limit
+        );
+        $response = $this->client->get("webhooks", $queryString);
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * get an existing webhook by it's identifier
+     * @param string    $identifier     a unique identifier associated with the webhook
+     * @return array                    associative array containing the response
+     */
+    public function getWebhook($identifier) {
+        $response = $this->client->get("webhook/".$identifier);
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * create a new webhook
+     * @param  string  $url        the url to receive the webhook events
+     * @param  string  $identifier a unique identifier to associate with this webhook (optional)
+     * @return array               associative array containing the response
+     */
+    public function setupWebhook($url, $identifier = null) {
+        $postData = array(
+            'url'        => $url,
+            'identifier' => $identifier
+        );
+        $response = $this->client->post("webhook", $postData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * update an existing webhook
+     * @param  string  $identifier      the unique identifier of the webhook to update
+     * @param  string  $newUrl          the new url to receive the webhook events (optional)
+     * @param  string  $newIdentifier   a new unique identifier to associate with this webhook (optional)
+     * @return array                    associative array containing the response
+     */
+    public function updateWebhook($identifier, $newUrl = null, $newIdentifier = null) {
+        $putData = array(
+            'url'        => $newUrl,
+            'identifier' => $newIdentifier
+        );
+        $response = $this->client->put("webhook/{$identifier}", $putData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * deletes an existing webhook and any event subscriptions associated with it
+     * @param  string  $identifier      the unique identifier of the webhook to delete
+     * @return boolean                  true on success
+     */
+    public function deleteWebhook($identifier) {
+        $response = $this->client->delete("webhook/{$identifier}", 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * get a paginated list of all the events a webhook is subscribed to
+     * @param  string  $identifier  the unique identifier of the webhook
+     * @param  integer $page        pagination: page number
+     * @param  integer $limit       pagination: records per page
+     * @return array                associative array containing the response
+     */
+    public function getWebhookEvents($identifier, $page = 1, $limit = 20) {
+        $queryString = array(
+            'page' => $page,
+            'limit' => $limit
+        );
+        $response = $this->client->get("webhook/{$identifier}/events", $queryString);
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * subscribes a webhook to transaction events on a particular address
+     * @param  string  $identifier      the unique identifier of the webhook to be triggered
+     * @param  string  $address         the address hash
+     * @param  integer $confirmations   the amount of confirmations to send.
+     * @return array                    associative array containing the response
+     */
+    public function subscribeAddressTransactions($identifier, $address, $confirmations = 6) {
+        $postData = array(
+            'event_type'    => 'address-transactions',
+            'address'       => $address,
+            'confirmations' => $confirmations,
+        );
+        $response = $this->client->post("webhook/{$identifier}/events", $postData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * subscribes a webhook to a new block event
+     * @param  string  $identifier  the unique identifier of the webhook to be triggered
+     * @return array                associative array containing the response
+     */
+    public function subscribeNewBlocks($identifier) {
+        $postData = array(
+            'event_type'    => 'block',
+        );
+        $response = $this->client->post("webhook/{$identifier}/events", $postData, 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * removes an address transaction event subscription from a webhook
+     * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
+     * @param  string  $address         the address hash of the event subscription
+     * @return boolean                  true on success
+     */
+    public function unsubscribeAddressTransactions($identifier, $address) {
+        $response = $this->client->delete("webhook/{$identifier}/address-transactions/{$address}", 'http-signatures');
+        return json_decode($response->body(), true);
+    }
+
+    /**
+     * removes a block event subscription from a webhook
+     * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
+     * @return boolean                  true on success
+     */
+    public function unsubscribeNewBlocks($identifier) {
+        $response = $this->client->delete("webhook/{$identifier}/block", 'http-signatures');
         return json_decode($response->body(), true);
     }
 }

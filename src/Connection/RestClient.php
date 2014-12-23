@@ -192,8 +192,6 @@ class RestClient {
             $request->setHeader('Date', $this->getRFC1123DateString());
         }
 
-
-
         if (!$request->hasHeader('Content-Type')) {
             $request->setHeader('Content-Type', 'application/json');
         }
