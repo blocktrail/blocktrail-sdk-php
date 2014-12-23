@@ -27,7 +27,8 @@ try {
      */
 }
 
-var_dump($wallet->getBalance());
+list($confirmed, $unconfirmed) = $wallet->getBalance();
+var_dump($confirmed);
 
 var_dump($wallet->pay([
     "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)

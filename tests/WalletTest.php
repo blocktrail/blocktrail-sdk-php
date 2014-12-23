@@ -156,7 +156,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $wallet = $client->initWallet($identifier, "password");
         $this->wallets[] = $wallet; // store for cleanup
 
-        $this->assertEquals(0, $wallet->getBalance()['confirmed']);
+        $this->assertEquals(0, $wallet->getBalance()[0]);
 
         try {
             $wallet->pay([

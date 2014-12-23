@@ -189,7 +189,9 @@ class Wallet {
     }
 
     public function getBalance() {
-        return $this->sdk->getWalletBalance($this->identifier);
+        $balanceInfo = $this->sdk->getWalletBalance($this->identifier);
+
+        return [$balanceInfo['confirmed'], $balanceInfo['unconfirmed']];
     }
 
     public function doDiscovery() {
