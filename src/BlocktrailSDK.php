@@ -44,7 +44,7 @@ class BlocktrailSDK {
                 $network = "t{$network}";
             }
 
-            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
+            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "http://api.moon.blocktrail.com";
             $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$network}/";
         }
 
