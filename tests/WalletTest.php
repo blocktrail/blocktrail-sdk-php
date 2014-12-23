@@ -51,6 +51,13 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->wallets = [];
     }
 
+    protected function getRandomTestIdentifier() {
+        $identifier = md5(openssl_random_pseudo_bytes(128));
+        $time = time();
+
+        return "unittest-{$time}-{$identifier}";
+    }
+
     protected function createTestWallet(BlocktrailSDK $client, $identifier, $passphrase = "password") {
         $primaryMnemonic = "give pause forget seed dance crawl situate hole keen";
 
@@ -61,7 +68,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $backupPublicKey = "02018179b2c46b1bb5ce2fce07c7a5badeada97ac686581670a174f2dee61d3df2";
         $testnet = true;
 
-        $result = $client->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, "");
+        $result = $client->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, "", 9999);
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
         $account = $result['account'];
 
@@ -71,7 +78,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testWallet() {
         $client = $this->setupBlocktrailSDK();
 
-        $identifier = md5(openssl_random_pseudo_bytes(128));
+        $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
 
@@ -113,7 +120,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testWalletBadPassword() {
         $client = $this->setupBlocktrailSDK();
 
-        $identifier = md5(openssl_random_pseudo_bytes(128));
+        $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTestWallet($client, $identifier, "password2");
         $this->wallets[] = $wallet; // store for cleanup
 
@@ -133,7 +140,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testNewBlankWallet() {
         $client = $this->setupBlocktrailSDK();
 
-        $identifier = md5(openssl_random_pseudo_bytes(128));
+        $identifier = $this->getRandomTestIdentifier();
 
         /**
          * @var $wallet \Blocktrail\SDK\Wallet
