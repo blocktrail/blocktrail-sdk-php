@@ -647,6 +647,8 @@ class BlocktrailSDK {
     protected function generateNewMnemonic($forceEntropy = null) {
         if (!$forceEntropy) {
             $entropy = BIP39::generateEntropy(512);
+        } else {
+            $entropy = $forceEntropy;
         }
 
         return BIP39::entropyToMnemonic($entropy);
