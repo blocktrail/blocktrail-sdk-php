@@ -309,7 +309,6 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         $this->cleanupData['webhooks'][] = $webhookID2 = $response['identifier'];
 
         //add webhook event subscription (address-transactions)
-        //$webhookID2 = $newIdentifier; @todo delete, done above
         $address = "1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp";
         $response = $client->subscribeAddressTransactions($webhookID2, $address, 2);
         $this->assertTrue(is_array($response), "Default response is not an array");
