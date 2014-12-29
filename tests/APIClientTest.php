@@ -281,9 +281,7 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertArrayHasKey('url', $response['data'][0], "'url' key not in first webhook of response");
         $this->assertArrayHasKey('url', $response['data'][1], "'url' key not in second webhook of response");
-        //$this->assertEquals($webhookID1, $response['data'][0]['identifier'], "First webhook identifier does not match expected value");
-        //$this->assertEquals($webhookID2, $response['data'][1]['identifier'], "Second webhook identifier does not match expected value");
-
+        
         //get a single webhook
         $response = $client->getWebhook($webhookID1);
         $this->assertTrue(is_array($response), "Default response is not an array");
