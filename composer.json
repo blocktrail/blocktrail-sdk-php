@@ -16,13 +16,6 @@
         }
     },
     "license": "MIT",
-    "repositories": [
-        {
-            "comment": "nocommit",
-            "type": "vcs",
-            "url": "https://github.com/blocktrail/bitcoin-lib-php"
-        }
-    ],
     "require": {
         "php": ">=5.4.0",
         "ext-intl": "*",
@@ -31,7 +24,7 @@
         "ext-mcrypt": "*",
         "guzzlehttp/guzzle": "4.2.*",
         "99designs/http-signatures-guzzlehttp": "1.0.0",
-        "bitwasp/bitcoin-lib": "dev-blocktrail",
+        "blocktrail/bitcoin-lib": "1.0.5",
         "mdanter/ecc": "0.2.0",
         "rych/hash_pbkdf2-compat": "~1.0",
         "rhumsaa/array_column": "~1.1"
