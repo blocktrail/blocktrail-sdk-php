@@ -160,4 +160,117 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue($response['enough_fee']);
         $this->assertFalse($response['high_priority']);
     }
+
+    public function testWebhooks() {
+        $client = $this->setupAPIClient();
+
+        //pre-test cleanup
+        $allWebhooks = $client->allWebhooks(1, 500);
+        if($allWebhooks) {
+            foreach($allWebhooks['data'] as $webhook) {
+                $this->assertTrue(!!$client->deleteWebhook($webhook['identifier']));
+            }
+        }
+
+        //create a webhook with custom identity
+        $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test", 'my-webhook-id');
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('url', $response, "'url' key not in response");
+        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
+        $this->assertEquals("my-webhook-id", $response['identifier'], "identifier does not match expected value");
+        $webhookID1 = $response['identifier'];
+
+        //create a webhook without custom identity
+        $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test");
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('url', $response, "'url' key not in response");
+        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
+        $this->assertNotEquals("", $response['identifier'], "identifier does not match expected value");
+        $webhookID2 = $response['identifier'];
+
+        //get all webhooks
+        $response = $client->allWebhooks();
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('data', $response, "'data' key not in response");
+        $this->assertArrayHasKey('total', $response, "'total' key not in response");
+        $this->assertEquals(2, $response['total'], "'total' does not match expected value");
+        $this->assertEquals(2, count($response['data']), "Count of webhooks returned is not equal to 2");
+
+        $this->assertArrayHasKey('url', $response['data'][0], "'url' key not in first webhook of response");
+        $this->assertArrayHasKey('url', $response['data'][1], "'url' key not in second webhook of response");
+        $this->assertEquals($webhookID1, $response['data'][0]['identifier'], "First webhook identifier does not match expected value");
+        $this->assertEquals($webhookID2, $response['data'][1]['identifier'], "Second webhook identifier does not match expected value");
+
+        //get a single webhook
+        $response = $client->getWebhook($webhookID1);
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('url', $response, "'url' key not in response");
+        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
+        $this->assertEquals("my-webhook-id", $response['identifier'], "identifier does not match expected value");
+
+        //delete a webhook
+        $response = $client->deleteWebhook($webhookID1);
+        $this->assertTrue(!!$response);
+
+        //update a webhook
+        $newIdentity = "a-new-identity";
+        $newUrl = "https://www.blocktrail.com/new-webhook-url";
+        $response = $client->updateWebhook($webhookID2, $newUrl, $newIdentity);
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('url', $response, "'url' key not in response");
+        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
+        $this->assertEquals($newUrl, $response['url'], "Webhook url does not match expected value");
+        $this->assertEquals($newIdentity, $response['identifier'], "identifier does not match expected value");
+
+        //add webhook event subscription (address-transactions)
+        $webhookID2 = $newIdentity;
+        $address = "1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp";
+        $response = $client->subscribeAddressTransactions($webhookID2, $address, 2);
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('event_type', $response, "'event_type' key not in response");
+        $this->assertArrayHasKey('address', $response, "'address' key not in response");
+        $this->assertArrayHasKey('confirmations', $response, "'confirmations' key not in response");
+        $this->assertEquals("address-transactions", $response['event_type'], "event type does not match expected value");
+        $this->assertEquals($address, $response['address'], "address does not match expected value");
+        $this->assertEquals(2, $response['confirmations'], "confirmations does not match expected value");
+
+        //add webhook event subscription (block)
+        $response = $client->subscribeNewBlocks($webhookID2);
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('event_type', $response, "'event_type' key not in response");
+        $this->assertArrayHasKey('address', $response, "'address' key not in response");
+        $this->assertArrayHasKey('confirmations', $response, "'confirmations' key not in response");
+        $this->assertEquals("block", $response['event_type'], "event type does not match expected value");
+        $this->assertNull($response['address'], "address does not match expected value");
+        $this->assertNull($response['confirmations'], "confirmations does not match expected value");
+
+        //get webhook's event subscriptions
+        $response = $client->getWebhookEvents($webhookID2);
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('data', $response, "'data' key not in response");
+        $this->assertArrayHasKey('total', $response, "'total' key not in response");
+        $this->assertEquals(2, $response['total'], "'total' does not match expected value");
+        $this->assertEquals(2, count($response['data']), "Count of events returned is not equal to 2");
+
+        $this->assertArrayHasKey('event_type', $response['data'][0], "'event_type' key not in first webhook of response");
+        $this->assertArrayHasKey('event_type', $response['data'][1], "'event_type' key not in second webhook of response");
+        $this->assertEquals("address-transactions", $response['data'][0]['event_type'], "First subscription event type does not match expected value");
+        $this->assertEquals("block", $response['data'][1]['event_type'], "Second subscription event type does not match expected value");
+
+        //unsubscribe webhook event (address-transaction)
+        $address = "1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp";
+        $response = $client->unsubscribeAddressTransactions($webhookID2, $address);
+        $this->assertTrue($response === true, "response does not match expected value");
+
+        //unsubscribe webhook event (block)
+        $response = $client->unsubscribeNewBlocks($webhookID2);
+        $this->assertTrue($response === true, "response does not match expected value");
+
+        //cleanup
+        $response = $client->deleteWebhook($newIdentity);
+        $this->assertTrue($response);
+    }
 }
