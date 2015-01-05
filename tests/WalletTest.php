@@ -12,8 +12,13 @@ use Blocktrail\SDK\Wallet;
 /**
  * Class WalletTest
  *
+ * ! IMPORTANT NODE !
+ * throughout the test cases we use account=9999 to force an insecure development key on the API side
+ *  this insecure key is used instead of the normal one so that we can reproduce the result on our staging environment
+ *  without our private keys having to leaving our safe production environment
+ *
+ *
  * @package Blocktrail\SDK\Tests
- * @TODO delete test wallets
  */
 class WalletTest extends \PHPUnit_Framework_TestCase {
 
