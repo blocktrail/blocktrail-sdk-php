@@ -5,7 +5,7 @@ namespace Blocktrail\SDK\Tests;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\InvalidCredentials;
 
-class APIClientTest extends \PHPUnit_Framework_TestCase {
+class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
 
     /**
      * stores arrays of data to be deleted on cleanup
