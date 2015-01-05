@@ -8,6 +8,12 @@ use Blocktrail\SDK\Connection\Exceptions\InvalidCredentials;
 class APIClientTest extends \PHPUnit_Framework_TestCase {
 
     /**
+     * stores arrays of data to be deleted on cleanup
+     * @var array
+     */
+    protected $cleanupData = array();
+
+    /**
      * setup an instance of BlocktrailSDK
      *
      * @return BlocktrailSDK
@@ -15,7 +21,36 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
     public function setupBlocktrailSDK() {
         $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET");
         // $client->setCurlDebugging();
+        // $client->setCurlDefaultOption('verify', false); //just for local testing when cURL can't verify ssl certs
         return $client;
+    }
+
+    protected function tearDown()
+    {
+        //called after each test
+        $this->cleanUp();
+    }
+    protected function onNotSuccessfulTest(\Exception $e)
+    {
+        //called when a test fails
+        $this->cleanUp();
+        throw $e;
+    }
+    protected function cleanUp()
+    {
+        //cleanup any records that were created
+        $client = $this->setupBlocktrailSDK();
+
+        //webhooks
+        if(isset($this->cleanupData['webhooks'])) {
+            $count = 0;
+            foreach($this->cleanupData['webhooks'] as $webhook) {
+                try{
+                    $count += (int)$client->deleteWebhook($webhook);
+                } catch (\Exception $e){}
+            }
+            echo "\ncleanup - {$count} webhooks deleted\n";
+        }
     }
 
     /**
@@ -213,69 +248,66 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
     public function testWebhooks() {
         $client = $this->setupBlocktrailSDK();
 
-        //pre-test cleanup
-        $allWebhooks = $client->allWebhooks(1, 500);
-        if($allWebhooks) {
-            foreach($allWebhooks['data'] as $webhook) {
-                $this->assertTrue(!!$client->deleteWebhook($webhook['identifier']));
-            }
-        }
+        //keep track of all webhooks created for cleanup
+        $this->cleanupData['webhooks'] = array();
 
-        //create a webhook with custom identity
-        $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test", 'my-webhook-id');
+        //create a webhook with custom identifier (randomly generated)
+        $bytes = openssl_random_pseudo_bytes(10);
+        $identifier1 = bin2hex($bytes);
+        $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test", $identifier1);
+
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('url', $response, "'url' key not in response");
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
         $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
-        $this->assertEquals("my-webhook-id", $response['identifier'], "identifier does not match expected value");
-        $webhookID1 = $response['identifier'];
+        $this->assertEquals($identifier1, $response['identifier'], "identifier does not match expected value");
+        $this->cleanupData['webhooks'][] = $webhookID1 = $response['identifier'];
 
-        //create a webhook without custom identity
+        //create a webhook without custom identifier
         $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test");
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('url', $response, "'url' key not in response");
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
         $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
         $this->assertNotEquals("", $response['identifier'], "identifier does not match expected value");
-        $webhookID2 = $response['identifier'];
+        $this->cleanupData['webhooks'][] = $webhookID2 = $response['identifier'];
 
         //get all webhooks
         $response = $client->allWebhooks();
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
-        $this->assertEquals(2, $response['total'], "'total' does not match expected value");
-        $this->assertEquals(2, count($response['data']), "Count of webhooks returned is not equal to 2");
+        $this->assertGreaterThanOrEqual(2, $response['total'], "'total' is not greater than expected value");
+        $this->assertGreaterThanOrEqual(2, count($response['data']), "Count of webhooks returned is not greater than or equal to 2");
 
         $this->assertArrayHasKey('url', $response['data'][0], "'url' key not in first webhook of response");
         $this->assertArrayHasKey('url', $response['data'][1], "'url' key not in second webhook of response");
-        $this->assertEquals($webhookID1, $response['data'][0]['identifier'], "First webhook identifier does not match expected value");
-        $this->assertEquals($webhookID2, $response['data'][1]['identifier'], "Second webhook identifier does not match expected value");
-
+        
         //get a single webhook
         $response = $client->getWebhook($webhookID1);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('url', $response, "'url' key not in response");
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
         $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
-        $this->assertEquals("my-webhook-id", $response['identifier'], "identifier does not match expected value");
+        $this->assertEquals($identifier1, $response['identifier'], "identifier does not match expected value");
 
         //delete a webhook
         $response = $client->deleteWebhook($webhookID1);
         $this->assertTrue(!!$response);
 
         //update a webhook
-        $newIdentity = "a-new-identity";
+        $bytes = openssl_random_pseudo_bytes(10);
+        $newIdentifier = bin2hex($bytes);
         $newUrl = "https://www.blocktrail.com/new-webhook-url";
-        $response = $client->updateWebhook($webhookID2, $newUrl, $newIdentity);
+        $response = $client->updateWebhook($webhookID2, $newUrl, $newIdentifier);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('url', $response, "'url' key not in response");
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
         $this->assertEquals($newUrl, $response['url'], "Webhook url does not match expected value");
-        $this->assertEquals($newIdentity, $response['identifier'], "identifier does not match expected value");
+        $this->assertEquals($newIdentifier, $response['identifier'], "identifier does not match expected value");
+        $this->cleanupData['webhooks'][] = $webhookID2 = $response['identifier'];
 
         //add webhook event subscription (address-transactions)
-        $webhookID2 = $newIdentity;
         $address = "1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp";
         $response = $client->subscribeAddressTransactions($webhookID2, $address, 2);
         $this->assertTrue(is_array($response), "Default response is not an array");
@@ -317,9 +349,5 @@ class APIClientTest extends \PHPUnit_Framework_TestCase {
         //unsubscribe webhook event (block)
         $response = $client->unsubscribeNewBlocks($webhookID2);
         $this->assertTrue($response === true, "response does not match expected value");
-
-        //cleanup
-        $response = $client->deleteWebhook($newIdentity);
-        $this->assertTrue($response);
     }
 }
