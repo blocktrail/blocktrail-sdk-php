@@ -303,8 +303,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('url', $response, "'url' key not in response");
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
-        $this->assertEquals($newUrl, $response['url'], "Webhook url does not match expected value");
         $this->assertEquals($newIdentifier, $response['identifier'], "identifier does not match expected value");
+        $this->assertEquals($newUrl, $response['url'], "Webhook url does not match expected value when updating when updating");
         $this->cleanupData['webhooks'][] = $webhookID2 = $response['identifier'];
 
         //add webhook event subscription (address-transactions)
