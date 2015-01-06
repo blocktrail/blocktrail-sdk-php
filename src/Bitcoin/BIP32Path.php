@@ -16,6 +16,14 @@ class BIP32Path implements \ArrayAccess {
         $this->path = is_array($path) ? $path : explode("/", $path);
     }
 
+    public function insert($insert, $offset) {
+        $path = $this->path;
+
+        array_splice($path, $offset+1, 0, [$insert]);
+
+        return new static($path);
+    }
+
     /**
      * increase the last level of the path by 1 and return the new path
      *
@@ -114,18 +122,29 @@ class BIP32Path implements \ArrayAccess {
      *
      * @return BIP32Path
      */
-    public function unhardened() {
+    public function unhardenedLast() {
         $path = $this->path;
 
         $last = array_pop($path);
 
-        if (!($hardened = (strpos($last, "'") !== false))) {
-            return $this;
-        }
-
         $last = str_replace("'", "", $last);
 
         $path[] = $last;
+
+        return new static($path);
+    }
+
+    /**
+     * unharden all levels of the path and return the new path
+     *
+     * @return BIP32Path
+     */
+    public function unhardenedPath() {
+        $path = $this->path;
+
+        foreach ($path as $i => $level) {
+            $path[$i] = str_replace("'", "", $level);
+        }
 
         return new static($path);
     }
@@ -139,7 +158,8 @@ class BIP32Path implements \ArrayAccess {
         $path = $this->path;
 
         if ($path[0] === "M") {
-            return $this;
+
+            return new static($path);
         } else if ($path[0] === "m") {
             $path[0] = "M";
 
@@ -158,7 +178,8 @@ class BIP32Path implements \ArrayAccess {
         $path = $this->path;
 
         if ($path[0] === "m") {
-            return $this;
+
+            return new static($path);
         } else if ($path[0] === "M") {
             $path[0] = "m";
 

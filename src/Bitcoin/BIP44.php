@@ -52,10 +52,6 @@ class BIP44 {
      */
     public function external($external = true) {
         $external = self::castExternal($external);
-        if ($external === $this->external) {
-            return $this;
-        }
-
         return new static($this->coin, $this->account, $external);
     }
 
@@ -75,10 +71,6 @@ class BIP44 {
      * @return BIP44
      */
     public function address($address) {
-        if ($address === $this->address) {
-            return $this;
-        }
-
         return new static($this->coin, $this->account, $this->external, $address);
     }
 
