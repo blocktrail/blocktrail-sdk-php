@@ -24,7 +24,7 @@
         "ext-bcmath": "*",
         "ext-mcrypt": "*",
 
-        "blocktrail/bitcoin-lib": "1.0.5",
+        "blocktrail/bitcoin-lib": "1.0.6",
 
         "guzzlehttp/guzzle": "4.2.*",
         "99designs/http-signatures-guzzlehttp": "1.0.0",
