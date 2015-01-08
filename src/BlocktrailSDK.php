@@ -411,44 +411,47 @@ class BlocktrailSDK {
      *
      * @param      $identifier
      * @param      $password
-     * @param int  $account         override for the account to use, this number specifies which blocktrail cosigning key is used
-     * @return array[Wallet, (string)backupMnemonic]
+     * @param int  $keyIndex         override for the blocktrail cosigning key to use
+     * @return array[Wallet, (string)primaryMnemonic, (string)backupMnemonic]
      * @throws \Exception
      */
-    public function createNewWallet($identifier, $password, $account = 0) {
+    public function createNewWallet($identifier, $password, $keyIndex = 0) {
+        $walletPath = WalletPath::WalletPath($keyIndex);
+
         // create new primary seed
         list($primaryMnemonic, $primarySeed, $primaryPrivateKey) = $this->newPrimarySeed($password);
         // create primary public key from the created private key
-        $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)BIP44::BIP44(($this->testnet ? 1 : 0), $account)->accountPath()));
+        $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
 
         // create new backup seed
         list($backupMnemonic, $backupSeed, $backupPrivateKey) = $this->newBackupSeed();
         // create backup public key from the created private key
-        $backupPublicKey = BIP32::extract_public_key($backupPrivateKey);
+        $backupPublicKey = BIP32::build_key($backupPrivateKey, "M");
 
         // create a checksum of our private key which we'll later use to verify we used the right password
         $checksum = $this->createChecksum($primaryPrivateKey);
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
-        $result = $this->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $account);
+        $result = $this->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex);
         // received the blocktrail public keys
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
 
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if (isset($result['upgrade_account'])) {
-            $account = $result['upgrade_account'];
+        if (isset($result['upgrade_key_index'])) {
+            $keyIndex = $result['upgrade_key_index'];
+            $walletPath = WalletPath::WalletPath($keyIndex);
 
             // do the upgrade to the new 'account' number for the BIP44 Path
-            $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)BIP44::BIP44(($this->testnet ? 1 : 0), $account)->accountPath()));
-            $result = $this->upgradeAccount($identifier, $account, $primaryPublicKey);
+            $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
+            $result = $this->upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
 
             // update the blocktrail public keys
             $blocktrailPublicKeys = $blocktrailPublicKeys + $result['blocktrail_public_keys'];
         }
 
         // return wallet and backup mnemonic
-        return array(new Wallet($this, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $account, $this->testnet), $backupMnemonic);
+        return array(new Wallet($this, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet), $primaryMnemonic, $backupMnemonic);
     }
 
     /**
@@ -459,17 +462,17 @@ class BlocktrailSDK {
      * @param string    $backupPublicKey        plain public key
      * @param string    $primaryMnemonic        mnemonic to store
      * @param string    $checksum               checksum to store
-     * @param int       $account                account that we expect to use
+     * @param int       $keyIndex               account that we expect to use
      * @return mixed
      */
-    public function _createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $account) {
+    public function _createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex) {
         $data = [
             'identifier' => $identifier,
             'primary_public_key' => $primaryPublicKey,
             'backup_public_key' => $backupPublicKey,
             'primary_mnemonic' => $primaryMnemonic,
             'checksum' => $checksum,
-            'account' => $account
+            'key_index' => $keyIndex
         ];
 
         $response = $this->client->post("wallet", null, $data, 'http-signatures');
@@ -481,13 +484,13 @@ class BlocktrailSDK {
      *  the account number specifies which blocktrail cosigning key is used
      *
      * @param string    $identifier             the wallet identifier to be upgraded
-     * @param int       $account                the new account to use
+     * @param int       $keyIndex               the new account to use
      * @param array     $primaryPublicKey       BIP32 extended public key - array(key, path)
      * @return mixed
      */
-    public function upgradeAccount($identifier, $account, $primaryPublicKey) {
+    public function upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey) {
         $data = [
-            'account' => $account,
+            'key_index' => $keyIndex,
             'primary_public_key' => $primaryPublicKey
         ];
 
@@ -516,7 +519,7 @@ class BlocktrailSDK {
         $checksum = $wallet['checksum'];
         $backupPublicKey = $wallet['backup_public_key'];
         $blocktrailPublicKeys = $wallet['blocktrail_public_keys'];
-        $account = $wallet['account'];
+        $keyIndex = $wallet['key_index'];
 
         // convert the mnemonic to a seed using BIP39 standard
         $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
@@ -530,18 +533,19 @@ class BlocktrailSDK {
         }
 
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if ($this->autoWalletUpgrade && isset($wallet['upgrade_account'])) {
-            $account = $wallet['upgrade_account'];
+        if ($this->autoWalletUpgrade && isset($wallet['upgrade_key_index'])) {
+            $keyIndex = $wallet['upgrade_key_index'];
+            $walletPath = WalletPath::WalletPath($keyIndex);
 
             // do the upgrade to the new 'account' number for the BIP44 Path
-            $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)BIP44::BIP44(($this->testnet ? 1 : 0), $account)->accountPath()));
-            $result = $this->upgradeAccount($identifier, $account, $primaryPublicKey);
+            $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()));
+            $result = $this->upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
 
             // update the blocktrail public keys
             $blocktrailPublicKeys = $blocktrailPublicKeys + $result['blocktrail_public_keys'];
         }
 
-        return new Wallet($this, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $account, $this->testnet);
+        return new Wallet($this, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
     }
 
     /**
