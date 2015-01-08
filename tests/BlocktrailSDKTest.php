@@ -261,7 +261,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
         $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
         $this->assertEquals($identifier1, $response['identifier'], "identifier does not match expected value");
-        $this->cleanupData['webhooks'][] = $webhookID1 = $response['identifier'];
+        $webhookID1 = $response['identifier'];
+        $this->cleanupData['webhooks'][] = $webhookID1;
 
         //create a webhook without custom identifier
         $response = $client->setupWebhook("https://www.blocktrail.com/webhook-test");
@@ -270,7 +271,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
         $this->assertEquals("https://www.blocktrail.com/webhook-test", $response['url'], "Webhook url does not match expected value");
         $this->assertNotEquals("", $response['identifier'], "identifier does not match expected value");
-        $this->cleanupData['webhooks'][] = $webhookID2 = $response['identifier'];
+        $webhookID2 = $response['identifier'];
+        $this->cleanupData['webhooks'][] = $webhookID2;
 
         //get all webhooks
         $response = $client->allWebhooks();
@@ -305,7 +307,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
         $this->assertEquals($newIdentifier, $response['identifier'], "identifier does not match expected value");
         $this->assertEquals($newUrl, $response['url'], "Webhook url does not match expected value when updating when updating");
-        $this->cleanupData['webhooks'][] = $webhookID2 = $response['identifier'];
+        $webhookID2 = $response['identifier'];
+        $this->cleanupData['webhooks'][] = $webhookID2;
 
         //add webhook event subscription (address-transactions)
         $address = "1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp";
