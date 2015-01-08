@@ -135,7 +135,7 @@ class BlocktrailSDK {
      */
     public function address($address) {
         $response = $this->client->get("address/{$address}");
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -153,7 +153,7 @@ class BlocktrailSDK {
             'sort_dir' => $sortDir
         );
         $response = $this->client->get("address/{$address}/transactions", $queryString);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -171,7 +171,7 @@ class BlocktrailSDK {
             'sort_dir' => $sortDir
         );
         $response = $this->client->get("address/{$address}/unconfirmed-transactions", $queryString);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -189,7 +189,7 @@ class BlocktrailSDK {
             'sort_dir' => $sortDir
         );
         $response = $this->client->get("address/{$address}/unspent-outputs", $queryString);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -203,7 +203,7 @@ class BlocktrailSDK {
 
         $response = $this->client->post("address/{$address}/verify", null, $postData, 'http-signatures');
 
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -220,7 +220,7 @@ class BlocktrailSDK {
             'sort_dir' => $sortDir
         );
         $response = $this->client->get("all-blocks", $queryString);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -229,7 +229,7 @@ class BlocktrailSDK {
      */
     public function blockLatest() {
         $response = $this->client->get("block/latest");
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -239,7 +239,7 @@ class BlocktrailSDK {
      */
     public function block($block) {
         $response = $this->client->get("block/{$block}");
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -257,7 +257,7 @@ class BlocktrailSDK {
             'sort_dir' => $sortDir
         );
         $response = $this->client->get("block/{$block}/transactions", $queryString);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -267,7 +267,7 @@ class BlocktrailSDK {
      */
     public function transaction($txhash) {
         $response = $this->client->get("transaction/{$txhash}");
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
     
     /**
@@ -282,7 +282,7 @@ class BlocktrailSDK {
             'limit' => $limit
         );
         $response = $this->client->get("webhooks", $queryString);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -292,7 +292,7 @@ class BlocktrailSDK {
      */
     public function getWebhook($identifier) {
         $response = $this->client->get("webhook/".$identifier);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -307,7 +307,7 @@ class BlocktrailSDK {
             'identifier' => $identifier
         );
         $response = $this->client->post("webhook", null, $postData, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -323,7 +323,7 @@ class BlocktrailSDK {
             'identifier' => $newIdentifier
         );
         $response = $this->client->put("webhook/{$identifier}", null, $putData, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -333,7 +333,7 @@ class BlocktrailSDK {
      */
     public function deleteWebhook($identifier) {
         $response = $this->client->delete("webhook/{$identifier}", null, null, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -349,7 +349,7 @@ class BlocktrailSDK {
             'limit' => $limit
         );
         $response = $this->client->get("webhook/{$identifier}/events", $queryString);
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -366,7 +366,7 @@ class BlocktrailSDK {
             'confirmations' => $confirmations,
         );
         $response = $this->client->post("webhook/{$identifier}/events", null, $postData, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -379,7 +379,7 @@ class BlocktrailSDK {
             'event_type'    => 'block',
         );
         $response = $this->client->post("webhook/{$identifier}/events", null, $postData, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -390,7 +390,7 @@ class BlocktrailSDK {
      */
     public function unsubscribeAddressTransactions($identifier, $address) {
         $response = $this->client->delete("webhook/{$identifier}/address-transactions/{$address}", null, null, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -400,7 +400,7 @@ class BlocktrailSDK {
      */
     public function unsubscribeNewBlocks($identifier) {
         $response = $this->client->delete("webhook/{$identifier}/block", null, null, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -476,7 +476,7 @@ class BlocktrailSDK {
         ];
 
         $response = $this->client->post("wallet", null, $data, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -495,7 +495,7 @@ class BlocktrailSDK {
         ];
 
         $response = $this->client->post("wallet/{$identifier}/upgrade", null, $data, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -567,7 +567,7 @@ class BlocktrailSDK {
      */
     public function getWallet($identifier) {
         $response = $this->client->get("wallet/{$identifier}", null, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -585,7 +585,7 @@ class BlocktrailSDK {
             'checksum' => $checksumAddress,
             'signature' => $signature
         ], 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -666,7 +666,7 @@ class BlocktrailSDK {
      */
     public function getWalletBalance($identifier) {
         $response = $this->client->get("wallet/{$identifier}/balance", null, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -677,7 +677,7 @@ class BlocktrailSDK {
      */
     public function doWalletDiscovery($identifier) {
         $response = $this->client->get("wallet/{$identifier}/discovery", null, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -705,7 +705,7 @@ class BlocktrailSDK {
      */
     public function _getNewDerivation($identifier, $path) {
         $response = $this->client->post("wallet/{$identifier}/path", null, ['path' => $path], 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -724,7 +724,7 @@ class BlocktrailSDK {
         ];
 
         $response = $this->client->post("wallet/{$identifier}/send", null, $data, 'http-signatures');
-        $signed = json_decode($response->body(), true);
+        $signed = self::jsonDecode($response->body(), true);
 
         if (!$signed['complete'] || $signed['complete'] == 'false') {
             throw new \Exception("Failed to completely sign transaction");
@@ -762,7 +762,7 @@ class BlocktrailSDK {
      */
     public function coinSelection($identifier, $outputs, $lockUTXO = false) {
         $response = $this->client->post("wallet/{$identifier}/coin-selection", ['lock' => (int)!!$lockUTXO], $outputs, 'http-signatures');
-        return json_decode($response->body(), true);
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
@@ -793,5 +793,27 @@ class BlocktrailSDK {
      */
     public static function toSatoshi($btc) {
         return bcmul(sprintf("%.8f", (float)$btc), 100000000, 0);
+    }
+
+    /**
+     * json_decode helper that throws exceptions when it fails to decode
+     *
+     * @param      $json
+     * @param bool $assoc
+     * @return mixed
+     * @throws \Exception
+     */
+    protected static function jsonDecode($json, $assoc = false) {
+        if (!$json) {
+            throw new \Exception("Can't json_decode empty string [{$json}]");
+        }
+
+        $data = json_decode($json, $assoc);
+
+        if ($data === null) {
+            throw new \Exception("Failed to json_decode [{$json}]");
+        }
+
+        return $data;
     }
 }
