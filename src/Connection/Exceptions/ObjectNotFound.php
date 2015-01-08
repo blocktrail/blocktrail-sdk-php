@@ -2,11 +2,12 @@
 
 namespace Blocktrail\SDK\Connection\Exceptions;
 
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+
 /**
  * Class ObjectNotFound
  *
- * @package Blocktrail\SDK\Connection\Exceptions
  */
-class ObjectNotFound extends \Exception {
+class ObjectNotFound extends BlocktrailSDKException {
 
 }

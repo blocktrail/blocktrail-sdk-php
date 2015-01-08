@@ -2,11 +2,12 @@
 
 namespace Blocktrail\SDK\Connection\Exceptions;
 
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+
 /**
  * Class EmptyResponse
  *
- * @package Blocktrail\SDK\Connection\Exceptions
  */
-class EmptyResponse extends \Exception {
+class EmptyResponse extends BlocktrailSDKException {
 
 }

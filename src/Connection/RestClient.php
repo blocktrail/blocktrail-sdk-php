@@ -23,7 +23,6 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Class RestClient
  *
- * @package Blocktrail\SDK\Connection
  */
 class RestClient {
 

@@ -8,8 +8,6 @@ use Blocktrail\SDK\Bitcoin\BIP32Path;
  * Class WalletPath
  *
  * Blocktrail Wallet custom BIP32 Path
- *
- * @package Blocktrail\SDK
  */
 class WalletPath {
     protected $keyIndex;
@@ -33,7 +31,9 @@ class WalletPath {
     }
 
     protected static function BIP32Path(array $path) {
-        return BIP32Path::path(array_values(array_filter($path, function($v) { return $v !== null; })));
+        return BIP32Path::path(array_values(array_filter($path, function ($v) {
+            return $v !== null;
+        })));
     }
 
     /**
@@ -92,7 +92,7 @@ class WalletPath {
      * @param int  $address
      * @return WalletPath
      */
-    public static function WalletPath($keyIndex = 0, $chain = 0, $address = 0) {
+    public static function create($keyIndex = 0, $chain = 0, $address = 0) {
         return new static($keyIndex, $chain, $address);
     }
 

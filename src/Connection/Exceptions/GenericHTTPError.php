@@ -2,11 +2,12 @@
 
 namespace Blocktrail\SDK\Connection\Exceptions;
 
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+
 /**
  * Class GenericHTTPError
  *
- * @package Blocktrail\SDK\Connection\Exceptions
  */
-class GenericHTTPError extends \Exception {
+class GenericHTTPError extends BlocktrailSDKException {
 
 }
