@@ -106,7 +106,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $address);
 
         // get the 2nd address again
-        $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $wallet->getAddress("M/9999'/0/1"));
+        $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $wallet->getAddressByPath("M/9999'/0/1"));
 
         $balance = $wallet->doDiscovery();
         $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
@@ -121,7 +121,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue(!!$txHash);
 
-        sleep(5); // sleep to wait for the TX to be processed
+        sleep(1); // sleep to wait for the TX to be processed
 
         try {
             $tx = $client->transaction($txHash);

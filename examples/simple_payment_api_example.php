@@ -14,13 +14,14 @@ $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet 
  * @var $backupMnemonic     string
  */
 try {
-    $wallet = $client->initWallet("example-wallet99", "example-strong-password");
+    $wallet = $client->initWallet("example-wallet", "example-strong-password");
 } catch (ObjectNotFound $e) {
-    list($wallet, $backupMnemonic) = $client->createNewWallet("example-wallet", "example-strong-password", $_account=9999);
+    list($wallet, $primaryMnemonic, $backupMnemonic) = $client->createNewWallet("example-wallet", "example-strong-password", $_account=9999);
+    $wallet->doDiscovery();
 }
 
 // print some new addresses
-var_dump($wallet->getNewAddress(), $wallet->getNewAddress());
+var_dump($wallet->getAddressByPath("M/9999'/0/0"), $wallet->getAddressByPath("M/9999'/0/1"));
 
 // print the balance
 list($confirmed, $unconfirmed) = $wallet->getBalance();
@@ -28,6 +29,7 @@ var_dump($confirmed, BlocktrailSDK::toBTC($confirmed));
 var_dump($unconfirmed, BlocktrailSDK::toBTC($unconfirmed));
 
 // send a payment (will fail unless you've send some BTC to an address part of this wallet)
+$addr = $wallet->getNewAddress();
 var_dump($wallet->pay([
-    "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+    $addr => BlocktrailSDK::toSatoshi(0.001),
 ]));

@@ -16,6 +16,11 @@ class Wallet {
     const BASE_FEE = 10000;
 
     /**
+     * development / debug setting
+     */
+    const VERIFY_NEW_DERIVATION = true;
+
+    /**
      * @var BlocktrailSDK
      */
     protected $sdk;
@@ -66,7 +71,26 @@ class Wallet {
 
     protected function getNewDerivation() {
         $path = $this->walletPath->path()->last("*");
-        $path = $this->sdk->getNewDerivation($this->identifier, (string)$path);
+
+        if (self::VERIFY_NEW_DERIVATION) {
+            $new = $this->sdk->_getNewDerivation($this->identifier, (string)$path);
+
+            $path = $new['path'];
+            $address = $new['address'];
+            $redeemScript = $new['redeem_script'];
+
+            list($checkAddress, $checkRedeemScript) = $this->getRedeemScriptByPath($path);
+
+            if ($checkAddress != $address) {
+                throw new \Exception("Failed to verify address [{$address}] != [{$checkAddress}]");
+            }
+
+            if ($checkRedeemScript != $redeemScript) {
+                throw new \Exception("Failed to verify redeemScript [{$redeemScript}] != [{$checkRedeemScript}]");
+            }
+        } else {
+            $path = $this->sdk->getNewDerivation($this->identifier, (string)$path);
+        }
 
         return $path;
     }
@@ -94,6 +118,18 @@ class Wallet {
         return [$this->pubKeys[strtoupper($path)], strtoupper($path)];
     }
 
+    public function getAddressByPath($path) {
+        $path = (string)BIP32Path::path($path)->privatePath();
+        if (!isset($this->derivations[$path])) {
+            list($address, $redeemScript) = $this->getRedeemScriptByPath($path);
+
+            $this->derivations[$path] = $address;
+            $this->derivationsByAddress[$address] = $path;
+        }
+
+        return $this->derivations[$path];
+    }
+
     /**
      * get the 2of3 multisig address for:
      *  - the last derived private key
@@ -105,28 +141,25 @@ class Wallet {
      * @param $path
      * @return string
      */
-    public function getAddress($path) {
+    public function getRedeemScriptByPath($path) {
         $path = (string)BIP32Path::path($path)->privatePath();
 
-        if (!isset($this->derivations[$path])) {
-            // optimization to avoid doing BitcoinLib::private_key_to_public_key too much
-            if ($pubKey = $this->getParentPublicKey($path)) {
-                $key = BIP32::build_key($pubKey, strtoupper($path));
-            } else {
-                $key = BIP32::build_key($this->primaryPrivateKey, $path);
-            }
-
-            $address = $this->getAddressFromKey($key, $path);
-
-            $this->derivations[$path] = $address;
-            $this->derivationsByAddress[$address] = $path;
+        // optimization to avoid doing BitcoinLib::private_key_to_public_key too much
+        if ($pubKey = $this->getParentPublicKey($path)) {
+            $key = BIP32::build_key($pubKey, strtoupper($path));
+        } else {
+            $key = BIP32::build_key($this->primaryPrivateKey, $path);
         }
 
-        return $this->derivations[$path];
+        return $this->getRedeemScriptFromKey($key, $path);
     }
 
     protected function getAddressFromKey($key, $path) {
-        $path = BIP32Path::path($path)->publicPath();
+        return $this->getRedeemScriptFromKey($key, $path)[0];
+    }
+
+    protected function getRedeemScriptFromKey($key, $path) {
+            $path = BIP32Path::path($path)->publicPath();
 
         $blocktrailPublicKey = $this->getBlocktrailPublicKey($path);
 
@@ -139,9 +172,7 @@ class Wallet {
             ])
         );
 
-        $address = $multiSig['address'];
-
-        return $address;
+        return [$multiSig['address'], $multiSig['redeemScript']];
     }
 
     public function getBlocktrailPublicKey($path) {
@@ -164,7 +195,7 @@ class Wallet {
     public function getNewAddressPair() {
         $path = $this->getNewDerivation();
 
-        $address = $this->getAddress($path);
+        $address = $this->getAddressByPath($path);
 
         return [$path, $address];
     }
