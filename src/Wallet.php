@@ -6,12 +6,10 @@ use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
-use Blocktrail\SDK\Bitcoin\BIP44;
 
 /**
  * Wallet
  *
- * @package BlockPad
  */
 class Wallet {
 
@@ -59,7 +57,7 @@ class Wallet {
         $this->testnet = $testnet;
         $this->keyIndex = $keyIndex;
 
-        $this->walletPath = WalletPath::WalletPath($this->keyIndex);
+        $this->walletPath = WalletPath::create($this->keyIndex);
     }
 
     public function getIdentifier() {
@@ -373,7 +371,7 @@ class Wallet {
                 $address = $this->getAddressFromKey($key, $path);
 
                 if ($address != $input['address']) {
-                    throw new \Exception("Something is messed up!");
+                    throw new \Exception("Generated address does not match expected address!");
                 }
             } else {
                 throw new \Exception("No redeemScript/path for input");

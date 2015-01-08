@@ -7,7 +7,6 @@ use GuzzleHttp\Stream\StreamInterface;
 /**
  * Class Response
  *
- * @package Blocktrail\SDK\Connection
  */
 class Response {
 

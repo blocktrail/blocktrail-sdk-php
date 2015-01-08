@@ -2,11 +2,12 @@
 
 namespace Blocktrail\SDK\Connection\Exceptions;
 
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+
 /**
  * Class MissingEndpoint
  *
- * @package Blocktrail\SDK\Connection\Exceptions
  */
-class MissingEndpoint extends \Exception {
+class MissingEndpoint extends BlocktrailSDKException {
 
 }

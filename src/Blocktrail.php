@@ -5,7 +5,6 @@ namespace Blocktrail\SDK;
 /**
  * Class Blocktrail contains constants for usage throughout the codebase
  *
- * @package Blocktrail\SDK
  */
 abstract class Blocktrail {
 

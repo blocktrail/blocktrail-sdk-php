@@ -5,7 +5,6 @@ namespace Blocktrail\SDK\Tests;
 use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
-use Blocktrail\SDK\Bitcoin\BIP44;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 use Blocktrail\SDK\Wallet;
@@ -66,7 +65,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     }
 
     protected function createTestWallet(BlocktrailSDK $client, $identifier, $passphrase = "password") {
-        $walletPath = WalletPath::WalletPath(9999);
+        $walletPath = WalletPath::create(9999);
 
         $primaryMnemonic = "give pause forget seed dance crawl situate hole keen";
         $backupMnemonic = "give pause forget seed dance crawl situate hole give";
@@ -127,10 +126,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         try {
             $tx = $client->transaction($txHash);
         } catch (ObjectNotFound $e) {
-            $this->fail("check for tx[{$txHash}]");
+            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
         }
 
-        $this->assertTrue(!!$tx, "check for tx[{$txHash}]");
+        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
     }
 
     /**

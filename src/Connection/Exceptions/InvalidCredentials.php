@@ -2,11 +2,12 @@
 
 namespace Blocktrail\SDK\Connection\Exceptions;
 
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+
 /**
  * Class InvalidCredentials
  *
- * @package Blocktrail\SDK\Connection\Exceptions
  */
-class InvalidCredentials extends \Exception {
+class InvalidCredentials extends BlocktrailSDKException {
 
 }

@@ -2,11 +2,12 @@
 
 namespace Blocktrail\SDK\Connection\Exceptions;
 
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+
 /**
  * Class EndpointSpecificError
  *
- * @package Blocktrail\SDK\Connection\Exceptions
  */
-class EndpointSpecificError extends \Exception {
+class EndpointSpecificError extends BlocktrailSDKException {
 
 }

@@ -2,11 +2,12 @@
 
 namespace Blocktrail\SDK\Connection\Exceptions;
 
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+
 /**
  * Class GenericServerError
  *
- * @package Blocktrail\SDK\Connection\Exceptions
  */
-class GenericServerError extends \Exception {
+class GenericServerError extends BlocktrailSDKException {
 
 }

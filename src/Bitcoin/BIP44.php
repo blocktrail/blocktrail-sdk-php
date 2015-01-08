@@ -114,7 +114,7 @@ class BIP44 {
      * @param int  $address
      * @return BIP44
      */
-    public static function BIP44($coin = 0, $account = 0, $external = true, $address = 0) {
+    public static function create($coin = 0, $account = 0, $external = true, $address = 0) {
         return new static($coin, $account, $external, $address);
     }
 

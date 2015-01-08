@@ -6,9 +6,12 @@ use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
-use Blocktrail\SDK\Bitcoin\BIP44;
 use Blocktrail\SDK\Connection\RestClient;
 
+/**
+ * Class BlocktrailSDK
+ *
+ */
 class BlocktrailSDK {
     /**
      * @var Connection\RestClient
@@ -416,7 +419,7 @@ class BlocktrailSDK {
      * @throws \Exception
      */
     public function createNewWallet($identifier, $password, $keyIndex = 0) {
-        $walletPath = WalletPath::WalletPath($keyIndex);
+        $walletPath = WalletPath::create($keyIndex);
 
         // create new primary seed
         list($primaryMnemonic, $primarySeed, $primaryPrivateKey) = $this->newPrimarySeed($password);
@@ -440,9 +443,9 @@ class BlocktrailSDK {
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
         if (isset($result['upgrade_key_index'])) {
             $keyIndex = $result['upgrade_key_index'];
-            $walletPath = WalletPath::WalletPath($keyIndex);
+            $walletPath = WalletPath::create($keyIndex);
 
-            // do the upgrade to the new 'account' number for the BIP44 Path
+            // do the upgrade to the new 'key_index'
             $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
             $result = $this->upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
 
@@ -535,9 +538,9 @@ class BlocktrailSDK {
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
         if ($this->autoWalletUpgrade && isset($wallet['upgrade_key_index'])) {
             $keyIndex = $wallet['upgrade_key_index'];
-            $walletPath = WalletPath::WalletPath($keyIndex);
+            $walletPath = WalletPath::create($keyIndex);
 
-            // do the upgrade to the new 'account' number for the BIP44 Path
+            // do the upgrade to the new 'key_index'
             $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()));
             $result = $this->upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
 
