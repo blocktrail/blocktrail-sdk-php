@@ -6,7 +6,6 @@ at https://www.blocktrail.com/api/docs/php
 
 [![Latest Stable Version](https://badge.fury.io/ph/blocktrail%2Fblocktrail-sdk.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk)
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.svg?branch=master)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
-[![tip for next commit](https://tip4commit.com/projects/1009.svg)](https://tip4commit.com/github/blocktrail/blocktrail-sdk-php)
 
 IMPORTANT! FLOATS ARE EVIL!!
 ----------------------------
@@ -75,14 +74,6 @@ If you find a bug, please submit the issue in Github directly.
 [BlockTrail-PHP-SDK Issues](https://github.com/blocktrail/blocktrail-sdk-php/issues)
 
 If you need additional assistance, contact one of our developers at [devs@blocktrail.com](mailto:devs@blocktrail.com).
-
-Community Donations & Contributions
------------------------------------
-This project supports community developers via http://tip4commit.com. If participating, developers will receive a Bitcoin tip for each commit that is merged to the master branch.
-
-Note: Core developers, who receive a tip, will donate those tips back to the project's tip jar. This includes all BlockTrail employees.
-
-[![tip for next commit](https://tip4commit.com/projects/1009.svg)](https://tip4commit.com/github/blocktrail/blocktrail-sdk-php)
 
 Unit Tests and Coding Style
 ---------------------------
