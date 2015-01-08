@@ -4,16 +4,18 @@ namespace Blocktrail\SDK\Tests;
 
 use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
+use BitWasp\BitcoinLib\BitcoinLib;
 use Blocktrail\SDK\Bitcoin\BIP44;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 use Blocktrail\SDK\Wallet;
+use Blocktrail\SDK\WalletPath;
 
 /**
  * Class WalletTest
  *
  * ! IMPORTANT NODE !
- * throughout the test cases we use account=9999 to force an insecure development key on the API side
+ * throughout the test cases we use key_index=9999 to force an insecure development key on the API side
  *  this insecure key is used instead of the normal one so that we can reproduce the result on our staging environment
  *  without our private keys having to leaving our safe production environment
  *
@@ -64,20 +66,27 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     }
 
     protected function createTestWallet(BlocktrailSDK $client, $identifier, $passphrase = "password") {
+        $walletPath = WalletPath::WalletPath(9999);
+
         $primaryMnemonic = "give pause forget seed dance crawl situate hole keen";
+        $backupMnemonic = "give pause forget seed dance crawl situate hole give";
 
         $seed = BIP39::mnemonicToSeedHex($primaryMnemonic, $passphrase);
         $primaryPrivateKey = BIP32::master_key($seed, 'bitcoin', true);
-        $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)BIP44::BIP44(1, 9999)->accountPath()));
+        $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
 
-        $backupPublicKey = "02018179b2c46b1bb5ce2fce07c7a5badeada97ac686581670a174f2dee61d3df2";
+        $seed = BIP39::mnemonicToSeedHex($backupMnemonic, "");
+        $backupPrivateKey = BIP32::master_key($seed, 'bitcoin', true);
+        $backupPublicKey = BIP32::build_key($backupPrivateKey, (string)"M");
+
         $testnet = true;
 
         $result = $client->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, "", 9999);
-        $blocktrailPublicKeys = $result['blocktrail_public_keys'];
-        $account = $result['account'];
 
-        return new Wallet($client, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $account, $testnet);
+        $blocktrailPublicKeys = $result['blocktrail_public_keys'];
+        $keyIndex = $result['key_index'];
+
+        return new Wallet($client, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet);
     }
 
     public function testWallet() {
@@ -89,26 +98,31 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/44'/1'/9999'/0/0", $path);
-        $this->assertEquals("2N31kiJ7JR7VoMf1La3xyNHMPni2Xh33FK7", $address);
+        $this->assertEquals("M/9999'/0/0", $path);
+        $this->assertEquals("2MtfSwmdDZYNydgEkBJdu7izu2fmeVpnuLe", $address);
 
         // get another new pair
         list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/44'/1'/9999'/0/1", $path);
-        $this->assertEquals("2N3F17VrrVxvvb1x1K4zfwLaYuebCf9ZtHp", $address);
+        $this->assertEquals("M/9999'/0/1", $path);
+        $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $address);
 
         // get the 2nd address again
-        $this->assertEquals("2N3F17VrrVxvvb1x1K4zfwLaYuebCf9ZtHp", $wallet->getAddress("M/44'/1'/9999'/0/1"));
+        $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $wallet->getAddress("M/9999'/0/1"));
 
-        $this->assertGreaterThan(0, $wallet->doDiscovery()['confirmed']);
+        $balance = $wallet->doDiscovery();
+        $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
+
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
+        $this->assertTrue(BitcoinLib::validate_address($address, false, null));
 
         $txHash = $wallet->pay([
-            "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+            $address => BlocktrailSDK::toSatoshi(0.0001)
         ]);
 
         $this->assertTrue(!!$txHash);
 
-        sleep(2); // sleep to wait for the TX to be processed
+        sleep(5); // sleep to wait for the TX to be processed
 
         try {
             $tx = $client->transaction($txHash);
@@ -131,13 +145,13 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/44'/1'/9999'/0/0", $path);
-        $this->assertEquals("2NFaCPAFbPLVLkd5qimPysQxMs6anXdNHv2", $address);
+        $this->assertEquals("M/9999'/0/0", $path);
+        $this->assertEquals("2N3qxHeFQrg1NcvXspnPdhRva6cZeyNWDDi", $address);
 
         // get another new pair
         list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/44'/1'/9999'/0/1", $path);
-        $this->assertEquals("2N9t7yVa4q5VMdiUZttZgmzFhYmDMrSxeeU", $address);
+        $this->assertEquals("M/9999'/0/1", $path);
+        $this->assertEquals("2MsKsLeJUb6DKiiDdjskTUz8qyEuPgJh8Kp", $address);
 
         $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
     }
@@ -154,7 +168,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $wallet = $client->initWallet($identifier, "password");
             $this->fail("New wallet with ID [{$identifier}] already exists...");
         } catch (ObjectNotFound $e) {
-            list($wallet, $backupMnemonic) = $client->createNewWallet($identifier, "password", 9999);
+            list($wallet, $primaryMnemonic, $backupMnemonic) = $client->createNewWallet($identifier, "password", 9999);
             // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
         }
 

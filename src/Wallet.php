@@ -29,13 +29,11 @@ class Wallet {
     protected $blocktrailPublicKeys;
 
     /**
-     * the 'account' number used for BIP44 path
-     *  this doesn't really function as an account of any kind,
-     *  we're using it if we ever want to change the blocktrail co-signing key
+     * the 'Blocktrail Key Index'
      *
      * @var int
      */
-    protected $account;
+    protected $keyIndex;
 
     protected $testnet;
 
@@ -45,11 +43,11 @@ class Wallet {
     protected $derivationsByAddress = [];
 
     /**
-     * @var BIP44
+     * @var WalletPath
      */
-    protected $bip44;
+    protected $walletPath;
 
-    public function __construct(BlocktrailSDK $sdk, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $account, $testnet) {
+    public function __construct(BlocktrailSDK $sdk, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
@@ -59,18 +57,17 @@ class Wallet {
         $this->blocktrailPublicKeys = $blocktrailPublicKeys;
 
         $this->testnet = $testnet;
-        $this->account = $account;
+        $this->keyIndex = $keyIndex;
 
-        $this->bip44 = BIP44::BIP44(($this->testnet ? "1" : "0"), $this->account, true, 0);
+        $this->walletPath = WalletPath::WalletPath($this->keyIndex);
     }
 
     public function getIdentifier() {
         return $this->identifier;
     }
 
-    protected function getNewDerivation($external = true) {
-        $path = $this->bip44->external($external)->address("*")->path();
-
+    protected function getNewDerivation() {
+        $path = $this->walletPath->path()->last("*");
         $path = $this->sdk->getNewDerivation($this->identifier, (string)$path);
 
         return $path;
@@ -131,14 +128,16 @@ class Wallet {
     }
 
     protected function getAddressFromKey($key, $path) {
+        $path = BIP32Path::path($path)->publicPath();
+
         $blocktrailPublicKey = $this->getBlocktrailPublicKey($path);
 
         $multiSig = RawTransaction::create_multisig(
             2,
             RawTransaction::sort_multisig_keys([
-                BIP32::extract_public_key($key),
-                $this->backupPublicKey,
-                $blocktrailPublicKey
+                BIP32::extract_public_key(BIP32::build_key($key, (string)$path)),
+                BIP32::extract_public_key(BIP32::build_key($this->backupPublicKey, (string)$path->unhardenedPath())),
+                BIP32::extract_public_key(BIP32::build_key($blocktrailPublicKey, (string)$path))
             ])
         );
 
@@ -150,28 +149,22 @@ class Wallet {
     public function getBlocktrailPublicKey($path) {
         $path = BIP32Path::path($path);
 
-        // check if it's BIP44
-        if ($path[1] == "44'") {
-            $account = str_replace("'", "", $path[3]);
-        } else {
-            $account = "0";
+        $keyIndex = str_replace("'", "", $path[1]);
+
+        if (!isset($this->blocktrailPublicKeys[$keyIndex])) {
+            throw new \Exception("No blocktrail publickey for key index [{$keyIndex}]");
         }
 
-        if (!isset($this->blocktrailPublicKeys[$account])) {
-            throw new \Exception("No blocktrail publickey for account [{$account}]");
-        }
-
-        return $this->blocktrailPublicKeys[$account];
+        return $this->blocktrailPublicKeys[$keyIndex];
     }
 
     /**
      * generate a new derived private key and return the new path and address for it
      *
-     * @param bool $external
      * @return string
      */
-    public function getNewAddressPair($external = true) {
-        $path = $this->getNewDerivation($external);
+    public function getNewAddressPair() {
+        $path = $this->getNewDerivation();
 
         $address = $this->getAddress($path);
 
@@ -181,11 +174,10 @@ class Wallet {
     /**
      * generate a new derived private key and return the new address for it
      *
-     * @param bool $external
      * @return string
      */
-    public function getNewAddress($external = true) {
-        return $this->getNewAddressPair($external)[1];
+    public function getNewAddress() {
+        return $this->getNewAddressPair()[1];
     }
 
     public function getBalance() {
@@ -201,11 +193,12 @@ class Wallet {
     /**
      * create, sign and send a transaction
      *
-     * @param array $pay array['address' => int] coins to send
-     * @return string       the txid / transaction hash
+     * @param array     $pay array['address' => int] coins to send
+     * @param string    $changeAddress
+     * @return string the txid / transaction hash
      * @throws \Exception
      */
-    public function pay(array $pay) {
+    public function pay(array $pay, $changeAddress = null) {
         foreach ($pay as $address => $value) {
             if (!BitcoinLib::validate_address($address)) {
                 throw new \Exception("Invalid address [{$address}]");
@@ -236,15 +229,17 @@ class Wallet {
 
         // only add a change output if there's change
         if ($change > 0) {
-            $change_address = $this->getNewAddress();
+            if (!$changeAddress) {
+                $changeAddress = $this->getNewAddress();
+            }
 
             // this should be impossible, but checking for it anyway
-            if (isset($send[$change_address])) {
+            if (isset($send[$changeAddress])) {
                 throw new \Exception("Change address is already part of the outputs");
             }
 
             // add the change output
-            $send[$change_address] = $change;
+            $send[$changeAddress] = $change;
         }
 
         // validate the fee to make sure the API is correct
