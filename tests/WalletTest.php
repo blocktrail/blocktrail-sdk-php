@@ -108,6 +108,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         // get the 2nd address again
         $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $wallet->getAddressByPath("M/9999'/0/1"));
 
+        // get some more addresses
+        $this->assertEquals("2Mw2oeufpB7r4Cdpj5F6wMmisos2efP3iuG", $wallet->getAddressByPath("M/9999'/0/6"));
+        $this->assertEquals("2N2E8R5661c7TCVwhqLZCB72hxj59iSFRSv", $wallet->getAddressByPath("M/9999'/0/44"));
+
         $balance = $wallet->doDiscovery();
         $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
 
