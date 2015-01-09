@@ -5,6 +5,7 @@ namespace Blocktrail\SDK;
 use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
+use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 
 /**
@@ -17,6 +18,8 @@ class Wallet {
 
     /**
      * development / debug setting
+     *  when getting a new derivation from the API,
+     *  will verify address / redeeemScript with the values the API provides
      */
     const VERIFY_NEW_DERIVATION = true;
 
@@ -25,24 +28,67 @@ class Wallet {
      */
     protected $sdk;
 
+    /**
+     * @var string
+     */
     protected $identifier;
 
+    /**
+     * BIP32 master primary private key (m/)
+     *
+     * @var BIP32Key
+     */
     protected $primaryPrivateKey;
+
+    /**
+     * BIP32 master backup public key (M/)
+
+     * @var BIP32Key
+     */
     protected $backupPublicKey;
+
+    /**
+     * map of blocktrail BIP32 public keys
+     *  keyed by key index
+     *  path should be `M / key_index'`
+     *
+     * @var BIP32Key[]
+     */
     protected $blocktrailPublicKeys;
 
     /**
-     * the 'Blocktrail Key Index'
+     * the 'Blocktrail Key Index' that is used for new addresses
      *
      * @var int
      */
     protected $keyIndex;
 
+    /**
+     * testnet yes / no
+     *
+     * @var bool
+     */
     protected $testnet;
 
+    /**
+     * cache of public keys, by path
+     *
+     * @var BIP32Key[]
+     */
     protected $pubKeys = [];
 
+    /**
+     * cache of address / redeemScript, by path
+     *
+     * @var string[][]      [[address, redeemScript)], ]
+     */
     protected $derivations = [];
+
+    /**
+     * reverse cache of paths by address
+     *
+     * @var string[]
+     */
     protected $derivationsByAddress = [];
 
     /**
@@ -50,14 +96,25 @@ class Wallet {
      */
     protected $walletPath;
 
+    /**
+     * @param BlocktrailSDK                 $sdk                        SDK instance used to do requests
+     * @param string                        $identifier                 identifier of the wallet
+     * @param array[string, string]         $primaryPrivateKey          should be BIP32 master key m/
+     * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
+     * @param array[array[string, string]]  $blocktrailPublicKeys
+     * @param int                           $keyIndex
+     * @param bool                          $testnet
+     */
     public function __construct(BlocktrailSDK $sdk, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
 
-        $this->primaryPrivateKey = $primaryPrivateKey;
-        $this->backupPublicKey = $backupPublicKey;
-        $this->blocktrailPublicKeys = $blocktrailPublicKeys;
+        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
+        $this->backupPublicKey = BIP32Key::create($backupPublicKey);
+        $this->blocktrailPublicKeys = array_map(function($key) {
+            return BIP32Key::create($key);
+        }, $blocktrailPublicKeys);
 
         $this->testnet = $testnet;
         $this->keyIndex = $keyIndex;
@@ -65,10 +122,22 @@ class Wallet {
         $this->walletPath = WalletPath::create($this->keyIndex);
     }
 
+    /**
+     * return the wallet identifier
+     *
+     * @return string
+     */
     public function getIdentifier() {
         return $this->identifier;
     }
 
+    /**
+     * get a new BIP32 derivation for the next (unused) address
+     *  by requesting it from the API
+     *
+     * @return string
+     * @throws \Exception
+     */
     protected function getNewDerivation() {
         $path = $this->walletPath->path()->last("*");
 
@@ -92,11 +161,18 @@ class Wallet {
             $path = $this->sdk->getNewDerivation($this->identifier, (string)$path);
         }
 
-        return $path;
+        return (string)$path;
     }
 
+    /**
+     * @param string|BIP32Path  $path
+     * @return BIP32Key|false
+     * @throws \Exception
+     *
+     * @TODO: hmm?
+     */
     protected function getParentPublicKey($path) {
-        $path = BIP32Path::path($path)->parent();
+        $path = BIP32Path::path($path)->parent()->publicPath();
 
         if ($path->count() <= 2) {
             return false;
@@ -106,18 +182,19 @@ class Wallet {
             return false;
         }
 
-        $path = $path->parent();
-
-        if (!isset($this->pubKeys[strtoupper($path)])) {
-            $privKey = BIP32::build_key($this->primaryPrivateKey, $path);
-            $pubKey = BIP32::extended_private_to_public($privKey[0]);
-
-            $this->pubKeys[strtoupper($path)] = $pubKey;
+        if (!isset($this->pubKeys[(string)$path])) {
+            $this->pubKeys[(string)$path] = $this->primaryPrivateKey->buildKey($path);
         }
 
-        return [$this->pubKeys[strtoupper($path)], strtoupper($path)];
+        return $this->pubKeys[(string)$path];
     }
 
+    /**
+     * get address for the specified path
+     *
+     * @param string|BIP32Path  $path
+     * @return string
+     */
     public function getAddressByPath($path) {
         $path = (string)BIP32Path::path($path)->privatePath();
         if (!isset($this->derivations[$path])) {
@@ -131,50 +208,61 @@ class Wallet {
     }
 
     /**
-     * get the 2of3 multisig address for:
-     *  - the last derived private key
-     *  - the backup public key
-     *  - the blocktrail public key
+     * get address and redeemScript for specified path
      *
-     * will create a new derived private key if there are no keys yet
-     *
-     * @param $path
-     * @return string
+     * @param string    $path
+     * @return array[string, string]     [address, redeemScript]
      */
     public function getRedeemScriptByPath($path) {
-        $path = (string)BIP32Path::path($path)->privatePath();
+        $path = BIP32Path::path($path);
 
         // optimization to avoid doing BitcoinLib::private_key_to_public_key too much
         if ($pubKey = $this->getParentPublicKey($path)) {
-            $key = BIP32::build_key($pubKey, strtoupper($path));
+            $key = $pubKey->buildKey($path->publicPath());
         } else {
-            $key = BIP32::build_key($this->primaryPrivateKey, $path);
+            $key = $this->primaryPrivateKey->buildKey($path);
         }
 
         return $this->getRedeemScriptFromKey($key, $path);
     }
 
-    protected function getAddressFromKey($key, $path) {
+    /**
+     * @param BIP32Key          $key
+     * @param string|BIP32Path  $path
+     * @return string
+     */
+    protected function getAddressFromKey(BIP32Key $key, $path) {
         return $this->getRedeemScriptFromKey($key, $path)[0];
     }
 
-    protected function getRedeemScriptFromKey($key, $path) {
-            $path = BIP32Path::path($path)->publicPath();
+    /**
+     * @param BIP32Key          $key
+     * @param string|BIP32Path  $path
+     * @return string[]                 [address, redeemScript]
+     * @throws \Exception
+     */
+    protected function getRedeemScriptFromKey(BIP32Key $key, $path) {
+        $path = BIP32Path::path($path)->publicPath();
 
         $blocktrailPublicKey = $this->getBlocktrailPublicKey($path);
 
         $multiSig = RawTransaction::create_multisig(
             2,
             RawTransaction::sort_multisig_keys([
-                BIP32::extract_public_key(BIP32::build_key($key, (string)$path)),
-                BIP32::extract_public_key(BIP32::build_key($this->backupPublicKey, (string)$path->unhardenedPath())),
-                BIP32::extract_public_key(BIP32::build_key($blocktrailPublicKey, (string)$path))
+                $key->buildKey($path)->publicKey(),
+                $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKey(),
+                $blocktrailPublicKey->buildKey($path)->publicKey()
             ])
         );
 
         return [$multiSig['address'], $multiSig['redeemScript']];
     }
 
+    /**
+     * @param string|BIP32Path  $path
+     * @return BIP32Key
+     * @throws \Exception
+     */
     public function getBlocktrailPublicKey($path) {
         $path = BIP32Path::path($path);
 
@@ -188,13 +276,12 @@ class Wallet {
     }
 
     /**
-     * generate a new derived private key and return the new path and address for it
+     * generate a new derived key and return the new path and address for it
      *
-     * @return string
+     * @return string[]     [path, address]
      */
     public function getNewAddressPair() {
         $path = $this->getNewDerivation();
-
         $address = $this->getAddressByPath($path);
 
         return [$path, $address];
@@ -209,12 +296,22 @@ class Wallet {
         return $this->getNewAddressPair()[1];
     }
 
+    /**
+     * get the balance for the wallet
+     *
+     * @return int[]            [confirmed, unconfirmed]
+     */
     public function getBalance() {
         $balanceInfo = $this->sdk->getWalletBalance($this->identifier);
 
         return [$balanceInfo['confirmed'], $balanceInfo['unconfirmed']];
     }
 
+    /**
+     * do wallet discovery (slow)
+     *
+     * @return int[]            [confirmed, unconfirmed]
+     */
     public function doDiscovery() {
         return $this->sdk->doWalletDiscovery($this->identifier);
     }
@@ -222,9 +319,9 @@ class Wallet {
     /**
      * create, sign and send a transaction
      *
-     * @param array     $pay array['address' => int] coins to send
-     * @param string    $changeAddress
-     * @return string the txid / transaction hash
+     * @param array     $pay            array['address' => int] coins to send
+     * @param string    $changeAddress  (optional) change address to use (autogenerated if NULL)
+     * @return                          string the txid / transaction hash
      * @throws \Exception
      */
     public function pay(array $pay, $changeAddress = null) {
@@ -315,9 +412,9 @@ class Wallet {
      * determine how much fee is required based on the inputs and outputs
      *  this is an estimation, not a proper 100% correct calculation
      *
-     * @param $utxos
-     * @param $outputs
-     * @return integer
+     * @param array[]   $utxos
+     * @param array[]   $outputs
+     * @return int
      */
     public function determineFee($utxos, $outputs) {
         $txoutSize = (count($outputs) * 34);
@@ -364,10 +461,10 @@ class Wallet {
     /**
      * determine how much change is left over based on the inputs and outputs and the fee
      *
-     * @param $utxos
-     * @param $outputs
-     * @param $fee
-     * @return integer
+     * @param array[]   $utxos
+     * @param array[]   $outputs
+     * @param int       $fee
+     * @return int
      */
     public function determineChange($utxos, $outputs, $fee) {
         $inputsTotal = array_sum(array_map(function ($utxo) {
@@ -381,9 +478,9 @@ class Wallet {
     /**
      * sign a raw transaction with the private keys that we have
      *
-     * @param       $raw_transaction
-     * @param array $inputs
-     * @return array
+     * @param string    $raw_transaction
+     * @param array[]   $inputs
+     * @return array                        response from RawTransaction::sign
      * @throws \Exception
      */
     public function signTransaction($raw_transaction, array $inputs) {
@@ -398,7 +495,7 @@ class Wallet {
             if (isset($input['redeemScript'], $input['path'])) {
                 $redeemScript = $input['redeemScript'];
                 $path = BIP32Path::path($input['path'])->privatePath();
-                $key = BIP32::build_key($this->primaryPrivateKey, (string)$path);
+                $key = $this->primaryPrivateKey->buildKey($path);
                 $address = $this->getAddressFromKey($key, $path);
 
                 if ($address != $input['address']) {
@@ -414,7 +511,7 @@ class Wallet {
             }
         }
 
-        BIP32::bip32_keys_to_wallet($wallet, $keys);
+        BIP32::bip32_keys_to_wallet($wallet, array_map(function(BIP32Key $key) { return $key->tuple(); }, $keys));
         RawTransaction::redeem_scripts_to_wallet($wallet, $redeemScripts);
 
         return RawTransaction::sign($wallet, $raw_transaction, json_encode($inputs));
@@ -423,8 +520,8 @@ class Wallet {
     /**
      * send the transaction using the API
      *
-     * @param string $signed
-     * @param        $paths
+     * @param string    $signed
+     * @param string[]  $paths
      * @return string           the complete raw transaction
      * @throws \Exception
      */
@@ -435,23 +532,33 @@ class Wallet {
     /**
      * use the API to get the best inputs to use based on the outputs
      *
-     * @param      $outputs
-     * @param bool $lockUTXO
+     * @param array[]   $outputs
+     * @param bool      $lockUTXO
      * @return array
      */
     public function coinSelection($outputs, $lockUTXO = true) {
         return $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO);
     }
 
+    /**
+     * delete the wallet
+     *
+     * @return mixed
+     */
     public function deleteWallet() {
         list($checksumAddress, $signature) = $this->createChecksumVerificationSignature();
         return $this->sdk->deleteWallet($this->identifier, $checksumAddress, $signature)['deleted'];
     }
 
+    /**
+     * create checksum to verify ownership of the master primary key
+     *
+     * @return string[]     [address, signature]
+     */
     public function createChecksumVerificationSignature() {
-        $import = BIP32::import($this->primaryPrivateKey[0]);
+        $import = BIP32::import($this->primaryPrivateKey->key());
 
-        $public = BitcoinLib::private_key_to_public_key($import['key'], true);
+        $public = $this->primaryPrivateKey->publicKey();
         $address = BitcoinLib::public_key_to_address($public, $import['version']);
 
         return [$address, BitcoinLib::signMessage($address, $import)];
