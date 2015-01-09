@@ -2,7 +2,7 @@ BlockTrail PHP SDK
 ==================
 This is the BlockTrail PHP SDK. This SDK contains methods for easily interacting with the BlockTrail API.
 Below are examples to get you started. For additional examples, please see our official documentation
-at https://www.blocktrail.com/api/docs/php
+at https://www.blocktrail.com/api/docs/lang/php
 
 [![Latest Stable Version](https://badge.fury.io/ph/blocktrail%2Fblocktrail-sdk.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk)
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.svg?branch=master)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
@@ -25,7 +25,7 @@ echo "1.23456789 BTC to Satoshi: " . BlocktrailSDK::toSatoshi(1.23456789) . " \n
 
 ```
 
-A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/php#api_coin_format).
+A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/lang/php#api_coin_format).
 
 Requirements
 ------------
@@ -63,11 +63,11 @@ Or if put the following in your `composer.json`:
 
 Usage
 -----
-Please visit our official documentation at https://www.blocktrail.com/api/docs/php for the usage.
+Please visit our official documentation at https://www.blocktrail.com/api/docs/lang/php for the usage.
 
 Support and Feedback
 --------------------
-Be sure to visit the BlockTrail API official [documentation website](https://www.blocktrail.com/api/docs/php)
+Be sure to visit the BlockTrail API official [documentation website](https://www.blocktrail.com/api/docs/lang/php)
 for additional information about our API.
 
 If you find a bug, please submit the issue in Github directly. 
