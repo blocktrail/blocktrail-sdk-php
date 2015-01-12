@@ -757,14 +757,16 @@ class BlocktrailSDK {
      *  "change"=> 1010109201,
      * ]
      *
-     * @param string    $identifier             the wallet identifier to be deleted
-     * @param array     $outputs                the outputs you want to create - array[address => satoshi-value]
-     * @param bool      $lockUTXO               when TRUE the UTXOs selected will be locked for a few seconds
+     * @param string $identifier                 the wallet identifier to be deleted
+     * @param array  $outputs                    the outputs you want to create - array[address => satoshi-value]
+     * @param bool   $lockUTXO                   when TRUE the UTXOs selected will be locked for a few seconds
      *                                           so you have some time to spend them without race-conditions
+     * @param bool   $allowZeroConf
      * @return array
+     * @throws \Exception
      */
-    public function coinSelection($identifier, $outputs, $lockUTXO = false) {
-        $response = $this->client->post("wallet/{$identifier}/coin-selection", ['lock' => (int)!!$lockUTXO], $outputs, 'http-signatures');
+    public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false) {
+        $response = $this->client->post("wallet/{$identifier}/coin-selection", ['lock' => (int)!!$lockUTXO, 'zeroconf' => (int)!!$allowZeroConf], $outputs, 'http-signatures');
         return self::jsonDecode($response->body(), true);
     }
 
