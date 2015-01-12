@@ -1,6 +1,7 @@
 <?php
 
 namespace Blocktrail\SDK\Bitcoin;
+
 use BitWasp\BitcoinLib\BIP32;
 
 /**

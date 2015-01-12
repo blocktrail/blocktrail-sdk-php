@@ -112,7 +112,7 @@ class Wallet {
 
         $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
         $this->backupPublicKey = BIP32Key::create($backupPublicKey);
-        $this->blocktrailPublicKeys = array_map(function($key) {
+        $this->blocktrailPublicKeys = array_map(function ($key) {
             return BIP32Key::create($key);
         }, $blocktrailPublicKeys);
 
@@ -512,7 +512,9 @@ class Wallet {
             }
         }
 
-        BIP32::bip32_keys_to_wallet($wallet, array_map(function(BIP32Key $key) { return $key->tuple(); }, $keys));
+        BIP32::bip32_keys_to_wallet($wallet, array_map(function (BIP32Key $key) {
+            return $key->tuple();
+        }, $keys));
         RawTransaction::redeem_scripts_to_wallet($wallet, $redeemScripts);
 
         return RawTransaction::sign($wallet, $raw_transaction, json_encode($inputs));
