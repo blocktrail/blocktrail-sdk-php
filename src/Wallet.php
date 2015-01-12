@@ -34,6 +34,13 @@ class Wallet {
     protected $identifier;
 
     /**
+     * BIP39 Mnemonic for the master primary private key
+     *
+     * @var string
+     */
+    protected $primaryMnemonic;
+
+    /**
      * BIP32 master primary private key (m/)
      *
      * @var BIP32Key
@@ -99,17 +106,19 @@ class Wallet {
     /**
      * @param BlocktrailSDK                 $sdk                        SDK instance used to do requests
      * @param string                        $identifier                 identifier of the wallet
+     * @param string                        $primaryMnemonic
      * @param array[string, string]         $primaryPrivateKey          should be BIP32 master key m/
      * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
      * @param array[array[string, string]]  $blocktrailPublicKeys
      * @param int                           $keyIndex
      * @param bool                          $testnet
      */
-    public function __construct(BlocktrailSDK $sdk, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet) {
+    public function __construct(BlocktrailSDK $sdk, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
 
+        $this->primaryMnemonic = $primaryMnemonic;
         $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
         $this->backupPublicKey = BIP32Key::create($backupPublicKey);
         $this->blocktrailPublicKeys = array_map(function ($key) {
@@ -129,6 +138,26 @@ class Wallet {
      */
     public function getIdentifier() {
         return $this->identifier;
+    }
+
+    /**
+     * return the wallet primary mnemonic (for backup purposes)
+     *
+     * @return string
+     */
+    public function getPrimaryMnemonic() {
+        return $this->primaryMnemonic;
+    }
+
+    /**
+     * return list of Blocktrail co-sign extended public keys
+     *
+     * @return array[]      [ [xpub, path] ]
+     */
+    public function getBlocktrailPublicKeys() {
+        return array_map(function (BIP32Key $key) {
+            return $key->tuple();
+        }, $this->blocktrailPublicKeys);
     }
 
     /**

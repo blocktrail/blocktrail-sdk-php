@@ -454,7 +454,12 @@ class BlocktrailSDK {
         }
 
         // return wallet and backup mnemonic
-        return array(new Wallet($this, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet), $primaryMnemonic, $backupMnemonic);
+        return [
+            new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet),
+            $primaryMnemonic,
+            $backupMnemonic,
+            $blocktrailPublicKeys
+        ];
     }
 
     /**
@@ -548,7 +553,7 @@ class BlocktrailSDK {
             $blocktrailPublicKeys = $blocktrailPublicKeys + $result['blocktrail_public_keys'];
         }
 
-        return new Wallet($this, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
+        return new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
     }
 
     /**

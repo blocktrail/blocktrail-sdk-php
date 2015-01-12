@@ -85,7 +85,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
         $keyIndex = $result['key_index'];
 
-        return new Wallet($client, $identifier, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet);
+        return new Wallet($client, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet);
     }
 
     public function testWallet() {
@@ -171,7 +171,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $wallet = $client->initWallet($identifier, "password");
             $this->fail("New wallet with ID [{$identifier}] already exists...");
         } catch (ObjectNotFound $e) {
-            list($wallet, $primaryMnemonic, $backupMnemonic) = $client->createNewWallet($identifier, "password", 9999);
+            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
             // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
         }
 
