@@ -98,19 +98,19 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/0", $path);
-        $this->assertEquals("2MtfSwmdDZYNydgEkBJdu7izu2fmeVpnuLe", $address);
+        $this->assertEquals("2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS", $address);
 
         // get another new pair
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/1", $path);
-        $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $address);
+        $this->assertEquals("2N65RcfKHiKQcPGZAA2QVeqitJvAQ8HroHD", $address);
 
         // get the 2nd address again
-        $this->assertEquals("2MsPQJoR5tmne7VrQVZKGmLWerrkrAR1yh5", $wallet->getAddressByPath("M/9999'/0/1"));
+        $this->assertEquals("2N65RcfKHiKQcPGZAA2QVeqitJvAQ8HroHD", $wallet->getAddressByPath("M/9999'/0/1"));
 
         // get some more addresses
-        $this->assertEquals("2Mw2oeufpB7r4Cdpj5F6wMmisos2efP3iuG", $wallet->getAddressByPath("M/9999'/0/6"));
-        $this->assertEquals("2N2E8R5661c7TCVwhqLZCB72hxj59iSFRSv", $wallet->getAddressByPath("M/9999'/0/44"));
+        $this->assertEquals("2MynrezSyqCq1x5dMPtRDupTPA4sfVrNBKq", $wallet->getAddressByPath("M/9999'/0/6"));
+        $this->assertEquals("2N5eqrZE7LcfRyCWqpeh1T1YpMdgrq8HWzh", $wallet->getAddressByPath("M/9999'/0/44"));
 
         $balance = $wallet->doDiscovery();
         $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
@@ -120,7 +120,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(BitcoinLib::validate_address($address, false, null));
 
         $txHash = $wallet->pay([
-            $address => BlocktrailSDK::toSatoshi(0.0001)
+            $address => BlocktrailSDK::toSatoshi(0.0001),
         ]);
 
         $this->assertTrue(!!$txHash);
@@ -139,7 +139,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     /**
      * same wallet as testWallet but with a different password should result in a completely different wallet!
      */
-    public function testWalletBadPassword() {
+    public function testBadPasswordWallet() {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
@@ -149,12 +149,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/0", $path);
-        $this->assertEquals("2N3qxHeFQrg1NcvXspnPdhRva6cZeyNWDDi", $address);
+        $this->assertEquals("2N7UAbCwVcbno9W42Yz6KQAjyLVy2NqYN3Z", $address);
 
         // get another new pair
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/1", $path);
-        $this->assertEquals("2MsKsLeJUb6DKiiDdjskTUz8qyEuPgJh8Kp", $address);
+        $this->assertEquals("2N9ZFKNnCamy9sJYZiH9uMrbXaDNw8D8zcb", $address);
 
         $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
     }

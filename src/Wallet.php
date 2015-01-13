@@ -277,7 +277,7 @@ class Wallet {
 
         $multiSig = RawTransaction::create_multisig(
             2,
-            RawTransaction::sort_multisig_keys([
+            BlocktrailSDK::sortMultisigKeys([
                 $key->buildKey($path)->publicKey(),
                 $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKey(),
                 $blocktrailPublicKey->buildKey($path)->publicKey()

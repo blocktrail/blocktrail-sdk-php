@@ -826,4 +826,18 @@ class BlocktrailSDK {
 
         return $data;
     }
+
+    /**
+     * sort public keys for multisig script
+     *
+     * @param string[] $pubKeys
+     * @return string[]
+     */
+    public static function sortMultisigKeys(array $pubKeys) {
+        $sortedKeys = $pubKeys;
+
+        sort($sortedKeys);
+
+        return $sortedKeys;
+    }
 }
