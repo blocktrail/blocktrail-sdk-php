@@ -10,9 +10,8 @@ use Blocktrail\SDK\Connection\RestClient;
 
 /**
  * Class BlocktrailSDK
- *
  */
-class BlocktrailSDK {
+class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * @var Connection\RestClient
      */
@@ -422,7 +421,7 @@ class BlocktrailSDK {
      * @param      $identifier
      * @param      $password
      * @param int  $keyIndex         override for the blocktrail cosigning key to use
-     * @return array[Wallet, (string)primaryMnemonic, (string)backupMnemonic]
+     * @return array[WalletInterface, (string)primaryMnemonic, (string)backupMnemonic]
      * @throws \Exception
      */
     public function createNewWallet($identifier, $password, $keyIndex = 0) {
@@ -512,7 +511,7 @@ class BlocktrailSDK {
      *
      * @param string    $identifier             the wallet identifier to be initialized
      * @param string    $password               the password to decrypt the mnemonic with
-     * @return Wallet
+     * @return WalletInterface
      * @throws \Exception
      */
     public function initWallet($identifier, $password) {

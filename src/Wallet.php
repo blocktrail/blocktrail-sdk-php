@@ -9,10 +9,9 @@ use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 
 /**
- * Wallet
- *
+ * Class Wallet
  */
-class Wallet {
+class Wallet implements WalletInterface {
 
     const BASE_FEE = 10000;
 
@@ -24,7 +23,7 @@ class Wallet {
     const VERIFY_NEW_DERIVATION = true;
 
     /**
-     * @var BlocktrailSDK
+     * @var BlocktrailSDKInterface
      */
     protected $sdk;
 
@@ -104,7 +103,7 @@ class Wallet {
     protected $walletPath;
 
     /**
-     * @param BlocktrailSDK                 $sdk                        SDK instance used to do requests
+     * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
      * @param string                        $identifier                 identifier of the wallet
      * @param string                        $primaryMnemonic
      * @param array[string, string]         $primaryPrivateKey          should be BIP32 master key m/
@@ -113,7 +112,7 @@ class Wallet {
      * @param int                           $keyIndex
      * @param bool                          $testnet
      */
-    public function __construct(BlocktrailSDK $sdk, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
@@ -470,7 +469,7 @@ class Wallet {
      * @param array[]   $outputs
      * @return int
      */
-    public function determineFee($utxos, $outputs) {
+    protected function determineFee($utxos, $outputs) {
         $txoutSize = (count($outputs) * 34);
 
         $txinSize = 0;
@@ -520,7 +519,7 @@ class Wallet {
      * @param int       $fee
      * @return int
      */
-    public function determineChange($utxos, $outputs, $fee) {
+    protected function determineChange($utxos, $outputs, $fee) {
         $inputsTotal = array_sum(array_map(function ($utxo) {
             return $utxo['value'];
         }, $utxos));
@@ -537,7 +536,7 @@ class Wallet {
      * @return array                        response from RawTransaction::sign
      * @throws \Exception
      */
-    public function signTransaction($raw_transaction, array $inputs) {
+    protected function signTransaction($raw_transaction, array $inputs) {
         $wallet = [];
         $keys = [];
         $redeemScripts = [];
@@ -581,7 +580,7 @@ class Wallet {
      * @return string           the complete raw transaction
      * @throws \Exception
      */
-    public function sendTransaction($signed, $paths) {
+    protected function sendTransaction($signed, $paths) {
         return $this->sdk->sendTransaction($this->identifier, $signed, $paths);
     }
 
@@ -593,7 +592,7 @@ class Wallet {
      * @param bool    $allowZeroConf
      * @return array
      */
-    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false) {
+    protected function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false) {
         return $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf);
     }
 
@@ -612,7 +611,7 @@ class Wallet {
      *
      * @return string[]     [address, signature]
      */
-    public function createChecksumVerificationSignature() {
+    protected function createChecksumVerificationSignature() {
         $import = BIP32::import($this->primaryPrivateKey->key());
 
         $public = $this->primaryPrivateKey->publicKey();
