@@ -4,6 +4,7 @@ namespace Blocktrail\SDK\Tests;
 
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\InvalidCredentials;
+use Blocktrail\SDK\Connection\RestClient;
 
 class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
 
@@ -36,6 +37,7 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->cleanUp();
         throw $e;
     }
+
     protected function cleanUp()
     {
         //cleanup any records that were created
@@ -58,8 +60,17 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
      *
      * @return BlocktrailSDK
      */
-    public function setupBadBlocktrailSDK() {
+    protected function setupBadBlocktrailSDK() {
         return new BlocktrailSDK("TESTKEY-FAIL", "TESTSECRET-FAIL");
+    }
+
+    public function testRestClient() {
+        $client = $this->setupBlocktrailSDK();
+        $this->assertTrue($client->getRestClient() instanceof RestClient);
+    }
+
+    public function testUpgradeKeyIndex() {
+        $this->markTestSkipped("@TODO: test upgrade key index");
     }
 
     public function testSatoshiConversion() {
@@ -127,6 +138,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
             $this->assertEquals($btc, BlocktrailSDK::toBTC($satoshi), "[{$i}] {$satoshi} => {$btc}");
             $this->assertTrue($btc === BlocktrailSDK::toBTC($satoshi), "[{$i}] {$satoshi} => {$btc}");
         }
+
+        $this->markTestSkipped("@TODO: test toBTCString");
     }
 
     public function testSigning() {

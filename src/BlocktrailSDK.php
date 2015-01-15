@@ -64,6 +64,7 @@ class BlocktrailSDK {
      * @param $network
      * @param $testnet
      * @return array
+     * @throws \Exception
      */
     protected function normalizeNetwork($network, $testnet) {
         switch (strtolower($network)) {
@@ -101,6 +102,8 @@ class BlocktrailSDK {
      * enable CURL debugging output
      *
      * @param   bool        $debug
+     *
+     * @codeCoverageIgnore
      */
     public function setCurlDebugging($debug = true) {
         $this->client->setCurlDebugging($debug);
@@ -110,6 +113,8 @@ class BlocktrailSDK {
      * enable verbose errors
      *
      * @param   bool        $verboseErrors
+     *
+     * @codeCoverageIgnore
      */
     public function setVerboseErrors($verboseErrors = true) {
         $this->client->setVerboseErrors($verboseErrors);
@@ -119,6 +124,8 @@ class BlocktrailSDK {
      * set cURL default option on Guzzle client
      * @param string    $key
      * @param bool      $value
+     *
+     * @codeCoverageIgnore
      */
     public function setCurlDefaultOption($key, $value) {
         $this->client->setCurlDefaultOption($key, $value);

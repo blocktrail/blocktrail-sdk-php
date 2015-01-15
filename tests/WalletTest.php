@@ -95,6 +95,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $wallet = $this->createTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
 
+        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
+        $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/0", $path);
@@ -104,6 +109,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/1", $path);
         $this->assertEquals("2N65RcfKHiKQcPGZAA2QVeqitJvAQ8HroHD", $address);
+
+        // get another new path, directly from the SDK
+        $this->assertEquals("M/9999'/0/2", $client->getNewDerivation($wallet->getIdentifier(), "M/9999'/0"));
 
         // get the 2nd address again
         $this->assertEquals("2N65RcfKHiKQcPGZAA2QVeqitJvAQ8HroHD", $wallet->getAddressByPath("M/9999'/0/1"));
@@ -145,6 +153,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTestWallet($client, $identifier, "password2");
         $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
+        $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
