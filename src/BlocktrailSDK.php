@@ -537,7 +537,7 @@ class BlocktrailSDK {
         // create checksum (address) of the primary privatekey to compare to the stored checksum
         $checksum2 = $this->createChecksum($primaryPrivateKey);
         if ($checksum2 != $checksum) {
-            throw new \Exception("Checksum [{$checksum}] does not match [{$checksum2}], most likely due to incorrect password");
+            throw new \Exception("Checksum [{$checksum2}] does not match [{$checksum}], most likely due to incorrect password");
         }
 
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
