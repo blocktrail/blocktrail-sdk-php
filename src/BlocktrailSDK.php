@@ -443,26 +443,20 @@ class BlocktrailSDK {
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
-        $result = $this->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex);
+        $data = $this->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex);
         // received the blocktrail public keys
-        $blocktrailPublicKeys = $result['blocktrail_public_keys'];
+        $blocktrailPublicKeys = $data['blocktrail_public_keys'];
+
+        $wallet = new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
 
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if (isset($result['upgrade_key_index'])) {
-            $keyIndex = $result['upgrade_key_index'];
-            $walletPath = WalletPath::create($keyIndex);
-
-            // do the upgrade to the new 'key_index'
-            $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
-            $result = $this->upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
-
-            // update the blocktrail public keys
-            $blocktrailPublicKeys = $blocktrailPublicKeys + $result['blocktrail_public_keys'];
+        if (isset($data['upgrade_key_index'])) {
+            $wallet->upgradeKeyIndex($data['upgrade_key_index']);
         }
 
         // return wallet and backup mnemonic
         return [
-            new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet),
+            $wallet,
             $primaryMnemonic,
             $backupMnemonic,
             $blocktrailPublicKeys
@@ -523,18 +517,18 @@ class BlocktrailSDK {
      */
     public function initWallet($identifier, $password) {
         // get the wallet data from the server
-        $wallet = $this->getWallet($identifier);
+        $data = $this->getWallet($identifier);
 
-        if (!$wallet) {
+        if (!$data) {
             throw new \Exception("Failed to get wallet");
         }
 
         // explode the wallet data
-        $primaryMnemonic = $wallet['primary_mnemonic'];
-        $checksum = $wallet['checksum'];
-        $backupPublicKey = $wallet['backup_public_key'];
-        $blocktrailPublicKeys = $wallet['blocktrail_public_keys'];
-        $keyIndex = $wallet['key_index'];
+        $primaryMnemonic = $data['primary_mnemonic'];
+        $checksum = $data['checksum'];
+        $backupPublicKey = $data['backup_public_key'];
+        $blocktrailPublicKeys = $data['blocktrail_public_keys'];
+        $keyIndex = $data['key_index'];
 
         // convert the mnemonic to a seed using BIP39 standard
         $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
@@ -547,20 +541,14 @@ class BlocktrailSDK {
             throw new \Exception("Checksum [{$checksum2}] does not match [{$checksum}], most likely due to incorrect password");
         }
 
+        $wallet = new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
+
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if ($this->autoWalletUpgrade && isset($wallet['upgrade_key_index'])) {
-            $keyIndex = $wallet['upgrade_key_index'];
-            $walletPath = WalletPath::create($keyIndex);
-
-            // do the upgrade to the new 'key_index'
-            $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()));
-            $result = $this->upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
-
-            // update the blocktrail public keys
-            $blocktrailPublicKeys = $blocktrailPublicKeys + $result['blocktrail_public_keys'];
+        if ($this->autoWalletUpgrade && isset($data['upgrade_key_index'])) {
+            $wallet->upgradeKeyIndex($wallet['upgrade_key_index']);
         }
 
-        return new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
+        return $wallet;
     }
 
     /**

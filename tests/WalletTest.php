@@ -88,6 +88,47 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         return new Wallet($client, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet);
     }
 
+    public function testKeyIndexUpgrade() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+        $wallet = $this->createTestWallet($client, $identifier);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
+        $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+
+        // get a new pair
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertEquals("M/9999'/0/0", $path);
+        $this->assertEquals("2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS", $address);
+
+        // get another new pair
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertEquals("M/9999'/0/1", $path);
+        $this->assertEquals("2N65RcfKHiKQcPGZAA2QVeqitJvAQ8HroHD", $address);
+
+        $balance = $wallet->doDiscovery();
+        $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
+
+        $wallet->upgradeKeyIndex(10000);
+
+        $this->assertEquals("tpubD9m9hziKhYQExWgzMUNXdYMNUtourv96sjTUS9jJKdo3EDJAnCBJooMPm6vGSmkNTNAmVt988dzNfNY12YYzk9E6PkA7JbxYeZBFy4XAaCp", $wallet->getBlocktrailPublicKey("m/10000")->key());
+
+        $this->assertEquals("2NDwndDJAdu8RGHB6L9xNBAbbZ6bMjFgErK", $wallet->getAddressByPath("M/10000'/0/0"));
+
+        // get a new pair
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertEquals("M/10000'/0/0", $path);
+        $this->assertEquals("2NDwndDJAdu8RGHB6L9xNBAbbZ6bMjFgErK", $address);
+
+    }
+
     public function testWallet() {
         $client = $this->setupBlocktrailSDK();
 
@@ -99,6 +140,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
@@ -158,6 +202,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();

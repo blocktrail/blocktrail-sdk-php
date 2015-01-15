@@ -161,6 +161,30 @@ class Wallet {
     }
 
     /**
+     * upgrade wallet to different blocktrail cosign key
+     *
+     * @param $keyIndex
+     * @throws \Exception
+     */
+    public function upgradeKeyIndex($keyIndex) {
+        $walletPath = WalletPath::create($keyIndex);
+
+        // do the upgrade to the new 'key_index'
+        $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($this->primaryPrivateKey->tuple(), (string)$walletPath->keyIndexPath()));
+        $result = $this->sdk->upgradeKeyIndex($this->identifier, $keyIndex, $primaryPublicKey);
+
+        $this->keyIndex = $keyIndex;
+        $this->walletPath = $walletPath;
+
+        // update the blocktrail public keys
+        foreach ($result['blocktrail_public_keys'] as $keyIndex => $pubKey) {
+            if (!isset($this->blocktrailPublicKeys[$keyIndex])) {
+                $this->blocktrailPublicKeys[$keyIndex] = BIP32Key::create($pubKey);
+            }
+        }
+    }
+
+    /**
      * get a new BIP32 derivation for the next (unused) address
      *  by requesting it from the API
      *
@@ -180,11 +204,11 @@ class Wallet {
             list($checkAddress, $checkRedeemScript) = $this->getRedeemScriptByPath($path);
 
             if ($checkAddress != $address) {
-                throw new \Exception("Failed to verify address [{$address}] != [{$checkAddress}]");
+                throw new \Exception("Failed to verify that address from API [{$address}] matches address locally [{$checkAddress}]");
             }
 
             if ($checkRedeemScript != $redeemScript) {
-                throw new \Exception("Failed to verify redeemScript [{$redeemScript}] != [{$checkRedeemScript}]");
+                throw new \Exception("Failed to verify that redeemScript from API [{$redeemScript}] matches address locally [{$checkRedeemScript}]");
             }
         } else {
             $path = $this->sdk->getNewDerivation($this->identifier, (string)$path);
