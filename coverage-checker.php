@@ -4,6 +4,11 @@
  * source from http://ocramius.github.io/blog/automated-code-coverage-check-for-github-pull-requests-with-travis/
  */
 
+// for w/e reason HHVM reports a lot lower coverage (probably because of the JIT) so we're skipping this
+if (defined('HHVM_VERSION')) {
+    exit(0);
+}
+
 $inputFile  = $argv[1];
 $percentage = min(100, max(0, (int) $argv[2]));
 
