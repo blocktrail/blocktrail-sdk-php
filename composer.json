@@ -1,5 +1,7 @@
 {
     "name": "blocktrail/blocktrail-sdk",
+    "description": "The BlockTrail PHP SDK, for integration of Bitcoin functionality through the BlockTrail API",
+    "keywords": ["blocktrail", "bitcoin", "sdk", "api", "blockchain", "payment", "bitcoin data", "wallet", "multi-signature", "transaction"],
     "authors": [
         {
             "name": "Ruben de Vries",
