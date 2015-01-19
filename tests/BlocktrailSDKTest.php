@@ -365,5 +365,30 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         //unsubscribe webhook event (block)
         $response = $client->unsubscribeNewBlocks($webhookID2);
         $this->assertTrue($response === true, "response does not match expected value");
+
+        //batch create webhook events
+        $batchData = array(
+            array(
+                'event_type'    => 'address-transactions',
+                'address'       => '18FA8Tn54Hu8fjn7kkfAygPoGEJLHMbHzo',
+                'confirmations' => 1
+            ),
+            array(
+                'event_type'    => 'address-transactions',
+                'address'       => '1LUCKYwD6V9JHVXAFEEjyQSD4Dj5GLXmte',
+                'confirmations' => 1
+            ),
+            array(
+                'event_type'    => 'address-transactions',
+                'address'       => '1qMBuZnrmGoAc2MWyTnSgoLuWReDHNYyF',
+                'confirmations' => 1
+            )
+        );
+        $response = $client->batchSubscribeAddressTransactions($webhookID2, $batchData);
+        $this->assertTrue($response);
+        $response = $client->getWebhookEvents($webhookID2);
+        $this->assertEquals(3, $response['total'], "'total' does not match expected value");
+        $this->assertEquals(3, count($response['data']), "Count of events returned is not equal to 3");
+        $this->assertEquals($batchData[2]['address'], $response['data'][2]['address'], "Batch created even not as expected");
     }
 }

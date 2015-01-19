@@ -379,6 +379,27 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * batch subscribes a webhook to multiple transaction events
+     * @param  string $identifier   the unique identifier of the webhook
+     * @param  array  $batchData    A 2D array of event data:
+     *                              [address => $address, confirmations => $confirmations]
+     *                              where $address is the address to subscibe to and $confirmations (optional) is the amount of confirmations
+     * @return boolean              true on success
+     */
+    public function batchSubscribeAddressTransactions($identifier, $batchData) {
+        $postData = array();
+        foreach($batchData as $record) {
+            $postData[] = array(
+                'event_type' => 'address-transactions',
+                'address' => $record['address'],
+                'confirmations' => isset($record['confirmations']) ? $record['confirmations'] : 6,
+            );
+        }
+        $response = $this->client->post("webhook/{$identifier}/events/batch", null, $postData, 'http-signatures');
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
      * subscribes a webhook to a new block event
      * @param  string  $identifier  the unique identifier of the webhook to be triggered
      * @return array                associative array containing the response
