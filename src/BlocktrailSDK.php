@@ -388,7 +388,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      */
     public function batchSubscribeAddressTransactions($identifier, $batchData) {
         $postData = array();
-        foreach($batchData as $record) {
+        foreach ($batchData as $record) {
             $postData[] = array(
                 'event_type' => 'address-transactions',
                 'address' => $record['address'],
