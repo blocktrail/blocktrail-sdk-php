@@ -8,6 +8,7 @@ at https://www.blocktrail.com/api/docs/lang/php
 [![Latest Stable Version](https://poser.pugx.org/blocktrail/blocktrail-sdk/v/stable.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk)
 [![Latest Unstable Version](https://poser.pugx.org/blocktrail/blocktrail-sdk/v/unstable.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk)
 [![License](https://poser.pugx.org/blocktrail/blocktrail-sdk/license.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk)
+
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.svg?branch=master)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
 
 IMPORTANT! FLOATS ARE EVIL!!
