@@ -457,7 +457,7 @@ class Wallet implements WalletInterface {
         }
 
         // send the transaction
-        $finished = $this->sendTransaction($signed['hex'], array_column($utxos, 'path'));
+        $finished = $this->sendTransaction($signed['hex'], array_column($utxos, 'path'), true);
 
         return $finished;
     }
@@ -578,11 +578,12 @@ class Wallet implements WalletInterface {
      *
      * @param string    $signed
      * @param string[]  $paths
+     * @param bool      $checkFee
      * @return string           the complete raw transaction
      * @throws \Exception
      */
-    protected function sendTransaction($signed, $paths) {
-        return $this->sdk->sendTransaction($this->identifier, $signed, $paths);
+    protected function sendTransaction($signed, $paths, $checkFee = false) {
+        return $this->sdk->sendTransaction($this->identifier, $signed, $paths, $checkFee);
     }
 
     /**
