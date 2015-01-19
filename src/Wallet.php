@@ -383,6 +383,7 @@ class Wallet implements WalletInterface {
                 throw new \Exception("Invalid address [{$address}]");
             }
 
+            // using this 'dirty' way of checking for a float since there's no other reliable way in PHP
             if (strpos($value, ".") !== false || strpos($value, "," !== false)) {
                 throw new \Exception("Values should be in Satoshis");
             }
