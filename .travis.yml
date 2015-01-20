@@ -8,7 +8,7 @@ install:
 - composer update
 script:
 - "./vendor/bin/phpunit"
-- "./vendor/bin/phpcs --standard=./phpcs.xml -n -a ./src/"
+- "./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/"
 - "php coverage-checker.php clover.xml 70"
 notifications:
   slack:
