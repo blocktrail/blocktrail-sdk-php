@@ -66,7 +66,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $identifier = md5(openssl_random_pseudo_bytes(128));
         $time = time();
 
-        return "unittest-{$time}-{$identifier}";
+        return "php-sdk-{$time}-{$identifier}";
     }
 
     protected function createTestWallet(BlocktrailSDK $client, $identifier, $passphrase = "password") {
