@@ -802,6 +802,31 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * setup webhook for wallet
+     *
+     * @param string    $identifier         the wallet identifier for which to create the webhook
+     * @param string    $webhookIdentifier  the webhook identifier to use
+     * @param string    $url                the url to receive the webhook events
+     * @return array
+     */
+    public function setupWalletWebhook($identifier, $webhookIdentifier, $url) {
+        $response = $this->client->post("wallet/{$identifier}/webhook", null, ['url' => $url, 'identifier' => $webhookIdentifier], 'http-signatures');
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
+     * delete webhook for wallet
+     *
+     * @param string    $identifier         the wallet identifier for which to delete the webhook
+     * @param string    $webhookIdentifier  the webhook identifier to delete
+     * @return array
+     */
+    public function deleteWalletWebhook($identifier, $webhookIdentifier) {
+        $response = $this->client->delete("wallet/{$identifier}/webhook/{$webhookIdentifier}", null, null, 'http-signatures');
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi

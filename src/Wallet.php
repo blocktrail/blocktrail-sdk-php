@@ -621,4 +621,25 @@ class Wallet implements WalletInterface {
 
         return [$address, BitcoinLib::signMessage($address, $import)];
     }
+
+    /**
+     * setup a webhook for our wallet
+     *
+     * @param string    $url            URL to receive webhook events
+     * @param string    $identifier     identifier for the webhook, defaults to WALLET-{$this->identifier}
+     * @return array
+     */
+    public function setupWebhook($url, $identifier = null) {
+        $identifier = $identifier ?: "WALLET-{$this->identifier}";
+        return $this->sdk->setupWalletWebhook($this->identifier, $identifier, $url);
+    }
+
+    /**
+     * @param string    $identifier     identifier for the webhook, defaults to WALLET-{$this->identifier}
+     * @return mixed
+     */
+    public function deleteWebhook($identifier = null) {
+        $identifier = $identifier ?: "WALLET-{$this->identifier}";
+        return $this->sdk->deleteWalletWebhook($this->identifier, $identifier);
+    }
 }

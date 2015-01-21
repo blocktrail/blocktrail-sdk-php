@@ -6,6 +6,7 @@ use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
 use Blocktrail\SDK\BlocktrailSDK;
+use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 use Blocktrail\SDK\Wallet;
 use Blocktrail\SDK\WalletPath;
@@ -28,7 +29,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     /**
      * setup an instance of BlocktrailSDK
      *
-     * @return BlocktrailSDK
+     * @return BlocktrailSDKInterface
      */
     public function setupBlocktrailSDK() {
         $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
@@ -51,7 +52,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          * @var Wallet $wallet
          */
         foreach ($this->wallets as $wallet) {
-            $wallet->deleteWallet();
+            try {
+                $wallet->deleteWallet();
+            } catch (ObjectNotFound $e) {
+                // that's ok
+            }
         }
 
         $this->wallets = [];
@@ -253,6 +258,89 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $wallet = $client->initWallet($identifier, "password2", 9999);
             $this->fail("Wallet with bad pass initialized");
         } catch (\Exception $e) {
+            $this->assertTrue(!!$e);
+        }
+    }
+
+    public function testWebhookForWallet() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+
+        /**
+         * @var $wallet \Blocktrail\SDK\Wallet
+         */
+        try {
+            $wallet = $client->initWallet($identifier, "password");
+            $this->fail("New wallet with ID [{$identifier}] already exists...");
+        } catch (ObjectNotFound $e) {
+            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
+            // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
+        }
+
+        $wallet = $client->initWallet($identifier, "password");
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals(0, $wallet->getBalance()[0]);
+
+        // create webhook with default identifier
+        $webhook = $wallet->setupWebhook("https://www.blocktrail.com/webhook-test");
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $webhook["url"]);
+        $this->assertEquals("WALLET-{$wallet->getIdentifier()}", $webhook["identifier"]);
+
+        // delete webhook
+        $this->assertTrue($wallet->deleteWebhook());
+
+        // create webhook with custom identifier
+        $webhookIdentifier = $this->getRandomTestIdentifier();
+        $webhook = $wallet->setupWebhook("https://www.blocktrail.com/webhook-test", $webhookIdentifier);
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $webhook["url"]);
+        $this->assertEquals($webhookIdentifier, $webhook["identifier"]);
+
+        // get events
+        $events = $client->getWebhookEvents($webhookIdentifier);
+
+        // events should still be 0 at this point
+        $this->assertEquals(0, count($events['data']));
+
+        // create address
+        $addr1 = $wallet->getNewAddress();
+
+        $this->assertTrue($wallet->deleteWebhook($webhookIdentifier));
+
+        // create webhook with custom identifier
+        $webhookIdentifier = $this->getRandomTestIdentifier();
+        $webhook = $wallet->setupWebhook("https://www.blocktrail.com/webhook-test", $webhookIdentifier);
+        $this->assertEquals("https://www.blocktrail.com/webhook-test", $webhook["url"]);
+        $this->assertEquals($webhookIdentifier, $webhook["identifier"]);
+
+        // get events
+        $events = $client->getWebhookEvents($webhookIdentifier);
+
+        // event for first address should already be there
+        $this->assertEquals(1, count($events['data']));
+        $this->assertEquals($addr1, $events['data'][0]['address']);
+
+        // create address
+        $addr2 = $wallet->getNewAddress();
+
+        // get events
+        $events = $client->getWebhookEvents($webhookIdentifier);
+
+        // event for 2nd address should be there too
+        $this->assertEquals(2, count($events['data']));
+        // using inarray because order isn't deterministic
+        $this->assertTrue(in_array($events['data'][0]['address'], [$addr1, $addr2]));
+        $this->assertTrue(in_array($events['data'][1]['address'], [$addr1, $addr2]));
+
+        // delete wallet (should delete webhook too)
+        $wallet->deleteWallet();
+
+        // check if webhook is deleted
+        try {
+            $this->assertFalse($wallet->deleteWebhook($webhookIdentifier));
+            $this->fail("should throw exception");
+        } catch (ObjectNotFound $e) {
             $this->assertTrue(!!$e);
         }
     }

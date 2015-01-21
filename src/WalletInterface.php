@@ -119,4 +119,19 @@ interface WalletInterface {
      * @return mixed
      */
     public function deleteWallet();
+
+    /**
+     * setup a webhook for our wallet
+     *
+     * @param string    $url            URL to receive webhook events
+     * @param string    $identifier     identifier for the webhook, defaults to WALLET-{$this->identifier}
+     * @return array
+     */
+    public function setupWebhook($url, $identifier = null);
+
+    /**
+     * @param string    $identifier     identifier for the webhook, defaults to WALLET-{$this->identifier}
+     * @return mixed
+     */
+    public function deleteWebhook($identifier = null);
 }

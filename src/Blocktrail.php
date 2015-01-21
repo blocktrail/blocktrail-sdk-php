@@ -12,6 +12,9 @@ abstract class Blocktrail {
     const PRECISION = 8;
     const COIN_FORMAT = "%.8f";
 
+    const EVENT_ADDRESS_TRANSACTIONS = 'address-transactions';
+    const EVENT_BLOCK = 'block';
+
     const DUST = 546;
 
     const SDK_VERSION = "1.0.2";

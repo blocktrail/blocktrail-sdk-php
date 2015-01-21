@@ -10,7 +10,7 @@ $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet 
 // $client->setCurlDebugging();
 
 /**
- * @var $wallet             \Blocktrail\SDK\Wallet
+ * @var $wallet             \Blocktrail\SDK\WalletInterface
  * @var $backupMnemonic     string
  */
 try {
@@ -19,6 +19,9 @@ try {
     list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet("example-wallet", "example-strong-password", $_account=9999);
     $wallet->doDiscovery();
 }
+
+// var_dump($wallet->deleteWebhook());
+// var_dump($wallet->setupWebhook("http://www.example.com/wallet/webhook/example-wallet"));
 
 // print some new addresses
 var_dump($wallet->getAddressByPath("M/9999'/0/0"), $wallet->getAddressByPath("M/9999'/0/1"));

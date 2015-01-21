@@ -44,14 +44,13 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $client = $this->setupBlocktrailSDK();
 
         //webhooks
-        if(isset($this->cleanupData['webhooks'])) {
+        if (isset($this->cleanupData['webhooks'])) {
             $count = 0;
-            foreach($this->cleanupData['webhooks'] as $webhook) {
-                try{
+            foreach ($this->cleanupData['webhooks'] as $webhook) {
+                try {
                     $count += (int)$client->deleteWebhook($webhook);
                 } catch (\Exception $e){}
             }
-            echo "\ncleanup - {$count} webhooks deleted\n";
         }
     }
 
