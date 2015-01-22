@@ -355,6 +355,13 @@ interface BlocktrailSDKInterface {
     public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false);
 
     /**
+     * get the current price index
+     *
+     * @return array        eg; ['USD' => 287.30]
+     */
+    public function price();
+
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi

@@ -792,6 +792,16 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * get the current price index
+     *
+     * @return array        eg; ['USD' => 287.30]
+     */
+    public function price() {
+        $response = $this->client->get("price");
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi

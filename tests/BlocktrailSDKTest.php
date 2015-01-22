@@ -391,4 +391,11 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(3, count($response['data']), "Count of events returned is not equal to 3");
         $this->assertEquals($batchData[2]['address'], $response['data'][2]['address'], "Batch created even not as expected");
     }
+
+    public function testPrice() {
+        $price = $this->setupBlocktrailSDK()->price();
+
+        $this->assertTrue(is_float($price['USD']));
+        $this->assertTrue($price['USD'] > 0);
+    }
 }
