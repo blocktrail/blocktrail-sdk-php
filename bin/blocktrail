@@ -1,0 +1,5 @@
+#!/usr/bin/php
+<?php
+
+(@include_once __DIR__ . '/../vendor/autoload.php') || @include_once __DIR__ . '/../../../autoload.php';
+(new \Blocktrail\SDK\Console\Application())->run();
