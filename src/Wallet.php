@@ -476,7 +476,8 @@ class Wallet implements WalletInterface {
         $txinSize = 0;
 
         foreach ($utxos as $utxo) {
-            $multisig = "2of3"; // we only do multisig right now ...
+            // @TODO: proper size calculation, we only do multisig right now so it's hardcoded and then we guess the size ...
+            $multisig = "2of3";
 
             if ($multisig) {
                 $sigCnt = 2;
