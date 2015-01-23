@@ -10,6 +10,7 @@ use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
@@ -21,7 +22,9 @@ class ListWalletsCommand extends AbstractCommand {
         $this
             ->setName('list_wallets')
             // ->setAliases(['create_new_wallet', 'create_wallet'])
-            ->setDescription("List all wallets");
+            ->setDescription("List all wallets")
+            ->addOption('page', 'p', InputOption::VALUE_REQUIRED, 'pagination page', 1)
+            ->addOption('per-page', 'pp', InputOption::VALUE_REQUIRED, 'pagination limit', 50);
 
         parent::configure();
     }
@@ -33,11 +36,10 @@ class ListWalletsCommand extends AbstractCommand {
         $sdk = $this->getBlocktrailSDK();
         $config = $this->getConfig();
 
-        // $wallets = $sdk->getWallets();
-        $wallets = [
-            ['identifier' => 'cli-created-wallet', 'balance' => BlocktrailSDK::toSatoshi(28311.3238283)],
-            ['identifier' => 'another-cli-wallet', 'balance' => BlocktrailSDK::toSatoshi(0.32)],
-        ];
+        $page = $input->getOption('page');
+        $perpage = $input->getOption('per-page');
+
+        $wallets = $sdk->allWallets($page, $perpage)['data'];
 
         if (!$wallets) {
             $output->writeln("<error>There are no wallets!</error>");
@@ -53,5 +55,9 @@ class ListWalletsCommand extends AbstractCommand {
         }
 
         $table->render();
+
+        if (count($wallets) >= $perpage) {
+            $output->writeln("there are more wallets, use --page and --perpage to see all of them ...");
+        }
     }
 }
