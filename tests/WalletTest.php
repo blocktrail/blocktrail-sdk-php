@@ -69,7 +69,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         return "php-sdk-{$time}-{$identifier}";
     }
 
-    protected function createTestWallet(BlocktrailSDK $client, $identifier, $passphrase = "password") {
+    protected function createTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase = "password") {
         $walletPath = WalletPath::create(9999);
 
         $primaryMnemonic = "give pause forget seed dance crawl situate hole keen";
@@ -99,6 +99,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
+
+        $wallets = $client->allWallets();
+        $this->assertTrue(count($wallets) > 0);
 
         $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());
@@ -139,6 +142,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
+
+        $wallets = $client->allWallets();
+        $this->assertTrue(count($wallets) > 0);
 
         $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());
@@ -200,6 +206,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTestWallet($client, $identifier, "password2");
         $this->wallets[] = $wallet; // store for cleanup
+
+        $wallets = $client->allWallets();
+        $this->assertTrue(count($wallets) > 0);
 
         $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());
@@ -281,6 +290,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $wallet = $client->initWallet($identifier, "password");
         $this->wallets[] = $wallet; // store for cleanup
 
+        $wallets = $client->allWallets();
+        $this->assertTrue(count($wallets) > 0);
+
         $this->assertEquals(0, $wallet->getBalance()[0]);
 
         // create webhook with default identifier
@@ -351,6 +363,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
+
+        $wallets = $client->allWallets();
+        $this->assertTrue(count($wallets) > 0);
 
         $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());

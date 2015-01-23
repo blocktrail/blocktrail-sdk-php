@@ -403,6 +403,15 @@ interface BlocktrailSDKInterface {
     public function walletAddresses($identifier, $page = 1, $limit = 20, $sortDir = 'asc');
 
     /**
+     * get a paginated list of all wallets associated with the api user
+     *
+     * @param  integer          $page    pagination: page number
+     * @param  integer          $limit   pagination: records per page
+     * @return array                     associative array containing the response
+     */
+    public function allWallets($page = 1, $limit = 20);
+
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi
