@@ -381,6 +381,28 @@ interface BlocktrailSDKInterface {
     public function deleteWalletWebhook($identifier, $webhookIdentifier);
 
     /**
+     * get all transactions for wallet (paginated)
+     *
+     * @param  string  $identifier  the wallet identifier for which to get transactions
+     * @param  integer $page        pagination: page number
+     * @param  integer $limit       pagination: records per page (max 500)
+     * @param  string  $sortDir     pagination: sort direction (asc|desc)
+     * @return array                associative array containing the response
+     */
+    public function walletTransactions($identifier, $page = 1, $limit = 20, $sortDir = 'asc');
+
+    /**
+     * get all addresses for wallet (paginated)
+     *
+     * @param  string  $identifier  the wallet identifier for which to get addresses
+     * @param  integer $page        pagination: page number
+     * @param  integer $limit       pagination: records per page (max 500)
+     * @param  string  $sortDir     pagination: sort direction (asc|desc)
+     * @return array                associative array containing the response
+     */
+    public function walletAddresses($identifier, $page = 1, $limit = 20, $sortDir = 'asc');
+
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi

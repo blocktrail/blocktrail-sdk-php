@@ -822,7 +822,46 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @return array
      */
     public function deleteWalletWebhook($identifier, $webhookIdentifier) {
-        $response = $this->client->delete("wallet/{$identifier}/webhook/{$webhookIdentifier}", null, null, 'http-signatures');
+        $response = $this->client->delete("wallet/{$identifier}/webhook/{$webhookIdentifier}", null, null, RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
+     * get all transactions for wallet (paginated)
+     *
+     * @param  string  $identifier  the wallet identifier for which to get transactions
+     * @param  integer $page        pagination: page number
+     * @param  integer $limit       pagination: records per page (max 500)
+     * @param  string  $sortDir     pagination: sort direction (asc|desc)
+     * @return array                associative array containing the response
+     */
+    public function walletTransactions($identifier, $page = 1, $limit = 20, $sortDir = 'asc') {
+        $queryString = [
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
+        ];
+        $response = $this->client->get("wallet/{$identifier}/transactions", $queryString, RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+
+    }
+
+    /**
+     * get all addresses for wallet (paginated)
+     *
+     * @param  string  $identifier  the wallet identifier for which to get addresses
+     * @param  integer $page        pagination: page number
+     * @param  integer $limit       pagination: records per page (max 500)
+     * @param  string  $sortDir     pagination: sort direction (asc|desc)
+     * @return array                associative array containing the response
+     */
+    public function walletAddresses($identifier, $page = 1, $limit = 20, $sortDir = 'asc') {
+        $queryString = [
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
+        ];
+        $response = $this->client->get("wallet/{$identifier}/addresses", $queryString, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
 

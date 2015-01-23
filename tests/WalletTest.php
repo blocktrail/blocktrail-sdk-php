@@ -344,4 +344,37 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $this->assertTrue(!!$e);
         }
     }
+
+    public function testListWalletTxsAddrs() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+        $wallet = $this->createTestWallet($client, $identifier);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
+        $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+
+        // get a new pair
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertEquals("M/9999'/0/0", $path);
+        $this->assertEquals("2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS", $address);
+
+        $balance = $wallet->doDiscovery();
+        $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
+
+        $transactions = $wallet->transactions(1, 23);
+
+        $this->assertEquals(23, count($transactions['data']));
+        $this->assertEquals('2cb21783635a5f22e9934b8c3262146b42d251dfb14ee961d120936a6c40fe89', $transactions['data'][0]['hash']);
+
+        $addresses = $wallet->addresses(1, 23);
+
+        $this->assertEquals(23, count($addresses['data']));
+        $this->assertEquals('2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS', $addresses['data'][0]['address']);
+    }
 }
