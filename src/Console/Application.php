@@ -4,10 +4,12 @@ namespace Blocktrail\SDK\Console;
 
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
+use Blocktrail\SDK\Console\Commands\BalanceCommand;
 use Blocktrail\SDK\Console\Commands\ConfigureCommand;
 use Blocktrail\SDK\Console\Commands\CreateNewWalletCommand;
 use Blocktrail\SDK\Console\Commands\GetNewAddressCommand;
 use Blocktrail\SDK\Console\Commands\ListWalletsCommand;
+use Blocktrail\SDK\Console\Commands\PayCommand;
 use Blocktrail\SDK\Console\Commands\UseWalletCommand;
 use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
@@ -29,6 +31,8 @@ class Application extends ConsoleApplication {
         $commands[] = new ConfigureCommand();
         $commands[] = new UseWalletCommand();
         $commands[] = new ListWalletsCommand();
+        $commands[] = new PayCommand();
+        $commands[] = new BalanceCommand();
 
         return $commands;
     }
