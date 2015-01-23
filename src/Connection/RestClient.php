@@ -26,6 +26,8 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class RestClient {
 
+    const AUTH_HTTP_SIG = 'http-signatures';
+
     /**
      * @var Guzzle
      */

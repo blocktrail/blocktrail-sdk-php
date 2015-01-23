@@ -224,7 +224,7 @@ interface BlocktrailSDKInterface {
      * create wallet using the API
      *
      * @param string    $identifier             the wallet identifier to create
-     * @param array     $primaryPublicKey       BIP32 extended public key - array(key, path)
+     * @param array     $primaryPublicKey       BIP32 extended public key - [key, path]
      * @param string    $backupPublicKey        plain public key
      * @param string    $primaryMnemonic        mnemonic to store
      * @param string    $checksum               checksum to store
@@ -239,7 +239,7 @@ interface BlocktrailSDKInterface {
      *
      * @param string    $identifier             the wallet identifier to be upgraded
      * @param int       $keyIndex               the new account to use
-     * @param array     $primaryPublicKey       BIP32 extended public key - array(key, path)
+     * @param array     $primaryPublicKey       BIP32 extended public key - [key, path]
      * @return mixed
      */
     public function upgradeKeyIndex($identifier, $keyIndex, $primaryPublicKey);
