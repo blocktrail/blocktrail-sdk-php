@@ -21,22 +21,77 @@ if (!$percentage) {
 }
 
 $xml = new SimpleXMLElement(file_get_contents($inputFile));
-// getting the //project/metrics should give the total summary, no need to sum up all the different //metrics
-$metrics = $xml->xpath('//project/metrics');
 
 $totalElements   = 0;
 $checkedElements = 0;
 
-foreach ($metrics as $metric) {
+$excludes = [
+    "/^Blocktrail\\\\SDK\\\\Console/",
+    "/Compiler\.php/",
+];
+
+foreach ($xml->xpath("//package") as $package) {
+    echo " + PACKAGE [[ {$package['name']} ]] ";
+
+    $excluded = false;
+    foreach ($excludes as $exclude) {
+        if (preg_match($exclude, (string)$package['name'])) {
+            $excluded = true;
+        }
+    }
+
+    if ($excluded) {
+        echo "** EXCLUDED! \n";
+        continue;
+    } else {
+        echo "\n";
+    }
+
+    $packageXML = new SimpleXMLElement($package->asXML());
+
+    foreach ($packageXML->xpath("//file") as $file) {
+        echo " - FILE [[ {$file['name']} ]] ";
+
+        $excluded = false;
+        foreach ($excludes as $exclude) {
+            if (preg_match($exclude, (string)$file['name'])) {
+                $excluded = true;
+            }
+        }
+
+        if ($excluded) {
+            echo "** EXCLUDED! \n";
+            continue;
+        }
+
+        $fileXML = new SimpleXMLElement($file->asXML());
+
+        $metric = $fileXML->xpath("//file/metrics")[0];
+        $elements = (int)$metric['elements'];
+        $checked = (int)$metric['coveredelements'];
+
+        $coverage = $elements > 0 ? round(($checked / $elements) * 100, 2) : '-';
+
+        echo "{$coverage}% \n";
+
+        $totalElements += (int)$elements;
+        $checkedElements += (int)$checked;
+    }
+}
+
+foreach ($xml->xpath("//project/file/metrics") as $metric) {
     $totalElements   += (int) $metric['elements'];
     $checkedElements += (int) $metric['coveredelements'];
 }
 
+var_dump($totalElements);
+var_dump((int)$xml->xpath("//project/metrics")[0]['elements']);
+
 $coverage = ($checkedElements / $totalElements) * 100;
 
 if ($coverage < $percentage) {
-    echo 'Code coverage is ' . $coverage . '%, which is below the accepted ' . $percentage . '%' . PHP_EOL;
+    echo "Code coverage is {$coverage}%, which is below the accepted {$percentage}% \n";
     exit(1);
 }
 
-echo 'Code coverage is ' . $coverage . '% - OK!' . PHP_EOL;
+echo "Code coverage is {$coverage}% - OK! \n";
