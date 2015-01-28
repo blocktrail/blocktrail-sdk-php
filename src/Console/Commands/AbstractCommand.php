@@ -30,15 +30,19 @@ abstract class AbstractCommand extends Command {
     }
 
     protected function configure() {
+        $dir = "{$_SERVER['HOME']}/.blocktrail";
+        $file = "{$dir}/config.json";
+
         $this
             ->addOption('api_key', null, InputOption::VALUE_REQUIRED, 'API_KEY to be used')
             ->addOption('api_secret', null, InputOption::VALUE_REQUIRED, 'API_SECRET to be used')
-            ->addOption('testnet', null, InputOption::VALUE_NONE, 'use testnet instead of mainnet');
+            ->addOption('testnet', null, InputOption::VALUE_NONE, 'use testnet instead of mainnet')
+            ->addOption('config', 'c', InputOption::VALUE_REQUIRED, "config file to use; defaults to {$file}", $file);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         /** @var Output $output */
-        $config = $this->getConfig();
+        $config = $this->getConfig($input);
 
         $this->apiKey = $input->hasOptionInput('api_key') ? trim($input->getOption('api_key')) : (isset($config['api_key']) ? $config['api_key'] : null);
         $this->apiSecret = $input->hasOptionInput('api_secret') ? trim($input->getOption('api_secret')) : (isset($config['api_secret']) ? $config['api_secret'] : null);
@@ -59,9 +63,8 @@ abstract class AbstractCommand extends Command {
         return new BlocktrailSDK($this->apiKey, $this->apiSecret, "BTC", $this->testnet);
     }
 
-    public function getConfig() {
-        $dir = "{$_SERVER['HOME']}/.blocktrail";
-        $file = "{$dir}/config.json";
+    public function getConfig(InputInterface $input) {
+        $file = $input->getOption('config');
 
         if (!file_exists($file)) {
             return [];
@@ -70,19 +73,20 @@ abstract class AbstractCommand extends Command {
         return json_decode(file_get_contents($file), true);
     }
 
-    public function replaceConfig(array $config) {
-        $dir = "{$_SERVER['HOME']}/.blocktrail";
+    public function replaceConfig(InputInterface $input, array $config) {
+        $file = $input->getOption('config');
+        $dir = dirname($file);
 
         if (!file_exists($dir)) {
             mkdir($dir);
         }
 
-        file_put_contents("{$dir}/config.json", json_encode($config));
+        file_put_contents($file, json_encode($config));
 
         return null;
     }
 
-    public function updateConfig(array $config) {
-        return $this->replaceConfig(array_replace($this->getConfig(), $config));
+    public function updateConfig(InputInterface $input, array $config) {
+        return $this->replaceConfig($input, array_replace($this->getConfig($input), $config));
     }
 }

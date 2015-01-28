@@ -62,7 +62,7 @@ class UseWalletCommand extends AbstractCommand {
             $this->getBlocktrailSDK()->initWallet($identifier, $passphrase);
         }
 
-        $this->updateConfig([
+        $this->updateConfig($input, [
             'identifier' => $identifier,
             'passphrase' => $passphrase,
         ]);

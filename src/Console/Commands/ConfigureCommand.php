@@ -20,10 +20,9 @@ class ConfigureCommand extends AbstractCommand {
         $this
             ->setName('configure')
             // ->setAliases(['setup'])
-            ->setDescription("Configure credentials")
-            ->addOption('api_key', null, InputOption::VALUE_REQUIRED, 'API_KEY to be used')
-            ->addOption('api_secret', null, InputOption::VALUE_REQUIRED, 'API_SECRET to be used')
-            ->addOption('testnet', null, InputOption::VALUE_NONE, 'use testnet instead of mainnet');
+            ->setDescription("Configure credentials");
+
+        parent::configure();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
@@ -52,7 +51,7 @@ class ConfigureCommand extends AbstractCommand {
             }
         }
 
-        $this->replaceConfig([
+        $this->replaceConfig($input, [
             'api_key' => $apiKey,
             'api_secret' => $apiSecret,
             'testnet' => $testnet

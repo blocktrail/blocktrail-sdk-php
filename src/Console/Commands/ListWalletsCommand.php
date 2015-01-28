@@ -34,7 +34,7 @@ class ListWalletsCommand extends AbstractCommand {
         parent::execute($input, $output);
 
         $sdk = $this->getBlocktrailSDK();
-        $config = $this->getConfig();
+        $config = $this->getConfig($input);
 
         $page = $input->getOption('page');
         $perpage = $input->getOption('per-page');

@@ -32,7 +32,7 @@ abstract class AbstractWalletCommand extends AbstractCommand {
     protected function execute(InputInterface $input, OutputInterface $output) {
         parent::execute($input, $output);
 
-        $config = $this->getConfig();
+        $config = $this->getConfig($input);
 
         $this->identifier = $input->hasOptionInput('identifier') ? trim($input->getOption('identifier')) : (isset($config['identifier']) ? $config['identifier'] : null);
         $this->passphrase = $input->hasOptionInput('passphrase') ? trim($input->getOption('passphrase')) : (isset($config['passphrase']) ? $config['passphrase'] : null);
