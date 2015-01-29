@@ -244,7 +244,7 @@ EOD;
         $dompdf->render();
         $pdfStream = $dompdf->output();
         return $pdfStream;
-        return $dompdf->stream("wallet-backup-info.pdf", array("Attachment" => false));
+        //return $dompdf->stream("wallet-backup-info.pdf", array("Attachment" => false));
     }
 
     public function generateTxt() {
