@@ -7,6 +7,7 @@ use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use Blocktrail\SDK\Connection\RestClient;
+use Blocktrail\SDK\Exceptions\WalletChecksumException;
 
 /**
  * Class BlocktrailSDK

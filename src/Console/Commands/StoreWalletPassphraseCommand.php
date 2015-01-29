@@ -4,8 +4,6 @@ namespace Blocktrail\SDK\Console\Commands;
 
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Console\Application;
-use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
-use Blocktrail\SDK\Exceptions\WalletChecksumException;
 use Blocktrail\SDK\WalletInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
@@ -19,7 +17,7 @@ use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 
-class UseWalletCommand extends AbstractCommand {
+class StoreWalletPassphraseCommand extends AbstractCommand {
 
     const OPTION_MORE = "more ...";
     const OPTION_LESS = "less ...";
@@ -28,8 +26,8 @@ class UseWalletCommand extends AbstractCommand {
 
     protected function configure() {
         $this
-            ->setName('default_wallet')
-            ->setDescription("Configure default wallet to use")
+            ->setName('store_wallet_passphrase')
+            ->setDescription("Store a wallets passphrase")
             ->addOption('identifier', null, InputOption::VALUE_REQUIRED, 'Wallet identifier')
             ->addOption('passphrase', null, InputOption::VALUE_REQUIRED, 'Wallet passphrase');
 
@@ -40,27 +38,35 @@ class UseWalletCommand extends AbstractCommand {
         /** @var Output $output */
         parent::execute($input, $output);
 
+        /** @var QuestionHelper $questionHelper */
+        $questionHelper = $this->getHelper('question');
+
         $sdk = $this->getBlocktrailSDK();
         $interactive = true; // @TODO;
         $identifier = trim($input->getOption('identifier'));
+        $passphrase = trim($input->getOption('passphrase'));
 
         if ($interactive) {
             if (!$identifier) {
                 $identifier = $this->promptForIdentifier($input, $output, $sdk);
             }
+
+            if (!$passphrase) {
+                $question = new Question("<question>Input the wallet passphrase to store (blank to not/un set the default passphrase):</question> \n");
+                $question->setHidden(true);
+                $passphrase = $questionHelper->ask($input, $output, $question);
+            }
         }
 
-        if ($identifier) {
-            try {
-                $this->getBlocktrailSDK()->initWallet($identifier, "");
-            } catch (WalletChecksumException $e) {
-                // OK
-            }
+        if ($identifier && $passphrase) {
+            $this->getBlocktrailSDK()->initWallet($identifier, $passphrase);
         }
 
         $this->updateConfig($input, [
             $this->getNetwork() => [
-                'default_wallet' => $identifier
+                'wallet_passphrase' => [
+                    $identifier => $passphrase
+                ]
             ]
         ]);
 
@@ -99,7 +105,7 @@ class UseWalletCommand extends AbstractCommand {
             $options['no'] = self::OPTION_NO_DEFAULT;
             $options['manual'] = self::OPTION_FREEFORM;
 
-            $question = new ChoiceQuestion("Please select the wallet you'd like to use as default", $options, null);
+            $question = new ChoiceQuestion("Please select the wallet you'd like to store a passphrase for", $options, null);
             $question->setAutocompleterValues([]);
             $choice = $questionHelper->ask($input, $output, $question);
 
@@ -107,7 +113,7 @@ class UseWalletCommand extends AbstractCommand {
                 $identifier = null;
                 break;
             } else if ($choice == self::OPTION_FREEFORM) {
-                $question = new Question("Please fill in the wallet identifier you'd like to use as default? ");
+                $question = new Question("Please fill in the wallet identifier you'd like to store a passphrase for? ");
                 $identifier = $questionHelper->ask($input, $output, $question);
             } else if ($choice == self::OPTION_MORE) {
                 $page += 1;

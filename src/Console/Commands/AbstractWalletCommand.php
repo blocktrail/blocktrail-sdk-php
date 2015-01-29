@@ -34,11 +34,16 @@ abstract class AbstractWalletCommand extends AbstractCommand {
 
         $config = $this->getConfig($input);
 
-        $this->identifier = $input->hasOptionInput('identifier') ? trim($input->getOption('identifier')) : (isset($config['identifier']) ? $config['identifier'] : null);
-        $this->passphrase = $input->hasOptionInput('passphrase') ? trim($input->getOption('passphrase')) : (isset($config['passphrase']) ? $config['passphrase'] : null);
+        $this->identifier = $input->hasOptionInput('identifier') ? trim($input->getOption('identifier')) : (isset($config[$this->getNetwork()]['default_wallet']) ? $config[$this->getNetwork()]['default_wallet'] : null);
 
         if (!$this->identifier) {
             throw new \RuntimeException('indentifier is required.');
+        }
+
+        if ($input->hasOptionInput('passphrase')) {
+            $this->passphrase = trim($input->getOption('passphrase'));
+        } else if (isset($config[$this->getNetwork()]['wallet_passphrase'][$this->identifier])) {
+            $this->passphrase = $config[$this->getNetwork()]['wallet_passphrase'][$this->identifier];
         }
     }
 

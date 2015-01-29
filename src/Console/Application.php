@@ -10,6 +10,7 @@ use Blocktrail\SDK\Console\Commands\CreateNewWalletCommand;
 use Blocktrail\SDK\Console\Commands\GetNewAddressCommand;
 use Blocktrail\SDK\Console\Commands\ListWalletsCommand;
 use Blocktrail\SDK\Console\Commands\PayCommand;
+use Blocktrail\SDK\Console\Commands\StoreWalletPassphraseCommand;
 use Blocktrail\SDK\Console\Commands\UseWalletCommand;
 use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
@@ -26,11 +27,12 @@ class Application extends ConsoleApplication {
     protected function getDefaultCommands() {
         $commands = parent::getDefaultCommands();
 
+        $commands[] = new ConfigureCommand();
+        $commands[] = new ListWalletsCommand();
         $commands[] = new CreateNewWalletCommand();
         $commands[] = new GetNewAddressCommand();
-        $commands[] = new ConfigureCommand();
+        $commands[] = new StoreWalletPassphraseCommand();
         $commands[] = new UseWalletCommand();
-        $commands[] = new ListWalletsCommand();
         $commands[] = new PayCommand();
         $commands[] = new BalanceCommand();
 

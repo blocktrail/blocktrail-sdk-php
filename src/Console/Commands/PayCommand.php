@@ -86,7 +86,7 @@ class PayCommand extends AbstractWalletCommand {
         }
 
         if (!$input->getOption('silent')) {
-            $output->writeln("Sending payment to:");
+            $output->writeln("Sending payment from [<bold>{$wallet->getIdentifier()}</bold>] to:");
             foreach ($pay as $address => $value) {
                 $output->writeln("[{$address}] {$value} Satoshi = " . BlocktrailSDK::toBTCString($value) . " BTC");
             }

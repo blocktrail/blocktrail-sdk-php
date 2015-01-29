@@ -63,6 +63,10 @@ abstract class AbstractCommand extends Command {
         return new BlocktrailSDK($this->apiKey, $this->apiSecret, "BTC", $this->testnet);
     }
 
+    protected function getNetwork() {
+        return $this->testnet ? "tBTC" : "BTC";
+    }
+
     public function getConfig(InputInterface $input) {
         $file = $input->getOption('config');
 
@@ -87,6 +91,6 @@ abstract class AbstractCommand extends Command {
     }
 
     public function updateConfig(InputInterface $input, array $config) {
-        return $this->replaceConfig($input, array_replace($this->getConfig($input), $config));
+        return $this->replaceConfig($input, array_replace_recursive($this->getConfig($input), $config));
     }
 }
