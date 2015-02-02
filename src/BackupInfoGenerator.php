@@ -74,7 +74,7 @@ class BackupInfoGenerator {
                 ->setErrorCorrection('high')
                 ->setForegroundColor(array('r' => 0, 'g' => 0, 'b' => 0, 'a' => 0))
                 ->setBackgroundColor(array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 0))
-                ->setLabel("Key: ".$keyIndex."    Path: ".$key->path())
+                ->setLabel("KeyIndex: ".$keyIndex."    Path: ".$key->path())
                 ->setLabelFontSize(10)
             ;
             $this->blocktrailPublicKeys[] = array(
