@@ -585,7 +585,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * get the wallet data from the server
      *
-     * @param string    $identifier             the wallet identifier to be retrieved
+     * @param string    $identifier             the identifier of the wallet
      * @return mixed
      */
     public function getWallet($identifier) {
@@ -598,7 +598,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *  the checksum address and a signature to verify you ownership of the key of that checksum address
      *  is required to be able to delete a wallet
      *
-     * @param string    $identifier             the wallet identifier to be deleted
+     * @param string    $identifier             the identifier of the wallet
      * @param string    $checksumAddress        the address for your master private key (and the checksum used when creating the wallet)
      * @param string    $signature              a signature of the checksum address as message signed by the private key matching that address
      * @return mixed
@@ -684,7 +684,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * get the balance for the wallet
      *
-     * @param string    $identifier             the wallet identifier to be deleted
+     * @param string    $identifier             the identifier of the wallet
      * @return array
      */
     public function getWalletBalance($identifier) {
@@ -695,7 +695,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * do HD wallet discovery for the wallet
      *
-     * @param string    $identifier             the wallet identifier to be deleted
+     * @param string    $identifier             the identifier of the wallet
      * @return mixed
      */
     public function doWalletDiscovery($identifier) {
@@ -709,7 +709,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *
      * returns the path
      *
-     * @param string    $identifier             the wallet identifier to be deleted
+     * @param string    $identifier             the identifier of the wallet
      * @param string    $path                   the parent path for which to get a new derivation
      * @return string
      */
@@ -722,7 +722,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * get a new derivation number for specified parent path
      *  eg; m/44'/1'/0/0 results in m/44'/1'/0/0/0 and next time in m/44'/1'/0/0/1 and next time in m/44'/1'/0/0/2
      *
-     * @param string    $identifier             the wallet identifier to be deleted
+     * @param string    $identifier             the identifier of the wallet
      * @param string    $path                   the parent path for which to get a new derivation
      * @return mixed
      */
@@ -734,7 +734,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * send the transaction using the API
      *
-     * @param string    $identifier             the wallet identifier to be deleted
+     * @param string    $identifier             the identifier of the wallet
      * @param string    $rawTransaction         raw hex of the transaction (should be partially signed)
      * @param array     $paths                  list of the paths that were used for the UTXO
      * @param bool      $checkFee               let the server verify the fee after signing
@@ -778,7 +778,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *  "change"=> 1010109201,
      * ]
      *
-     * @param string $identifier                 the wallet identifier to be deleted
+     * @param string $identifier                 the identifier of the wallet
      * @param array  $outputs                    the outputs you want to create - array[address => satoshi-value]
      * @param bool   $lockUTXO                   when TRUE the UTXOs selected will be locked for a few seconds
      *                                           so you have some time to spend them without race-conditions
