@@ -220,7 +220,7 @@ class BackupInfoGenerator {
                         <div>
                             <h2>Wallet Recovery Instructions</h2>
                             <p>
-                                How to recover your wallet...
+                                For instructions on how to recover your wallet, see the "wallet_recovery_example.php" script in the examples folder of the Blocktrail SDK.
                             </p>
                         </div>
                     </section>
