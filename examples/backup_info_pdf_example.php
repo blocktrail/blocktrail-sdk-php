@@ -6,7 +6,9 @@ use Blocktrail\SDK\BlocktrailSDK;
 require_once __DIR__ . "/../vendor/autoload.php";
 
 
-$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet */, 'v1');
+$apiEndpoint = "api.blocktrail.localhost/v1/tBTC/"; //nocommit
+$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet */, 'v1', $apiEndpoint);
+$client->setVerboseErrors(true);
 
 //create a new wallet
 $bytes = openssl_random_pseudo_bytes(10);
