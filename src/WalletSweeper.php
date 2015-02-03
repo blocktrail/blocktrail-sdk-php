@@ -155,8 +155,6 @@ class WalletSweeper {
 
         for ($i = 0; $i < $count; $i++) {
             //create a path subsequent address
-            //@TODO use BIP32Path or WalletPath helpers to create path?
-            //$path = "M/".$keyIndex."'/0/".($start+$i);
             $path = (string)WalletPath::create($keyIndex, $_chain=0, $start+$i)->path()->publicPath();
             list($address, $redeem) = $this->createAddress($path);
             $addresses[$address] = array(
