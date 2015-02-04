@@ -15,9 +15,13 @@ $identifier = bin2hex($bytes);
 
 list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "example-strong-password", $_account=9999);
 
-//generate the pdf
+//generate the backup document
 $backupGenerator = new BackupInfoGenerator($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys);
-$result = $backupGenerator->generatePDF();
+$pdfStream = $backupGenerator->generatePDF();
 
+//we can either save the pdf file locally
+file_put_contents("my wallet backup.pdf", $pdfStream);
+
+//or output the pdf to the browser
 header("Content-type:application/pdf");
-echo $result;
+echo $pdfStream;
