@@ -5,11 +5,12 @@ namespace Blocktrail\SDK;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Endroid\QrCode\QrCode;
 
-
 /**
  * Class BackupInfoGenerator
  */
 class BackupInfoGenerator {
+
+    const QR_CODE_SIZE = 195;
 
     /**
      * path to fonts used for pdf generation
@@ -55,7 +56,8 @@ class BackupInfoGenerator {
             require_once dirname(__FILE__) . '/../vendor/dompdf/dompdf/dompdf_config.inc.php';
         }
 
-        $this->fontsPath = dirname(__FILE__) . '/../res/fonts';
+        //set the fonts path
+        $this->fontsPath = dirname(__FILE__) . '/../resources/fonts';
 
         $this->primaryMnemonic = $primaryMnemonic;
         $this->backupMnemonic = $backupMnemonic;
@@ -69,7 +71,7 @@ class BackupInfoGenerator {
             $qrCode = new QrCode();
             $qrCode
                 ->setText($key->key())
-                ->setSize(175)
+                ->setSize(self::QR_CODE_SIZE-20)
                 ->setPadding(10)
                 ->setErrorCorrection('high')
                 ->setForegroundColor(array('r' => 0, 'g' => 0, 'b' => 0, 'a' => 0))
@@ -80,12 +82,17 @@ class BackupInfoGenerator {
             $this->blocktrailPublicKeys[] = array(
                 'keyIndex'  => $keyIndex,
                 'path'      => $key->path(),
-                'qr'        => $qrCode->getDataUri()
+                'qr'        => $qrCode->getDataUri(),
+                'qrImg'     => $qrCode->getImage(),
             );
         }
     }
 
-    protected function htmlFormat() {
+    /**
+     * generate html document of backup details
+     * @return string
+     */
+    public function generateHTML() {
         $pubKeysHtml = "";
         foreach ($this->blocktrailPublicKeys as $pubKey) {
             $pubKeysHtml .= "<img src='{$pubKey['qr']}' />";
@@ -189,7 +196,7 @@ class BackupInfoGenerator {
                     <section class="intro">
                         <h1>Wallet Recovery Data Sheet</h1>
                         <p>
-                            This document holds the information and instructions required for you to recover you Blocktrail wallet should anything happen. <br>
+                            This document holds the information and instructions required for you to recover your Blocktrail wallet should anything happen. <br>
                             Print it out and keep it in a safe location; if you lose these details you will never be able to recover your wallet.
                         </p>
                     </section>
@@ -230,9 +237,111 @@ EOD;
         return $html;
     }
 
+    public function generateImg($filename = null) {
+        //create the image canvas - use the count of blocktrail pub keys to augment appropriately
+        $totalPubKeys = count($this->blocktrailPublicKeys);
+        $increaseCanvas = ceil($totalPubKeys/4) * (self::QR_CODE_SIZE + 30);
+        $image = imagecreatetruecolor(1024, 600 + $increaseCanvas);
+
+        //create colours
+        $background = imagecolorallocate($image, 255, 255, 255);
+        $bodyTextColour = imagecolorallocate($image, 0, 0, 0);
+        $lineColour = imagecolorallocate($image, 128, 255, 0);
+
+        //set the backgrount
+        imagefill($image, 0, 0, $background);
+
+        //Create the text to draw
+        //1. intro text
+        $introContent = array(
+            ['font-size' => 22, 'line-height' => 26, 'text' => 'Wallet Recovery Data Sheet'],
+            ['font-size' => 12, 'line-height' => 20, 'text' => 'This document holds the information and instructions required for you to recover your Blocktrail wallet should anything happen.'],
+            ['font-size' => 12, 'line-height' => 20, 'text' => 'Print it out and keep it in a safe location; if you lose these details you will never be able to recover your wallet.'],
+            ['font-size' => 12, 'line-height' => 20, 'text' => ''],
+            ['font-size' => 12, 'line-height' => 20, 'text' => 'For instructions on how to recover your wallet, see the "wallet_recovery_example.php" script in the examples folder of the SDK.'],
+            ['font-size' => 12, 'line-height' => 30, 'text' => ''],
+        );
+
+        //2. backup info (mnemonics)
+        $backupContent = array(
+            ['font-size' => 18, 'line-height' => 26, 'text' => 'Backup Info'],
+            ['font-size' => 14, 'line-height' => 24, 'text' => 'Primary Mnemonic: '],
+        );
+        //chunk the mnemonics into groups of x words
+        preg_match_all('/(\w*\s){1,8}/', $this->primaryMnemonic, $results);
+        foreach ($results[0] as $wordGroup) {
+            $backupContent[] = array('font-size' => 12, 'line-height' => 20, 'text' => $wordGroup);
+        }
+
+        $backupContent[] = array('font-size' => 12, 'line-height' => 30, 'text' => '');
+        $backupContent[] = array('font-size' => 14, 'line-height' => 24, 'text' => 'Backup Mnemonic: ');
+
+        preg_match_all('/(\w*\s){1,8}/', $this->backupMnemonic, $results);
+        foreach ($results[0] as $wordGroup) {
+            $backupContent[] = array('font-size' => 12, 'line-height' => 20, 'text' => $wordGroup);
+        }
+
+        //3. Bloctrail pub key QR codes
+        $backupContent[] = array('font-size' => 12, 'line-height' => 30, 'text' => '');
+        $backupContent[] = array('font-size' => 14, 'line-height' => 20, 'text' => 'Blocktrail Public Keys');
+        $backupContent[] = array('font-size' => 10, 'line-height' => 24, 'text' => $totalPubKeys.' in total');
+
+
+        //Merge all the text content together and print to image
+        $font = $this->fontsPath.'/OpenSans-Regular.ttf';
+        $content = array_merge($introContent, $backupContent);
+        $leftMargin = 15;
+        $topMargin = 25;
+        $yPos = $topMargin;
+        foreach ($content as $index => $text) {
+            imagettftext($image, $text['font-size'], 0, $leftMargin, $yPos, $bodyTextColour, $font, $text['text']);
+            //increment the text position
+            $yPos += $text['line-height'];
+        }
+
+        //draw the blocktrail pub key QR codes
+        $xPos = $leftMargin;
+        $i = 0;
+        foreach ($this->blocktrailPublicKeys as $btPubKey) {
+            imagecopy($image, $btPubKey['qrImg'], $xPos, $yPos, 0, 0, self::QR_CODE_SIZE, self::QR_CODE_SIZE+20);
+
+            //increment to help decide when to start a new row
+            $i++;
+
+            //increment x and/or y position
+            if ($i == 4) {
+                $i = 0;
+                $yPos += self::QR_CODE_SIZE + 30;
+                $xPos = $leftMargin;
+            } else {
+                $xPos += self::QR_CODE_SIZE + 20;
+            }
+        }
+
+        //cleanup
+        imagecolordeallocate($image, $lineColour);
+        imagecolordeallocate($image, $bodyTextColour);
+        imagecolordeallocate($image, $background);
+
+        //save or output image
+        if (!$filename) {
+            header("Content-type: image/png");
+            imagepng($image);
+            imagedestroy($image);
+        } else {
+            $result = imagepng($image, $filename);
+            imagedestroy($image);
+            return $result;
+        }
+    }
+
+    /**
+     * generate PDF document of backup details
+     * @return string       pdf data, ready to be saved to file or streamed to browser
+     */
     public function generatePDF() {
         $dompdf = new \DOMPDF();
-        $html = $this->htmlFormat();
+        $html = $this->generateHTML();
         $dompdf->load_html($html);
 
         //debugging
@@ -248,10 +357,6 @@ EOD;
     }
 
     public function generateTxt() {
-        //...
-    }
-
-    public function generateImg() {
         //...
     }
 }
