@@ -11,7 +11,6 @@ use Blocktrail\SDK\Bitcoin\BIP32Path;
 
 class WalletSweeper {
 
-
     /**
      * network to use - currently only supporting 'bitcoin'
      * @var string
@@ -60,6 +59,12 @@ class WalletSweeper {
      */
     protected $sweepData;
 
+    /**
+     * process logging for debugging
+     * @var bool
+     */
+    protected $debug = false;
+
 
     public function __construct($primaryMnemonic, $primaryPassphrase, $backupMnemonic, array $blocktrailPublicKeys, BlockchainDataServiceInterface $bitcoinClient, $network = 'btc', $testnet = false) {
         // normalize network and set bitcoinlib to the right magic-bytes
@@ -84,6 +89,16 @@ class WalletSweeper {
         $backupSeed = BIP39::mnemonicToSeedHex($backupMnemonic, "");
         $this->primaryPrivateKey = BIP32Key::create(BIP32::master_key($primarySeed, $this->network, $this->testnet));
         $this->backupPrivateKey = BIP32Key::create(BIP32::master_key($backupSeed, $this->network, $this->testnet));
+    }
+
+    public function enableLogging() {
+        $this->debug = true;
+        $this->utxoFinder->enableLogging();
+    }
+
+    public function disableLogging() {
+        $this->debug = false;
+        $this->utxoFinder->disableLogging();
     }
 
 
@@ -162,6 +177,10 @@ class WalletSweeper {
                 'redeem' => $redeem,
                 'path' => $path
             );
+
+            if ($this->debug) {
+                echo ".";
+            }
         }
 
         return $addresses;
@@ -193,18 +212,27 @@ class WalletSweeper {
      * @param int $increment    how many addresses to scan at a time
      * @return array
      */
-    public function discoverWalletFunds($increment = 100) {
+    public function discoverWalletFunds($increment = 200) {
         $totalBalance = 0;
         $totalUTXOs = 0;
-        $i = 0;
+        $totalAddressesGenerated = 0;
 
         $addressUTXOs = array();    //addresses and their utxos, paths and redeem scripts
         $this->sweepData = null;
 
         //for each blocktrail pub key, do fund discovery on batches of addresses
         foreach($this->blocktrailPublicKeys as $keyIndex => $blocktrailPubKey) {
+            $i = 0;
             do {
+                if ($this->debug) {
+                    echo "\ngenerating $increment addresses using blocktrail key index $keyIndex\n";
+                }
                 $addresses = $this->createBatchAddresses($i, $increment, $keyIndex);
+                $totalAddressesGenerated += count($addresses);
+
+                if ($this->debug) {
+                    echo "\nstarting fund discovery for $increment addresses";
+                }
 
                 //get the unspent outputs for this batch of addresses
                 $utxos = $this->utxoFinder->getUTXOs(array_keys($addresses));
@@ -221,6 +249,10 @@ class WalletSweeper {
                     $totalBalance = array_reduce($outputs, function($carry, $output){
                         return $carry += $output['value'];
                     }, $totalBalance);
+
+                    if ($this->debug) {
+                        echo "\nfound ".count($outputs)." unspent outputs in address $address";
+                    }
                 }
 
                 //increment for next batch
@@ -228,7 +260,11 @@ class WalletSweeper {
             } while (count($utxos) > 0);
         }
 
-        $this->sweepData = ['utxos' => $addressUTXOs, 'count' => $totalUTXOs, 'balance' => $totalBalance, 'addressesSearched' => $i];
+        if ($this->debug) {
+            echo "\nfinished fund discovery: $totalBalance Satoshi (in $totalUTXOs outputs) found when searching $totalAddressesGenerated addresses";
+        }
+
+        $this->sweepData = ['utxos' => $addressUTXOs, 'count' => $totalUTXOs, 'balance' => $totalBalance, 'addressesSearched' => $totalAddressesGenerated];
         return $this->sweepData;
     }
 
@@ -240,7 +276,11 @@ class WalletSweeper {
      * @return array                            returns signed transaction for sending, success status, and signature count
      * @throws \Exception
      */
-    public function sweepWallet($destinationAddress, $sweepBatchSize = 100) {
+    public function sweepWallet($destinationAddress, $sweepBatchSize = 200) {
+        if ($this->debug) {
+            echo "\nstarting wallet sweeping to address $destinationAddress";
+        }
+
         //do wallet fund discovery
         if (!isset($this->sweepData)) {
             $this->discoverWalletFunds($sweepBatchSize);
@@ -266,6 +306,10 @@ class WalletSweeper {
      * @throws \Exception
      */
     protected function createTransaction($destinationAddress) {
+        if ($this->debug) {
+            echo "\nCreating transaction to address $destinationAddress";
+        }
+
         // create raw transaction
         $inputs = [];
         foreach($this->sweepData['utxos'] as $address => $data) {
@@ -293,6 +337,10 @@ class WalletSweeper {
         $rawTransaction = RawTransaction::create($inputs, $outputs);
         if (!$rawTransaction) {
             throw new \Exception("Failed to create raw transaction");
+        }
+
+        if ($this->debug) {
+            echo "\nSigning transaction";
         }
 
         //sign the raw transaction
