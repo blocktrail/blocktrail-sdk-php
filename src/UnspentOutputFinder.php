@@ -5,9 +5,16 @@ namespace Blocktrail\SDK;
 class UnspentOutputFinder {
 
     /**
-     * @var BlockchainDataServiceInterface      provides access to bitcoin data
+     * provides access to bitcoin data
+     * @var BlockchainDataServiceInterface
      */
     protected $client;
+
+    /**
+     * process logging for debugging
+     * @var bool
+     */
+    protected $debug = false;
 
     public function __construct(BlockchainDataServiceInterface $bitcoinClient) {
         $this->client = $bitcoinClient;
@@ -23,6 +30,9 @@ class UnspentOutputFinder {
         $results = array();
 
         foreach($addresses as $address) {
+            if ($this->debug) {
+                echo "\nchecking $address";
+            }
             //get the utxos for this address
             $utxos = $this->client->getUnspentOutputs($address);
 
@@ -33,4 +43,13 @@ class UnspentOutputFinder {
 
         return $results;
     }
+
+    public function enableLogging() {
+        $this->debug = true;
+    }
+
+    public function disableLogging() {
+        $this->debug = false;
+    }
+
 }
