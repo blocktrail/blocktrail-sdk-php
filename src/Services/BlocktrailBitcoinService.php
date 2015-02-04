@@ -27,14 +27,9 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
         } catch (\Exception $e) {
             //if rate limit hit, sleep for a short while and try again
             if ($this->retries < $this->retryLimit) {
-                /* debugging
-                echo $e->getMessage();
-                echo "sleeping\n";
-                */
-
                 $this->retries++;
                 sleep($this->sleepTime);
-                
+
                 return $this->getUnspentOutputs($address);
             } else {
                 throw $e;
