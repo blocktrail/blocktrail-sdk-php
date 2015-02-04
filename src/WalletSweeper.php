@@ -72,7 +72,7 @@ class WalletSweeper {
         BitcoinLib::setMagicByteDefaults($this->network . ($this->testnet ? '-testnet' : ''));
 
         //create BIP32 keys for the Blocktrail public keys
-        foreach($blocktrailPublicKeys as $blocktrailKey) {
+        foreach ($blocktrailPublicKeys as $blocktrailKey) {
             $this->blocktrailPublicKeys[$blocktrailKey['keyIndex']] = BIP32Key::create($blocktrailKey['pubkey'], $blocktrailKey['path']);
         }
 
@@ -170,7 +170,7 @@ class WalletSweeper {
 
         for ($i = 0; $i < $count; $i++) {
             //create a path subsequent address
-            $path = (string)WalletPath::create($keyIndex, $_chain=0, $start+$i)->path()->publicPath();
+            $path = (string)WalletPath::create($keyIndex, $_chain = 0, $start+$i)->path()->publicPath();
             list($address, $redeem) = $this->createAddress($path);
             $addresses[$address] = array(
                 //'address' => $address,
@@ -221,7 +221,7 @@ class WalletSweeper {
         $this->sweepData = null;
 
         //for each blocktrail pub key, do fund discovery on batches of addresses
-        foreach($this->blocktrailPublicKeys as $keyIndex => $blocktrailPubKey) {
+        foreach ($this->blocktrailPublicKeys as $keyIndex => $blocktrailPubKey) {
             $i = 0;
             do {
                 if ($this->debug) {
@@ -237,7 +237,7 @@ class WalletSweeper {
                 //get the unspent outputs for this batch of addresses
                 $utxos = $this->utxoFinder->getUTXOs(array_keys($addresses));
                 //save the address utxos, along with relevant path and redeem script
-                foreach($utxos as $address => $outputs) {
+                foreach ($utxos as $address => $outputs) {
                     $addressUTXOs[$address] = array(
                         'path' =>  $addresses[$address]['path'],
                         'redeem' =>  $addresses[$address]['redeem'],
@@ -246,7 +246,7 @@ class WalletSweeper {
                     $totalUTXOs += count($outputs);
 
                     //add up the total utxo value for all addresses
-                    $totalBalance = array_reduce($outputs, function($carry, $output){
+                    $totalBalance = array_reduce($outputs, function ($carry, $output) {
                         return $carry += $output['value'];
                     }, $totalBalance);
 
@@ -312,7 +312,7 @@ class WalletSweeper {
 
         // create raw transaction
         $inputs = [];
-        foreach($this->sweepData['utxos'] as $address => $data) {
+        foreach ($this->sweepData['utxos'] as $address => $data) {
             $inputs = array_merge(
                 $inputs,
                 array_map(function ($utxo) use ($address, $data) {

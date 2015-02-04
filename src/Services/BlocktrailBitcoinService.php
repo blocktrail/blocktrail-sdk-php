@@ -12,7 +12,7 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
     protected $sleepTime;
     protected $retries;
 
-    public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null){
+    public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null) {
         $this->client = new BlocktrailSDK($apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint);
 
         $this->retryLimit = 5;
@@ -40,7 +40,7 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
         $this->retries = 0;
 
         //reduce the returned data into the values we're interested in
-        $result = array_map(function($utxo){
+        $result = array_map(function ($utxo) {
             return array(
                 'hash'       => $utxo['hash'],
                 'index'      => $utxo['index'],
