@@ -29,7 +29,7 @@ class UnspentOutputFinder {
     public function getUTXOs(array $addresses) {
         $results = array();
 
-        foreach($addresses as $address) {
+        foreach ($addresses as $address) {
             if ($this->debug) {
                 echo "\nchecking $address";
             }
