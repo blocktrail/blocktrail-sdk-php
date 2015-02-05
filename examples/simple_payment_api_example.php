@@ -5,7 +5,7 @@ use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
-$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet */, 'v1');
+$client = new BlocktrailSDK("YOUR_APIKEY_HERE", "YOUR_APISECRET_HERE", "BTC", true /* testnet */, 'v1');
 // $client->setVerboseErrors();
 // $client->setCurlDebugging();
 

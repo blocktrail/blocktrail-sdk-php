@@ -4,7 +4,7 @@ use Blocktrail\SDK\BlocktrailSDK;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
-$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET");
+$client = new BlocktrailSDK("YOUR_APIKEY_HERE", "YOUR_APISECRET_HERE");
 // $client->setCurlDebugging();
 
 // GET request

@@ -32,8 +32,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
      * @return BlocktrailSDKInterface
      */
     public function setupBlocktrailSDK() {
-        $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
-        // $client->setCurlDebugging();
+        $apiKey = getenv('BLOCKTRAIL_SDK_APIKEY') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APIKEY';
+        $apiSecret = getenv('BLOCKTRAIL_SDK_APISECRET') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APISECRET';
+        $client = new BlocktrailSDK($apiKey, $apiSecret, "BTC", true, 'v1');
+
         return $client;
     }
 
