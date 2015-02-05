@@ -6,9 +6,9 @@ use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Endroid\QrCode\QrCode;
 
 /**
- * Class BackupInfoGenerator
+ * Class BackupGenerator
  */
-class BackupInfoGenerator {
+class BackupGenerator {
 
     const QR_CODE_SIZE = 195;
 
