@@ -1,6 +1,6 @@
 <?php
 
-use Blocktrail\SDK\BackupInfoGenerator;
+use Blocktrail\SDK\BackupGenerator;
 use Blocktrail\SDK\BlocktrailSDK;
 
 require_once __DIR__ . "/../vendor/autoload.php";
@@ -16,7 +16,7 @@ $identifier = bin2hex($bytes);
 list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "example-strong-password", $_account=9999);
 
 //generate the backup document
-$backupGenerator = new BackupInfoGenerator($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys);
+$backupGenerator = new BackupGenerator($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys);
 $pdfStream = $backupGenerator->generatePDF();
 
 //we can either save the pdf file locally
