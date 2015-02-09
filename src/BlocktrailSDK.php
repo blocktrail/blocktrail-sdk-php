@@ -695,11 +695,13 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * do HD wallet discovery for the wallet
      *
+     * this can be REALLY slow, so we've set the timeout to 120s ...
+     *
      * @param string    $identifier             the wallet identifier to be deleted
      * @return mixed
      */
     public function doWalletDiscovery($identifier) {
-        $response = $this->client->get("wallet/{$identifier}/discovery", null, RestClient::AUTH_HTTP_SIG);
+        $response = $this->client->get("wallet/{$identifier}/discovery", null, RestClient::AUTH_HTTP_SIG, 120.0);
         return self::jsonDecode($response->body(), true);
     }
 

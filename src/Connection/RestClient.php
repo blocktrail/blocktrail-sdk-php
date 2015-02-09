@@ -52,6 +52,7 @@ class RestClient {
                 ),
                 'exceptions' => false,
                 'connect_timeout' => 3,
+                'timeout' => 10.0, // tmp until we have a good matrix of all the requests and their expect min/max time
                 'verify' => true,
                 'proxy' => '',
                 'debug' => false,
@@ -111,10 +112,11 @@ class RestClient {
      * @param   string          $endpointUrl
      * @param   array           $queryString
      * @param   string          $auth           http-signatures to enable http-signature signing
+     * @param   float           $timeout        timeout in seconds
      * @return  Response
      */
-    public function get($endpointUrl, $queryString = null, $auth = null) {
-        return $this->request('GET', $endpointUrl, $queryString, null, $auth);
+    public function get($endpointUrl, $queryString = null, $auth = null, $timeout = null) {
+        return $this->request('GET', $endpointUrl, $queryString, null, $auth, null, $timeout);
     }
 
     /**
@@ -122,10 +124,11 @@ class RestClient {
      * @param   null            $queryString
      * @param   array|string    $postData
      * @param   string          $auth           http-signatures to enable http-signature signing
+     * @param   float           $timeout        timeout in seconds
      * @return  Response
      */
-    public function post($endpointUrl, $queryString = null, $postData = '', $auth = null) {
-        return $this->request('POST', $endpointUrl, $queryString, $postData, $auth);
+    public function post($endpointUrl, $queryString = null, $postData = '', $auth = null, $timeout = null) {
+        return $this->request('POST', $endpointUrl, $queryString, $postData, $auth, null, $timeout);
     }
 
     /**
@@ -133,10 +136,11 @@ class RestClient {
      * @param   null            $queryString
      * @param   array|string    $putData
      * @param   string          $auth           http-signatures to enable http-signature signing
+     * @param   float           $timeout        timeout in seconds
      * @return  Response
      */
-    public function put($endpointUrl, $queryString = null, $putData = '', $auth = null) {
-        return $this->request('PUT', $endpointUrl, $queryString, $putData, $auth);
+    public function put($endpointUrl, $queryString = null, $putData = '', $auth = null, $timeout = null) {
+        return $this->request('PUT', $endpointUrl, $queryString, $putData, $auth, null, $timeout);
     }
 
     /**
@@ -144,10 +148,11 @@ class RestClient {
      * @param   null            $queryString
      * @param   array|string    $postData
      * @param   string          $auth           http-signatures to enable http-signature signing
+     * @param   float           $timeout        timeout in seconds
      * @return  Response
      */
-    public function delete($endpointUrl, $queryString = null, $postData = null, $auth = null) {
-        return $this->request('DELETE', $endpointUrl, $queryString, $postData, $auth, 'url');
+    public function delete($endpointUrl, $queryString = null, $postData = null, $auth = null, $timeout = null) {
+        return $this->request('DELETE', $endpointUrl, $queryString, $postData, $auth, 'url', $timeout);
     }
 
     /**
@@ -159,9 +164,10 @@ class RestClient {
      * @param   array|string    $body
      * @param   string          $auth           http-signatures to enable http-signature signing
      * @param   string          $contentMD5Mode body or url
+     * @param   float           $timeout        timeout in seconds
      * @return Response
      */
-    protected function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null) {
+    protected function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
         if (is_null($contentMD5Mode)) {
             $contentMD5Mode = !is_null($body) ? 'body' : 'url';
         }
@@ -206,6 +212,10 @@ class RestClient {
 
         if ($auth) {
             $request->getConfig()['auth'] = $auth;
+        }
+
+        if ($timeout !== null) {
+            $request->getConfig()['timeout'] = $timeout;
         }
 
         $response = $this->guzzle->send($request);
