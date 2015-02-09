@@ -701,7 +701,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @return mixed
      */
     public function doWalletDiscovery($identifier) {
-        $response = $this->client->get("wallet/{$identifier}/discovery", null, RestClient::AUTH_HTTP_SIG, 120.0);
+        $response = $this->client->get("wallet/{$identifier}/discovery", null, RestClient::AUTH_HTTP_SIG, 360.0);
         return self::jsonDecode($response->body(), true);
     }
 
