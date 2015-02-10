@@ -247,7 +247,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
             // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
         }
-        $this->assertTrue(!$e, "New wallet with ID [{$identifier}] already exists...");
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
         $wallet = $client->initWallet($identifier, "password");
         $this->wallets[] = $wallet; // store for cleanup
@@ -288,7 +288,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
             // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
         }
-        $this->assertTrue(!$e, "New wallet with ID [{$identifier}] already exists...");
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
         $wallet = $client->initWallet($identifier, "password");
         $this->wallets[] = $wallet; // store for cleanup

@@ -909,8 +909,18 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param float     $btc
      * @return string
      */
-    public static function toSatoshi($btc) {
+    public static function toSatoshiString($btc) {
         return bcmul(sprintf("%.8f", (float)$btc), 100000000, 0);
+    }
+
+    /**
+     * convert a BTC value to a Satoshi value
+     *
+     * @param float     $btc
+     * @return string
+     */
+    public static function toSatoshi($btc) {
+        return (int)self::toSatoshiString($btc);
     }
 
     /**
