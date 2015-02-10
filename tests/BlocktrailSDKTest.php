@@ -146,10 +146,11 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
     public function testSigning() {
         $client = $this->setupBadBlocktrailSDK();
 
+        $e = null;
         try {
             $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
-            $this->fail("Bad keys still succeeded");
         } catch (InvalidCredentials $e) {}
+        $this->assertTrue(!!$e, "Bad keys still succeeded");
 
         $client = $this->setupBlocktrailSDK();
 

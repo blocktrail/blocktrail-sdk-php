@@ -240,37 +240,37 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /**
          * @var $wallet \Blocktrail\SDK\Wallet
          */
+        $e = null;
         try {
             $wallet = $client->initWallet($identifier, "password");
-            $this->fail("New wallet with ID [{$identifier}] already exists...");
         } catch (ObjectNotFound $e) {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
             // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
         }
+        $this->assertTrue(!$e, "New wallet with ID [{$identifier}] already exists...");
 
         $wallet = $client->initWallet($identifier, "password");
         $this->wallets[] = $wallet; // store for cleanup
 
         $this->assertEquals(0, $wallet->getBalance()[0]);
 
+        $e = null;
         try {
             $wallet->pay([
                 "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
             ]);
-            $this->fail("Wallet without balance is able to pay...");
         } catch (\Exception $e) {
-            $this->assertTrue(!!$e);
         }
+        $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
 
         /*
          * init same wallet by with bad password
          */
+        $e = null;
         try {
             $wallet = $client->initWallet($identifier, "password2", 9999);
-            $this->fail("Wallet with bad pass initialized");
-        } catch (\Exception $e) {
-            $this->assertTrue(!!$e);
-        }
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "Wallet with bad pass initialized");
     }
 
     public function testWebhookForWallet() {
@@ -281,13 +281,14 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /**
          * @var $wallet \Blocktrail\SDK\Wallet
          */
+        $e = null;
         try {
             $wallet = $client->initWallet($identifier, "password");
-            $this->fail("New wallet with ID [{$identifier}] already exists...");
         } catch (ObjectNotFound $e) {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
             // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
         }
+        $this->assertTrue(!$e, "New wallet with ID [{$identifier}] already exists...");
 
         $wallet = $client->initWallet($identifier, "password");
         $this->wallets[] = $wallet; // store for cleanup
@@ -350,12 +351,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $wallet->deleteWallet();
 
         // check if webhook is deleted
+        $e = null;
         try {
             $this->assertFalse($wallet->deleteWebhook($webhookIdentifier));
-            $this->fail("should throw exception");
-        } catch (ObjectNotFound $e) {
-            $this->assertTrue(!!$e);
-        }
+        } catch (ObjectNotFound $e) {}
+        $this->assertTrue(!!$e, "should throw exception");
     }
 
     public function testListWalletTxsAddrs() {
