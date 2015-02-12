@@ -51,5 +51,4 @@ class UnspentOutputFinder {
     public function disableLogging() {
         $this->debug = false;
     }
-
 }
