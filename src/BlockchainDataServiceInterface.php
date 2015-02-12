@@ -11,5 +11,4 @@ interface BlockchainDataServiceInterface {
      * @return array    2d array of unspent outputs as ['hash' => $hash, 'index' => $index, 'value' => $value, 'script_hex' => $scriptHex]
      */
     public function getUnspentOutputs($address);
-
 }
