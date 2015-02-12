@@ -65,7 +65,16 @@ class WalletSweeper {
      */
     protected $debug = false;
 
-
+    /**
+     * @param                                $primaryMnemonic
+     * @param                                $primaryPassphrase
+     * @param                                $backupMnemonic
+     * @param array                          $blocktrailPublicKeys
+     * @param BlockchainDataServiceInterface $bitcoinClient
+     * @param string                         $network
+     * @param bool                           $testnet
+     * @throws \Exception
+     */
     public function __construct($primaryMnemonic, $primaryPassphrase, $backupMnemonic, array $blocktrailPublicKeys, BlockchainDataServiceInterface $bitcoinClient, $network = 'btc', $testnet = false) {
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
@@ -91,11 +100,17 @@ class WalletSweeper {
         $this->backupPrivateKey = BIP32Key::create(BIP32::master_key($backupSeed, $this->network, $this->testnet));
     }
 
+    /**
+     * enable debug info logging (just to console)
+     */
     public function enableLogging() {
         $this->debug = true;
         $this->utxoFinder->enableLogging();
     }
 
+    /**
+     * disable debug info logging
+     */
     public function disableLogging() {
         $this->debug = false;
         $this->utxoFinder->disableLogging();
