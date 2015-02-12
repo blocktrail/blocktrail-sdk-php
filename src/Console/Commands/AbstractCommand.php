@@ -44,9 +44,9 @@ abstract class AbstractCommand extends Command {
         /** @var Output $output */
         $config = $this->getConfig($input);
 
-        $this->apiKey = $input->hasOptionInput('api_key') ? trim($input->getOption('api_key')) : (isset($config['api_key']) ? $config['api_key'] : null);
-        $this->apiSecret = $input->hasOptionInput('api_secret') ? trim($input->getOption('api_secret')) : (isset($config['api_secret']) ? $config['api_secret'] : null);
-        $this->testnet = $input->hasOptionInput('testnet') ? $input->getOption('testnet') : (isset($config['testnet']) ? $config['testnet'] : false);
+        $this->apiKey = trim($input->getOption('api_key')) ?: (isset($config['api_key']) ? $config['api_key'] : null);
+        $this->apiSecret = trim($input->getOption('api_secret')) ?: (isset($config['api_secret']) ? $config['api_secret'] : null);
+        $this->testnet = $input->getOption('testnet') ?: (isset($config['testnet']) ? $config['testnet'] : false);
 
         if (!$this->apiKey) {
             throw new \RuntimeException('API_KEY is required.');
