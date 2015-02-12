@@ -27,8 +27,10 @@ header("Content-type:application/pdf");
 echo $pdfStream;
 
 
-//html and img documents can also be generated
+//html and img documents can also be generated for saving/returning to the browser
 //$backupHTML = $backupGenerator->generateHTML();
 //echo $backupHTML;
 
-//$backupGenerator->generateImg('my wallet backup.png');
+
+//$backupGenerator->generateImg('my wallet backup.png');    //save image to disk
+//$backupGenerator->generateImg();                          //stream image to browser
