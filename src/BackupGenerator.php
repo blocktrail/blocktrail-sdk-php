@@ -43,6 +43,13 @@ class BackupGenerator {
     protected $blocktrailPublicKeys;
 
     /**
+     * array of data and QR codes for the blocktrail public keys
+     *
+     * @var null
+     */
+    protected $blocktrailPubKeyQRs = null;
+
+    /**
      * @param $primaryMnemonic
      * @param $backupMnemonic
      * @param $blocktrailPublicKeys
@@ -62,12 +69,17 @@ class BackupGenerator {
         $this->primaryMnemonic = $primaryMnemonic;
         $this->backupMnemonic = $backupMnemonic;
 
-        $blocktrailPublicKeys = array_map(function ($key) {
+        $this->blocktrailPublicKeys = array_map(function ($key) {
             return BIP32Key::create($key); // M/9999' or M/0' or M/1'
         }, $blocktrailPublicKeys);
+    }
 
+    /**
+     * process the blocktrail public keys and create qr codes for each one
+     */
+    protected function processBlocktrailPubKeys() {
         //create QR codes for each blocktrail pub key
-        foreach ($blocktrailPublicKeys as $keyIndex => $key) {
+        foreach ($this->blocktrailPublicKeys as $keyIndex => $key) {
             $qrCode = new QrCode();
             $qrCode
                 ->setText($key->key())
@@ -79,7 +91,7 @@ class BackupGenerator {
                 ->setLabel("KeyIndex: ".$keyIndex."    Path: ".$key->path())
                 ->setLabelFontSize(10)
             ;
-            $this->blocktrailPublicKeys[] = array(
+            $this->blocktrailPubKeyQRs[] = array(
                 'keyIndex'  => $keyIndex,
                 'path'      => $key->path(),
                 'qr'        => $qrCode->getDataUri(),
@@ -90,14 +102,19 @@ class BackupGenerator {
 
     /**
      * generate html document of backup details
+     *
      * @return string
      */
     public function generateHTML() {
+        //create blocktrail pub key QR codes if not already done
+        if (!$this->blocktrailPubKeyQRs) {
+            $this->processBlocktrailPubKeys();
+        }
         $pubKeysHtml = "";
-        foreach ($this->blocktrailPublicKeys as $pubKey) {
+        foreach ($this->blocktrailPubKeyQRs as $pubKey) {
             $pubKeysHtml .= "<img src='{$pubKey['qr']}' />";
         }
-        $totalPubKeys = count($this->blocktrailPublicKeys);
+        $totalPubKeys = count($this->blocktrailPubKeyQRs);
         //create the html for pdf generation
         $html = <<<EOD
             <html>
@@ -205,21 +222,21 @@ class BackupGenerator {
                         <h2>Backup Info</h2>
                         <div class="primary-mnemonic">
                             <h3>Primary Mnemonic</h3>
-                            <code>$this->primaryMnemonic</code>
+                            <code>{$this->primaryMnemonic}</code>
                         </div>
 
                         <div class="backup-mnemonic">
                             <h3>Backup Mnemonic</h3>
-                            <code>$this->backupMnemonic</code>
+                            <code>{$this->backupMnemonic}</code>
                         </div>
 
                         <div class="blocktrail-pubkeys">
                             <h3>
                                 Blocktrail Public Keys
-                                <small>$totalPubKeys in total</small>
+                                <small>{$totalPubKeys} in total</small>
                             </h3>
 
-                            $pubKeysHtml
+                            {$pubKeysHtml}
                         </div>
                     </section>
 
@@ -237,9 +254,19 @@ EOD;
         return $html;
     }
 
+    /**
+     * generate image file of backup details, ready to
+     *
+     * @param null $filename        filename to save image as (optional - if ommited raw image stream is outputted instead)
+     * @return bool
+     */
     public function generateImg($filename = null) {
+        //create blocktrail pub key QR codes if not already done
+        if (!$this->blocktrailPubKeyQRs) {
+            $this->processBlocktrailPubKeys();
+        }
         //create the image canvas - use the count of blocktrail pub keys to augment appropriately
-        $totalPubKeys = count($this->blocktrailPublicKeys);
+        $totalPubKeys = count($this->blocktrailPubKeyQRs);
         $increaseCanvas = ceil($totalPubKeys/4) * (self::QR_CODE_SIZE + 30);
         $image = imagecreatetruecolor(1024, 600 + $increaseCanvas);
 
@@ -302,7 +329,7 @@ EOD;
         //draw the blocktrail pub key QR codes
         $xPos = $leftMargin;
         $i = 0;
-        foreach ($this->blocktrailPublicKeys as $btPubKey) {
+        foreach ($this->blocktrailPubKeyQRs as $btPubKey) {
             imagecopy($image, $btPubKey['qrImg'], $xPos, $yPos, 0, 0, self::QR_CODE_SIZE, self::QR_CODE_SIZE+20);
 
             //increment to help decide when to start a new row
@@ -349,6 +376,10 @@ EOD;
         return $pdfStream;
     }
 
+    /**
+     * generate text document of backup details (not implemented yet)
+     * 
+     */
     public function generateTxt() {
         //...
     }
