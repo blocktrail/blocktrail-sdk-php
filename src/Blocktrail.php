@@ -38,7 +38,7 @@ abstract class Blocktrail {
      * @return float
      */
     public static function toBTC($satoshi) {
-        BlocktrailSDK::toBTC($satoshi);
+        return BlocktrailSDK::toBTC($satoshi);
     }
 
     /**
@@ -50,7 +50,7 @@ abstract class Blocktrail {
      * @return string
      */
     public static function toBTCString($satoshi) {
-        BlocktrailSDK::toBTCString($satoshi);
+        return BlocktrailSDK::toBTCString($satoshi);
     }
 
     /**
@@ -62,6 +62,6 @@ abstract class Blocktrail {
      * @return int
      */
     public static function toSatoshi($btc) {
-        BlocktrailSDK::toSatoshi($btc);
+        return BlocktrailSDK::toSatoshi($btc);
     }
 }
