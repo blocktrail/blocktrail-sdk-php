@@ -344,14 +344,9 @@ EOD;
         $html = $this->generateHTML();
         $dompdf->load_html($html);
 
-//      //debugging
-//      echo $dompdf->output_html();
-//      exit;
-
         $dompdf->render();
         $pdfStream = $dompdf->output();
         return $pdfStream;
-        //return $dompdf->stream("wallet-backup-info.pdf", array("Attachment" => false));
     }
 
     public function generateTxt() {

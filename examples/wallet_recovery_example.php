@@ -50,7 +50,7 @@ $walletSweeper->enableLogging();    //enable logging for more info
 //Do wallet fund discovery - can be run separately from sweeping
 //var_dump($walletSweeper->discoverWalletFunds());
 
-//Do wallet fund discovery and sweeping - if successful you will be returned a transaction ready to submit to the network
+//Do wallet fund discovery and sweeping - if successful you will be returned a signed transaction ready to submit to the network
 $receivingAddress = "2NCcm7hJfJ5wk6GyKvT2ZHCrNsBgjBv2MSF";
 $result = $walletSweeper->sweepWallet($receivingAddress);
 var_dump($result);
