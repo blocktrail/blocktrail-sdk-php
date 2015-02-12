@@ -138,6 +138,14 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
     }
 
+    /**
+     * this test requires / asumes that the test wallet it (re)creates contains a balance
+     *
+     * we keep the wallet topped off with some coins,
+     * but if some funny guy ever empties it or if you use your own API key to run the test then it needs to be topped off again
+     *
+     * @throws \Exception
+     */
     public function testWallet() {
         $client = $this->setupBlocktrailSDK();
 
