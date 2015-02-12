@@ -365,7 +365,9 @@ class Wallet implements WalletInterface {
      * @return int[]            [confirmed, unconfirmed]
      */
     public function doDiscovery() {
-        return $this->sdk->doWalletDiscovery($this->identifier);
+        $balanceInfo = $this->sdk->doWalletDiscovery($this->identifier);
+
+        return [$balanceInfo['confirmed'], $balanceInfo['unconfirmed']];
     }
 
     /**
