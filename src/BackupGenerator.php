@@ -344,11 +344,9 @@ EOD;
         $html = $this->generateHTML();
         $dompdf->load_html($html);
 
-        //debugging
-        if (isset($_GET['html'])) {
-            echo $dompdf->output_html();
-            exit;
-        }
+//      //debugging
+//      echo $dompdf->output_html();
+//      exit;
 
         $dompdf->render();
         $pdfStream = $dompdf->output();

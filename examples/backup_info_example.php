@@ -27,11 +27,8 @@ header("Content-type:application/pdf");
 echo $pdfStream;
 
 
-//html, img, and plain txt documents can also be generated
+//html and img documents can also be generated
 //$backupHTML = $backupGenerator->generateHTML();
 //echo $backupHTML;
 
 //$backupGenerator->generateImg('my wallet backup.png');
-
-//$backupText = $backupGenerator->generateTxt();
-//echo $backupText;
