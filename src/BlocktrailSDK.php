@@ -843,7 +843,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         ];
         $response = $this->client->get("wallet/{$identifier}/transactions", $queryString, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
-
     }
 
     /**
@@ -862,6 +861,25 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'sort_dir' => $sortDir
         ];
         $response = $this->client->get("wallet/{$identifier}/addresses", $queryString, RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
+     * get all UTXOs for wallet (paginated)
+     *
+     * @param  string  $identifier  the wallet identifier for which to get addresses
+     * @param  integer $page        pagination: page number
+     * @param  integer $limit       pagination: records per page (max 500)
+     * @param  string  $sortDir     pagination: sort direction (asc|desc)
+     * @return array                associative array containing the response
+     */
+    public function walletUTXOs($identifier, $page = 1, $limit = 20, $sortDir = 'asc') {
+        $queryString = [
+            'page' => $page,
+            'limit' => $limit,
+            'sort_dir' => $sortDir
+        ];
+        $response = $this->client->get("wallet/{$identifier}/utxos", $queryString, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
 

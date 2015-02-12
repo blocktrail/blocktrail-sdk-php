@@ -678,4 +678,16 @@ class Wallet implements WalletInterface {
     public function addresses($page = 1, $limit = 20, $sortDir = 'asc') {
         return $this->sdk->walletAddresses($this->identifier, $page, $limit, $sortDir);
     }
+
+    /**
+     * get all UTXOs for the wallet (paginated)
+     *
+     * @param  integer $page    pagination: page number
+     * @param  integer $limit   pagination: records per page (max 500)
+     * @param  string  $sortDir pagination: sort direction (asc|desc)
+     * @return array            associative array containing the response
+     */
+    public function utxos($page = 1, $limit = 20, $sortDir = 'asc') {
+        return $this->sdk->walletUTXOs($this->identifier, $page, $limit, $sortDir);
+    }
 }
