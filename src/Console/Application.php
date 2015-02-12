@@ -8,6 +8,7 @@ use Blocktrail\SDK\Console\Commands\BalanceCommand;
 use Blocktrail\SDK\Console\Commands\ConfigureCommand;
 use Blocktrail\SDK\Console\Commands\CreateNewWalletCommand;
 use Blocktrail\SDK\Console\Commands\GetNewAddressCommand;
+use Blocktrail\SDK\Console\Commands\ListUTXOCommand;
 use Blocktrail\SDK\Console\Commands\ListWalletsCommand;
 use Blocktrail\SDK\Console\Commands\PayCommand;
 use Blocktrail\SDK\Console\Commands\StoreWalletPassphraseCommand;
@@ -35,6 +36,7 @@ class Application extends ConsoleApplication {
         $commands[] = new UseWalletCommand();
         $commands[] = new PayCommand();
         $commands[] = new BalanceCommand();
+        $commands[] = new ListUTXOCommand();
 
         return $commands;
     }
