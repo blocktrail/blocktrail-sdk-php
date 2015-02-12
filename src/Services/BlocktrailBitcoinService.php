@@ -12,6 +12,14 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
     protected $sleepTime;
     protected $retries;
 
+    /**
+     * @param        $apiKey
+     * @param        $apiSecret
+     * @param string $network
+     * @param bool   $testnet
+     * @param string $apiVersion
+     * @param null   $apiEndpoint
+     */
     public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null) {
         $this->client = new BlocktrailSDK($apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint);
 
@@ -20,6 +28,13 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
         $this->retries = 0;
     }
 
+    /**
+     * gets unspent outputs for an address, returning and array of outputs with hash, index, value, and script pub hex
+     *
+     * @param $address
+     * @return array        2d array of unspent outputs as ['hash' => $hash, 'index' => $index, 'value' => $value, 'script_hex' => $scriptHex]
+     * @throws \Exception
+     */
     public function getUnspentOutputs($address) {
         //get unspent outputs for the address - required data: hash, index, value, and script hex
         //@TODO currently doesn't handle paginated results. needs to increment page if more than 500 outputs present on an address

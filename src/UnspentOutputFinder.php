@@ -16,6 +16,9 @@ class UnspentOutputFinder {
      */
     protected $debug = false;
 
+    /**
+     * @param BlockchainDataServiceInterface $bitcoinClient
+     */
     public function __construct(BlockchainDataServiceInterface $bitcoinClient) {
         $this->client = $bitcoinClient;
     }
@@ -44,10 +47,16 @@ class UnspentOutputFinder {
         return $results;
     }
 
+    /**
+     * enable debug info logging (just to console)
+     */
     public function enableLogging() {
         $this->debug = true;
     }
 
+    /**
+     * disable debug info logging
+     */
     public function disableLogging() {
         $this->debug = false;
     }
