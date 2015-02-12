@@ -22,6 +22,7 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
 
     public function getUnspentOutputs($address) {
         //get unspent outputs for the address - required data: hash, index, value, and script hex
+        //@TODO currently doesn't handle paginated results. needs to increment page if more than 500 outputs present on an address
         try {
             $utxos = $this->client->addressUnspentOutputs($address, $_page = 1, $_limit = 500);
         } catch (\Exception $e) {
