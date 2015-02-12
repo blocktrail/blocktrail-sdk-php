@@ -4,6 +4,8 @@ namespace Blocktrail\SDK\Tests;
 
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
+use Blocktrail\SDK\Services\BlocktrailBitcoinService;
+use Blocktrail\SDK\UnspentOutputFinder;
 
 /**
  * Class WalletRecoveryTest
@@ -45,11 +47,28 @@ class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
         //...
     }
 
+    public function testBlocktrailBicoinService() {
+        //test the blocktrail bitcoin data service provider
+        $blockchainDataService = new BlocktrailBitcoinService("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
+
+        //get unspent outputs for a single address
+        $address = '2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH';
+        $result = $blockchainDataService->getUnspentOutputs($address);
+    }
+
     public function testUnspentOutputFinder() {
-        //some addresses with known unspent outputs
+        //some addresses with known unspent outputs, and some without any
         $addresses = array(
-            '2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH',
+            '2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH',      //has 0.1 tbtc
+            '2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA',      //has 0.1 tbtc
+            '2Mu1xrQAEd8LsiRHNvgXDaU8kQU5WKqzCq7'       //has 0 tbtc
         );
+
+        $blockchainDataService = new BlocktrailBitcoinService("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
+        $unspenOutputFinder = new UnspentOutputFinder($blockchainDataService);
+
+        //get unspent outputs for an array of addresses
+        $result = $unspenOutputFinder->getUTXOs($addresses);
 
         $this->assertTrue(true);
     }
