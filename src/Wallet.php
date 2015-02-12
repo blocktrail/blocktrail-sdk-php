@@ -476,8 +476,8 @@ class Wallet implements WalletInterface {
     /**
      * only supports estimating fee for 2of3 multsig UTXOs
      *
-     * @param int $utxoCnt      amount unspent inputs in transaction
-     * @param int $outputCnt    amount of outputs in transaction
+     * @param int $utxoCnt      number of unspent inputs in transaction
+     * @param int $outputCnt    number of outputs in transaction
      * @return float
      */
     public static function estimateFee($utxoCnt, $outputCnt) {
@@ -532,46 +532,10 @@ class Wallet implements WalletInterface {
      * @return int
      */
     protected function determineFee($utxos, $outputs) {
-        $txoutSize = (count($outputs) * 34);
+        $utxoCnt = count($utxos);
+        $outputCnt = count($outputs);
 
-        $txinSize = 0;
-
-        foreach ($utxos as $utxo) {
-            // @TODO: proper size calculation, we only do multisig right now so it's hardcoded and then we guess the size ...
-            $multisig = "2of3";
-
-            if ($multisig) {
-                $sigCnt = 2;
-                $msig = explode("of", $multisig);
-                if (count($msig) == 2 && is_numeric($msig[0])) {
-                    $sigCnt = $msig[0];
-                }
-
-                $txinSize += array_sum([
-                    32, // txhash
-                    4, // idx
-                    72 * $sigCnt, // sig
-                    106, // script
-                    4, // pad
-                    4, // sequence
-                ]);
-            } else {
-                $txinSize += array_sum([
-                    32, // txhash
-                    4, // idx
-                    72, // sig
-                    32, // script
-                    4, // ?
-                    4, // sequence
-                ]);
-            }
-        }
-
-        $size = 4 + $txoutSize + $txinSize + 4;
-
-        $sizeKB = ceil($size / 1000);
-
-        return $sizeKB * self::BASE_FEE;
+        return self::estimateFee($utxoCnt, $outputCnt);
     }
 
     /**
