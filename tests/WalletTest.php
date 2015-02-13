@@ -122,8 +122,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("M/9999'/0/1", $path);
         $this->assertEquals("2N65RcfKHiKQcPGZAA2QVeqitJvAQ8HroHD", $address);
 
-        $balance = $wallet->doDiscovery();
-        $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
+        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
+        $this->assertGreaterThan(0, $confirmed + $unconfirmed);
 
         $wallet->upgradeKeyIndex(10000);
 
@@ -183,8 +183,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("2MynrezSyqCq1x5dMPtRDupTPA4sfVrNBKq", $wallet->getAddressByPath("M/9999'/0/6"));
         $this->assertEquals("2N5eqrZE7LcfRyCWqpeh1T1YpMdgrq8HWzh", $wallet->getAddressByPath("M/9999'/0/44"));
 
-        $balance = $wallet->doDiscovery();
-        $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
+        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
+        $this->assertGreaterThan(0, $confirmed + $unconfirmed, "positive unconfirmed balance");
+        $this->assertGreaterThan(0, $confirmed, "positive confirmed balance");
 
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
@@ -237,7 +238,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("M/9999'/0/1", $path);
         $this->assertEquals("2N9ZFKNnCamy9sJYZiH9uMrbXaDNw8D8zcb", $address);
 
-        $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
+        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
+        $this->assertEquals(0, $confirmed);
     }
 
     public function testNewBlankWallet() {
@@ -253,7 +255,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $wallet = $client->initWallet($identifier, "password");
         } catch (ObjectNotFound $e) {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
-            // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
+            // list($confirmed, $unconfirmed) = $wallet->doDiscovery();
         }
         $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
@@ -294,7 +296,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $wallet = $client->initWallet($identifier, "password");
         } catch (ObjectNotFound $e) {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
-            // $this->assertEquals(0, $wallet->doDiscovery()['confirmed']);
+            // list($confirmed, $unconfirmed) = $wallet->doDiscovery();
         }
         $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
@@ -388,8 +390,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("M/9999'/0/0", $path);
         $this->assertEquals("2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS", $address);
 
-        $balance = $wallet->doDiscovery();
-        $this->assertGreaterThan(0, $balance['confirmed'] + $balance['unconfirmed']);
+        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
+        $this->assertGreaterThan(0, $confirmed + $unconfirmed);
 
         $transactions = $wallet->transactions(1, 23);
 
