@@ -104,7 +104,6 @@ class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testWalletSweep() {
-        return;
         /*
          * We have set up a testnet wallet with known unspent outputs in certain addresses for this test
          */
