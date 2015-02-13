@@ -401,4 +401,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(23, count($addresses['data']));
         $this->assertEquals('2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS', $addresses['data'][0]['address']);
     }
+
+    public function testEstimateFee() {
+        $this->assertEquals(30000, Wallet::estimateFee(1, 66));
+        $this->assertEquals(40000, Wallet::estimateFee(2, 71));
+    }
 }

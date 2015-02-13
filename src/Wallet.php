@@ -520,7 +520,7 @@ class Wallet implements WalletInterface {
 
         $size = 4 + $txoutSize + $txinSize + 4;
 
-        $sizeKB = ceil($size / 1000);
+        $sizeKB = (int)ceil($size / 1000);
 
         return $sizeKB * self::BASE_FEE;
     }
