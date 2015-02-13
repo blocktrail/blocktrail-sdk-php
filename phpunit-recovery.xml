@@ -10,17 +10,7 @@
         >
     <testsuites>
         <testsuite name="Tests">
-            <directory>./tests/</directory>
-            <exclude>./tests/WalletRecoveryTest.php</exclude>
+            <file>./tests/WalletRecoveryTest.php</file>
         </testsuite>
     </testsuites>
-
-    <filter>
-        <whitelist addUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">./src</directory>
-        </whitelist>
-    </filter>
-    <logging>
-        <log type="coverage-clover" target="./clover.xml" />
-    </logging>
 </phpunit>

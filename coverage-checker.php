@@ -29,6 +29,7 @@ $excludes = [
     "/^Blocktrail\\\\SDK\\\\Console/",  // just wrappers and a pain in the ass to test
     "/Compiler\\.php/",                 // just a tool and copy paste from Composer
     "/BackupGenerator\\.php/",          // tmp excluding, it's rather hard to test the whole process
+    "/WalletSweeper\\.php/",            // because we're running it's test without coverage (because xdebug is REALLY slow)
 ];
 
 foreach ($xml->xpath("//package") as $package) {
