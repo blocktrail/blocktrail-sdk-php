@@ -387,8 +387,8 @@ class Wallet implements WalletInterface {
             }
 
             // using this 'dirty' way of checking for a float since there's no other reliable way in PHP
-            if (strpos($value, ".") !== false || strpos($value, "," !== false)) {
-                throw new \Exception("Values should be in Satoshis");
+            if (!is_int($value)) {
+                throw new \Exception("Values should be in Satoshis (int)");
             }
 
             if ($value <= Blocktrail::DUST) {

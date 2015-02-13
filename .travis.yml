@@ -9,7 +9,11 @@ install:
 script:
 - "./vendor/bin/phpunit"
 - "./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/"
-- "php coverage-checker.php clover.xml 70"
+- php coverage-checker.php clover.xml 70
 notifications:
   slack:
     secure: fwLiJFbxPCyY6+REN3XZ06RlffSVua3tW5Ih/p4xwp2KXNdcCldWCmziVhf65JGYaRU20M4HEOOcD+IpOI/IjpNHjF/+6OmtUGfkT9OfDCmuElqyq8UT6ck+xfb7FVtK42zkx0U3xC1qCclbFjY1Rht7vt5VnGN7Q3qJ3ax7mcM=
+env:
+  global:
+  - secure: d4a4n3bdFO/TZGBnEO0zOarL7kTkh4WyH6U+sEQoqe7Wbs1OIN014JXqYZZn2TDQ8kKjxKGi63TiDvh2wvKF+B7dlOo3/WvqNOEA48eVmRI3/LQsAAcmUNIK6YnBN2YgIy0kl8ycDvx0W7hK/A6FFmbnGTJnG6vnQ5NmBe1G3ug=
+  - secure: ndOLTmYQgNKnr4qXt9/1TjYUDuGFn7K/v5L4urwIAxwD1jJYLHpntvhjTehQq34VX2uIQeDn0Zd4qyorpJxTI5Pmow51j5ZmtA0lS8TaFTwfWc+GZIG7UT3vcoHC5U0o54KJAlumSSncTMttPPfYsD7+8+8KYEjrOlXg6djq5fI=

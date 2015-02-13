@@ -20,9 +20,11 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
      * @return BlocktrailSDK
      */
     public function setupBlocktrailSDK() {
-        $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET");
-        // $client->setCurlDebugging();
-        // $client->setCurlDefaultOption('verify', false); //just for local testing when cURL can't verify ssl certs
+        $apiKey = getenv('BLOCKTRAIL_SDK_APIKEY') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APIKEY';
+        $apiSecret = getenv('BLOCKTRAIL_SDK_APISECRET') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APISECRET';
+
+        $client = new BlocktrailSDK($apiKey, $apiSecret);
+
         return $client;
     }
 
@@ -69,67 +71,71 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testUpgradeKeyIndex() {
-        $this->markTestSkipped("@TODO: test upgrade key index");
+        $this->markTestIncomplete("@TODO: test upgrade key index");
     }
 
     public function testSatoshiConversion() {
         $toSatoshi = [
-            ["0.00000001",         "1"],
-            [0.00000001,           "1"],
-            ["0.29560000",         "29560000"],
-            [0.29560000,           "29560000"],
-            ["1.0000009",          "100000090"],
-            [1.0000009,            "100000090"],
-            ["1.00000009",         "100000009"],
-            [1.00000009,           "100000009"],
-            ["21000000.00000001",  "2100000000000001"],
-            [21000000.00000001,    "2100000000000001"],
-            ["21000000.0000009",   "2100000000000090"],
-            [21000000.0000009,     "2100000000000090"],
-            ["21000000.00000009",  "2100000000000009"],
-            [21000000.00000009,    "2100000000000009"],
-            ["210000000.00000009", "21000000000000009"],
-            [210000000.00000009,   "21000000000000009"],
-
+            ["0.00000001",          "1",                    1],
+            [0.00000001,            "1",                    1],
+            ["0.29560000",          "29560000",             29560000],
+            [0.29560000,            "29560000",             29560000],
+            ["1.0000009",           "100000090",            100000090],
+            [1.0000009,             "100000090",            100000090],
+            ["1.00000009",          "100000009",            100000009],
+            [1.00000009,            "100000009",            100000009],
+            ["21000000.00000001",   "2100000000000001",     2100000000000001],
+            [21000000.00000001,     "2100000000000001",     2100000000000001],
+            ["21000000.0000009",    "2100000000000090",     2100000000000090],
+            [21000000.0000009,      "2100000000000090",     2100000000000090],
+            ["21000000.00000009",   "2100000000000009",     2100000000000009],
+            [21000000.00000009,     "2100000000000009",     2100000000000009], // this is the max possible amount of BTC (atm)
+            ["210000000.00000009",  "21000000000000009",    21000000000000009],
+            [210000000.00000009,    "21000000000000009",    21000000000000009],
             // thee fail because when the BTC value is converted to a float it looses precision
-            // ["2100000000.00000009", "210000000000000009"],
-            // [2100000000.00000009,   "210000000000000009"],
+            // ["2100000000.00000009", "210000000000000009", 210000000000000009],
+            // [2100000000.00000009,   "210000000000000009", 210000000000000009],
         ];
 
         $toBTC = [
-            ["1",                  "0.00000001"],
-            [1,                    "0.00000001"],
-            ["29560000",           "0.29560000"],
-            [29560000,             "0.29560000"],
-            ["100000090",          "1.00000090"],
-            [100000090,            "1.00000090"],
-            ["100000009",          "1.00000009"],
-            [100000009,            "1.00000009"],
-            ["2100000000000001",   "21000000.00000001"],
-            [2100000000000001,     "21000000.00000001"],
-            ["2100000000000090",   "21000000.00000090"],
-            [2100000000000090,     "21000000.00000090"],
-            ["2100000000000009",   "21000000.00000009"],
-            [2100000000000009,     "21000000.00000009"],
-            ["21000000000000009",  "210000000.00000009"],
-            [21000000000000009,    "210000000.00000009"],
+            ["1",                   "0.00000001"],
+            [1,                     "0.00000001"],
+            ["29560000",            "0.29560000"],
+            [29560000,              "0.29560000"],
+            ["100000090",           "1.00000090"],
+            [100000090,             "1.00000090"],
+            ["100000009",           "1.00000009"],
+            [100000009,             "1.00000009"],
+            ["2100000000000001",    "21000000.00000001"],
+            [2100000000000001,      "21000000.00000001"],
+            ["2100000000000090",    "21000000.00000090"],
+            [2100000000000090,      "21000000.00000090"],
+            ["2100000000000009",    "21000000.00000009"], // this is the max possible amount of BTC (atm)
+            [2100000000000009,      "21000000.00000009"],
+            ["21000000000000009",   "210000000.00000009"],
+            [21000000000000009,     "210000000.00000009"],
             ["210000000000000009",  "2100000000.00000009"],
             [210000000000000009,    "2100000000.00000009"],
-            ["2100000000000000009",  "21000000000.00000009"],
-            [2100000000000000009,    "21000000000.00000009"],
+            ["2100000000000000009", "21000000000.00000009"],
+            [2100000000000000009,   "21000000000.00000009"],
             // these fail because they're > PHP_INT_MAX
-            // ["21000000000000000009",  "210000000000.00000009"],
-            // [21000000000000000009,    "210000000000.00000009"],
+            // ["21000000000000000009", "210000000000.00000009"],
+            // [21000000000000000009,   "210000000000.00000009"],
         ];
 
         foreach ($toSatoshi as $i => $test) {
             $btc = $test[0];
-            $satoshi = $test[1];
+            $satoshiString = $test[1];
+            $satoshiInt = $test[2];
 
-            $this->assertEquals($satoshi, BlocktrailSDK::toSatoshi($btc), "[{$i}] {$btc} => {$satoshi}");
-            $this->assertTrue($satoshi === BlocktrailSDK::toSatoshi($btc), "[{$i}] {$btc} => {$satoshi}");
+            $string = BlocktrailSDK::toSatoshiString($btc);
+            $this->assertEquals($satoshiString, $string, "[{$i}] {$btc} => {$satoshiString} =? {$string}");
+            $this->assertTrue($satoshiString === $string, "[{$i}] {$btc} => {$satoshiString} ==? {$string}");
+
+            $int = BlocktrailSDK::toSatoshi($btc);
+            $this->assertEquals($satoshiInt, $int, "[{$i}] {$btc} => {$satoshiInt} =? {$int}");
+            $this->assertTrue($satoshiInt === $int, "[{$i}] {$btc} => {$satoshiInt} ==? {$int}");
         }
-
         foreach ($toBTC as $i => $test) {
             $satoshi = $test[0];
             $btc = $test[1];
@@ -138,16 +144,17 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
             $this->assertTrue($btc === BlocktrailSDK::toBTC($satoshi), "[{$i}] {$satoshi} => {$btc}");
         }
 
-        $this->markTestSkipped("@TODO: test toBTCString");
+        $this->markTestIncomplete("@TODO: test toBTCString");
     }
 
     public function testSigning() {
         $client = $this->setupBadBlocktrailSDK();
 
+        $e = null;
         try {
             $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
-            $this->fail("Bad keys still succeeded");
         } catch (InvalidCredentials $e) {}
+        $this->assertTrue(!!$e, "Bad keys still succeeded");
 
         $client = $this->setupBlocktrailSDK();
 

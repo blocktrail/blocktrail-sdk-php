@@ -13,12 +13,11 @@ class BIP32KeyTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(new BIP32Key("xpub1", "m"), BIP32Key::create("xpub1", "m"));
         $this->assertEquals(new BIP32Key("xpub1", "m"), BIP32Key::create(["xpub1", "m"]));
 
+        $e = null;
         try {
             BIP32Key::create("xpub1");
-            $this->fail("an exception should be thrown");
-        } catch(\Exception $e) {
-            $this->assertTrue(!!$e);
-        }
+        } catch(\Exception $e) {}
+        $this->assertTrue(!!$e, "an exception should be thrown");
 
         $k = BIP32Key::create("xprv9s21ZrQH143K44ed3A1NBn3udjmm6qHRpX4Da47ZpRdhqxpkhCWwMFWNpFbSkxAtkZ2s2345tyX5GdTuDWQYZ9jZPuTbkkBeHx3h6RmzL8J", "m");
 

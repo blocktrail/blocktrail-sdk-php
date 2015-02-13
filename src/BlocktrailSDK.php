@@ -695,11 +695,13 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * do HD wallet discovery for the wallet
      *
+     * this can be REALLY slow, so we've set the timeout to 120s ...
+     *
      * @param string    $identifier             the wallet identifier to be deleted
      * @return mixed
      */
     public function doWalletDiscovery($identifier) {
-        $response = $this->client->get("wallet/{$identifier}/discovery", null, RestClient::AUTH_HTTP_SIG);
+        $response = $this->client->get("wallet/{$identifier}/discovery", null, RestClient::AUTH_HTTP_SIG, 360.0);
         return self::jsonDecode($response->body(), true);
     }
 
@@ -925,8 +927,18 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param float     $btc
      * @return string
      */
-    public static function toSatoshi($btc) {
+    public static function toSatoshiString($btc) {
         return bcmul(sprintf("%.8f", (float)$btc), 100000000, 0);
+    }
+
+    /**
+     * convert a BTC value to a Satoshi value
+     *
+     * @param float     $btc
+     * @return string
+     */
+    public static function toSatoshi($btc) {
+        return (int)self::toSatoshiString($btc);
     }
 
     /**
