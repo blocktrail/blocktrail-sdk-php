@@ -11,6 +11,7 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
     protected $retryLimit;
     protected $sleepTime;
     protected $retries;
+    protected $paginationLimit = 500;   //max results to retrieve at a time
 
     /**
      * @param        $apiKey
@@ -29,6 +30,14 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
     }
 
     /**
+     * modify the default limit on how many utxo results are returned per page
+     * @param $limit
+     */
+    public function setPaginationLimit($limit) {
+        $this->paginationLimit = $limit;
+    }
+
+    /**
      * gets unspent outputs for an address, returning and array of outputs with hash, index, value, and script pub hex
      *
      * @param $address
@@ -37,9 +46,15 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
      */
     public function getUnspentOutputs($address) {
         //get unspent outputs for the address - required data: hash, index, value, and script hex
-        //@TODO currently doesn't handle paginated results. needs to increment page if more than 500 outputs present on an address
+        $utxos = array();
         try {
-            $utxos = $this->client->addressUnspentOutputs($address, $_page = 1, $_limit = 500);
+            $page = 1;
+            do {
+                $results = $this->client->addressUnspentOutputs($address, $page, $this->paginationLimit);
+                $utxos = array_merge($utxos, $results['data']);
+                $page++;
+            } while (count($results['data']) > 0);
+
         } catch (\Exception $e) {
             //if rate limit hit, sleep for a short while and try again
             if ($this->retries < $this->retryLimit) {
@@ -63,7 +78,7 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
                 'value'      => $utxo['value'],
                 'script_hex' => $utxo['script_hex'],
             );
-        }, $utxos['data']);
+        }, $utxos);
 
         return $result;
     }
