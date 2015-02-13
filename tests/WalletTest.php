@@ -71,11 +71,56 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         return "php-sdk-{$time}-{$identifier}";
     }
 
-    protected function createTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase = "password") {
-        $walletPath = WalletPath::create(9999);
+    /**
+     * initial setup to create the wallets that we use
+     */
+    public function testSetup() {
+        $client = $this->setupBlocktrailSDK();
 
+        // wallet used for testing sending a transaction
+        //  - we reuse this wallet because doing discovery everytime is a pain
+        // $this->createTransactionTestWallet($client);
+
+        // wallet used for
+        //  * testing keyIndex upgrade
+        //  * discovery
+        //  * bad password
+        //  - we recreate this wallet everytime because we need to be able to upgrade it again
+        //  - so it should contain a little bit of BTC to be found by discovery
+        // $this->createDiscoveryTestWallet($client, "unittest-discovery");
+
+        // wallet used for wallet recovery testing
+        //  - we recreate this wallet everytime because we need to be able to upgrade it again
+        //  - so it should contain a little bit of BTC to be found by discovery
+        //    it should be spread across small gaps to test the recovery process
+        // $this->createRecoveryTestWallet($client);
+    }
+
+    protected function createDiscoveryTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase = "password") {
+        $primaryMnemonic = "give pause forget seed dance crawl situate hole kingdom";
+        $backupMnemonic = "give pause forget seed dance crawl situate hole course";
+
+        return $this->_createTestWallet($client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic);
+    }
+
+    protected function createTransactionTestWallet(BlocktrailSDKInterface $client, $identifier = "unittest-transaction") {
         $primaryMnemonic = "give pause forget seed dance crawl situate hole keen";
         $backupMnemonic = "give pause forget seed dance crawl situate hole give";
+        $passphrase = "password";
+
+        return $this->_createTestWallet($client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic);
+    }
+
+    protected function createRecoveryTestWallet(BlocktrailSDKInterface $client, $identifier = "unittest-wallet-recovery") {
+        $primaryMnemonic = "give pause forget seed dance crawl situate hole join";
+        $backupMnemonic = "give pause forget seed dance crawl situate hole crater";
+        $passphrase = "password";
+
+        return $this->_createTestWallet($client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic);
+    }
+
+    protected function _createTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic) {
+        $walletPath = WalletPath::create(9999);
 
         $seed = BIP39::mnemonicToSeedHex($primaryMnemonic, $passphrase);
         $primaryPrivateKey = BIP32::master_key($seed, 'bitcoin', true);
@@ -95,62 +140,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         return new Wallet($client, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet);
     }
 
-    public function testKeyIndexUpgrade() {
+    public function testCreateWallet() {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
-        $wallet = $this->createTestWallet($client, $identifier);
-        $this->wallets[] = $wallet; // store for cleanup
-
-        $wallets = $client->allWallets();
-        $this->assertTrue(count($wallets) > 0);
-
-        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
-        $this->assertEquals($identifier, $wallet->getIdentifier());
-        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
-
-        // get a new pair
-        list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/9999'/0/0", $path);
-        $this->assertEquals("2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS", $address);
-
-        // get another new pair
-        list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/9999'/0/1", $path);
-        $this->assertEquals("2N65RcfKHiKQcPGZAA2QVeqitJvAQ8HroHD", $address);
-
-        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
-        $this->assertGreaterThan(0, $confirmed + $unconfirmed);
-
-        $wallet->upgradeKeyIndex(10000);
-
-        $this->assertEquals("tpubD9m9hziKhYQExWgzMUNXdYMNUtourv96sjTUS9jJKdo3EDJAnCBJooMPm6vGSmkNTNAmVt988dzNfNY12YYzk9E6PkA7JbxYeZBFy4XAaCp", $wallet->getBlocktrailPublicKey("m/10000")->key());
-
-        $this->assertEquals("2NDwndDJAdu8RGHB6L9xNBAbbZ6bMjFgErK", $wallet->getAddressByPath("M/10000'/0/0"));
-
-        // get a new pair
-        list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/10000'/0/0", $path);
-        $this->assertEquals("2NDwndDJAdu8RGHB6L9xNBAbbZ6bMjFgErK", $address);
-
-    }
-
-    /**
-     * this test requires / asumes that the test wallet it (re)creates contains a balance
-     *
-     * we keep the wallet topped off with some coins,
-     * but if some funny guy ever empties it or if you use your own API key to run the test then it needs to be topped off again
-     *
-     * @throws \Exception
-     */
-    public function testWallet() {
-        $client = $this->setupBlocktrailSDK();
-
-        $identifier = $this->getRandomTestIdentifier();
-        $wallet = $this->createTestWallet($client, $identifier);
+        $wallet = $this->createTransactionTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
 
         $wallets = $client->allWallets();
@@ -183,7 +177,32 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("2MynrezSyqCq1x5dMPtRDupTPA4sfVrNBKq", $wallet->getAddressByPath("M/9999'/0/6"));
         $this->assertEquals("2N5eqrZE7LcfRyCWqpeh1T1YpMdgrq8HWzh", $wallet->getAddressByPath("M/9999'/0/44"));
 
-        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
+        $this->assertTrue(BitcoinLib::validate_address($address, false, null));
+    }
+
+    /**
+     * this test requires / asumes that the test wallet it uses contains a balance
+     *
+     * we keep the wallet topped off with some coins,
+     * but if some funny guy ever empties it or if you use your own API key to run the test then it needs to be topped off again
+     *
+     * @throws \Exception
+     */
+    public function testWalletTransaction() {
+        $client = $this->setupBlocktrailSDK();
+
+        $wallet = $client->initWallet("unittest-transaction", "password");
+
+        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
+        $this->assertEquals("unittest-transaction", $wallet->getIdentifier());
+        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+
+        list($confirmed, $unconfirmed) = $wallet->getBalance();
         $this->assertGreaterThan(0, $confirmed + $unconfirmed, "positive unconfirmed balance");
         $this->assertGreaterThan(0, $confirmed, "positive confirmed balance");
 
@@ -208,20 +227,14 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
     }
 
-    /**
-     * same wallet as testWallet but with a different password should result in a completely different wallet!
-     */
-    public function testBadPasswordWallet() {
+    public function testDiscoveryAndKeyIndexUpgrade() {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
-        $wallet = $this->createTestWallet($client, $identifier, "password2");
+        $wallet = $this->createDiscoveryTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
 
-        $wallets = $client->allWallets();
-        $this->assertTrue(count($wallets) > 0);
-
-        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
+        $this->assertEquals("give pause forget seed dance crawl situate hole kingdom", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
@@ -231,15 +244,73 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/0", $path);
-        $this->assertEquals("2N7UAbCwVcbno9W42Yz6KQAjyLVy2NqYN3Z", $address);
+        $this->assertEquals("2Mtfn5S9tVWnnHsBQixCLTsCAPFHvfhu6bM", $address);
 
         // get another new pair
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/1", $path);
-        $this->assertEquals("2N9ZFKNnCamy9sJYZiH9uMrbXaDNw8D8zcb", $address);
+        $this->assertEquals("2NG49GDkm5qCYvDFi4cxAnkSho8qLbEz6C4", $address);
 
-        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
-        $this->assertEquals(0, $confirmed);
+        list($confirmed, $unconfirmed) = $wallet->doDiscovery(50);
+        $this->assertGreaterThan(0, $confirmed + $unconfirmed);
+
+        $wallet->upgradeKeyIndex(10000);
+
+        $this->assertEquals("tpubD9m9hziKhYQExWgzMUNXdYMNUtourv96sjTUS9jJKdo3EDJAnCBJooMPm6vGSmkNTNAmVt988dzNfNY12YYzk9E6PkA7JbxYeZBFy4XAaCp", $wallet->getBlocktrailPublicKey("m/10000")->key());
+
+        $this->assertEquals("2N9ZLKXgs12JQKXvLkngn7u9tsYaQ5kXJmk", $wallet->getAddressByPath("M/10000'/0/0"));
+
+        // get a new pair
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertEquals("M/10000'/0/0", $path);
+        $this->assertEquals("2N9ZLKXgs12JQKXvLkngn7u9tsYaQ5kXJmk", $address);
+    }
+
+    public function testListWalletTxsAddrs() {
+        $client = $this->setupBlocktrailSDK();
+
+        $wallet = $client->initWallet("unittest-transaction", "password");
+
+        $transactions = $wallet->transactions(1, 23);
+
+        $this->assertEquals(23, count($transactions['data']));
+        $this->assertEquals('2cb21783635a5f22e9934b8c3262146b42d251dfb14ee961d120936a6c40fe89', $transactions['data'][0]['hash']);
+
+        $addresses = $wallet->addresses(1, 23);
+
+        $this->assertEquals(23, count($addresses['data']));
+        $this->assertEquals('2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS', $addresses['data'][0]['address']);
+    }
+
+    /**
+     * same wallet as testWallet but with a different password should result in a completely different wallet!
+     */
+    public function testBadPasswordWallet() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+        $wallet = $this->createDiscoveryTestWallet($client, $identifier, "badpassword");
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals("give pause forget seed dance crawl situate hole kingdom", $wallet->getPrimaryMnemonic());
+        $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+
+        // get a new pair
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertEquals("M/9999'/0/0", $path);
+        $this->assertEquals("2N9SGrV4NKRjdACYvHLPpy2oiPrxTPd44rg", $address);
+
+        // get another new pair
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertEquals("M/9999'/0/1", $path);
+        $this->assertEquals("2NDq3DRy9E3YgHDA3haPJj3FtUS6V93avkf", $address);
+
+        list($confirmed, $unconfirmed) = $wallet->doDiscovery(50);
+        $this->assertEquals(0, $confirmed + $unconfirmed);
     }
 
     public function testNewBlankWallet() {
@@ -255,7 +326,6 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $wallet = $client->initWallet($identifier, "password");
         } catch (ObjectNotFound $e) {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
-            // list($confirmed, $unconfirmed) = $wallet->doDiscovery();
         }
         $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
@@ -296,7 +366,6 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $wallet = $client->initWallet($identifier, "password");
         } catch (ObjectNotFound $e) {
             list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
-            // list($confirmed, $unconfirmed) = $wallet->doDiscovery();
         }
         $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
@@ -366,42 +435,6 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $this->assertFalse($wallet->deleteWebhook($webhookIdentifier));
         } catch (ObjectNotFound $e) {}
         $this->assertTrue(!!$e, "should throw exception");
-    }
-
-    public function testListWalletTxsAddrs() {
-        $client = $this->setupBlocktrailSDK();
-
-        $identifier = $this->getRandomTestIdentifier();
-        $wallet = $this->createTestWallet($client, $identifier);
-        $this->wallets[] = $wallet; // store for cleanup
-
-        $wallets = $client->allWallets();
-        $this->assertTrue(count($wallets) > 0);
-
-        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
-        $this->assertEquals($identifier, $wallet->getIdentifier());
-        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
-
-        // get a new pair
-        list($path, $address) = $wallet->getNewAddressPair();
-        $this->assertEquals("M/9999'/0/0", $path);
-        $this->assertEquals("2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS", $address);
-
-        list($confirmed, $unconfirmed) = $wallet->doDiscovery();
-        $this->assertGreaterThan(0, $confirmed + $unconfirmed);
-
-        $transactions = $wallet->transactions(1, 23);
-
-        $this->assertEquals(23, count($transactions['data']));
-        $this->assertEquals('2cb21783635a5f22e9934b8c3262146b42d251dfb14ee961d120936a6c40fe89', $transactions['data'][0]['hash']);
-
-        $addresses = $wallet->addresses(1, 23);
-
-        $this->assertEquals(23, count($addresses['data']));
-        $this->assertEquals('2MzyKviSL6pnWxkbHV7ecFRE3hWKfzmT8WS', $addresses['data'][0]['address']);
     }
 
     public function testEstimateFee() {

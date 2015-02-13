@@ -98,9 +98,10 @@ interface WalletInterface {
     /**
      * do wallet discovery (slow)
      *
+     * @param int   $gap        the gap setting to use for discovery
      * @return int[]            [confirmed, unconfirmed]
      */
-    public function doDiscovery();
+    public function doDiscovery($gap = 200);
 
     /**
      * create, sign and send a transaction

@@ -286,9 +286,10 @@ interface BlocktrailSDKInterface {
      * do HD wallet discovery for the wallet
      *
      * @param string    $identifier             the identifier of the wallet
+     * @param int       $gap                    the gap setting to use for discovery
      * @return mixed
      */
-    public function doWalletDiscovery($identifier);
+    public function doWalletDiscovery($identifier, $gap = 200);
 
     /**
      * get a new derivation number for specified parent path

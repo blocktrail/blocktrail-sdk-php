@@ -362,10 +362,11 @@ class Wallet implements WalletInterface {
     /**
      * do wallet discovery (slow)
      *
+     * @param int   $gap        the gap setting to use for discovery
      * @return int[]            [confirmed, unconfirmed]
      */
-    public function doDiscovery() {
-        $balanceInfo = $this->sdk->doWalletDiscovery($this->identifier);
+    public function doDiscovery($gap = 200) {
+        $balanceInfo = $this->sdk->doWalletDiscovery($this->identifier, $gap);
 
         return [$balanceInfo['confirmed'], $balanceInfo['unconfirmed']];
     }
