@@ -132,7 +132,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $testnet = true;
 
-        $result = $client->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, "", 9999);
+        $checksum = BlocktrailSDK::createChecksum($primaryPrivateKey);
+
+        $result = $client->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, 9999);
 
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
         $keyIndex = $result['key_index'];

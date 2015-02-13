@@ -459,7 +459,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $backupPublicKey = BIP32::build_key($backupPrivateKey, "M");
 
         // create a checksum of our private key which we'll later use to verify we used the right password
-        $checksum = $this->createChecksum($primaryPrivateKey);
+        $checksum = BlocktrailSDK::createChecksum($primaryPrivateKey);
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
@@ -578,7 +578,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param string    $primaryPrivateKey      the private key for which we want a checksum
      * @return bool|string
      */
-    protected function createChecksum($primaryPrivateKey) {
+    public static function createChecksum($primaryPrivateKey) {
         return BIP32::key_to_address($primaryPrivateKey[0]);
     }
 
