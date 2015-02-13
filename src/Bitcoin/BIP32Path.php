@@ -232,6 +232,18 @@ class BIP32Path implements \ArrayAccess {
     }
 
     /**
+     * check if this path is parent path of the provided path
+     *
+     * @param string|BIP32Path $path
+     * @return bool
+     */
+    public function isParentOf($path) {
+        $path = BIP32Path::path($path);
+
+        return strlen((string)$path) > strlen((string)$this) && strpos((string)$path, (string)$this) === 0;
+    }
+
+    /**
      * static method to initialize class
      *
      * @param $path

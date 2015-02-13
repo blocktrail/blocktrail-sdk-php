@@ -38,4 +38,37 @@ class BIP32PathTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("m/0'/6/1/2", (string)$p->insert("6", 1));
         $this->assertEquals("m/6/0'/1/2", (string)$p->insert("6", 0));
     }
+
+    public function testIsParentOf() {
+        $ok = [
+            "M/9999'/0" => [
+                "M/9999'/0/0", "M/9999'/0/1", "M/9999'/0/0", "M/9999'/0/1", "M/9999'/0/0'",
+            ],
+            "m/9999'/0" => [
+                "m/9999'/0/0", "m/9999'/0/1", "m/9999'/0/0", "m/9999'/0/1",
+            ],
+        ];
+
+        foreach ($ok as $p => $cs) {
+            foreach ($cs as $c) {
+                $this->assertTrue(BIP32Path::path($p)->isParentOf(BIP32Path::path($c)), "parent[{$p}] child[{$c}]");
+            }
+        }
+
+        $fail = [
+            "M/9999'/0" => [
+                "M/9999'/0", "m/9999/0'/0", "M/9999/0'/0", "M/999'/0/1",
+            ],
+            "m/999'/0" => [
+                "m/999'/0", "M/999'/0/0", "m/9999'/0/0", "m/9999'/0/1", "m/9999'/0/0", "m/9999'/0/1",
+            ],
+        ];
+
+        foreach ($fail as $p => $cs) {
+            foreach ($cs as $c) {
+                $this->assertFalse(BIP32Path::path($p)->isParentOf(BIP32Path::path($c)), "parent[{$p}] child[{$c}]");
+            }
+        }
+
+    }
 }
