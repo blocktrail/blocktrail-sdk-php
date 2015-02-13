@@ -12,6 +12,7 @@ use Blocktrail\SDK\Console\Commands\GetNewAddressCommand;
 use Blocktrail\SDK\Console\Commands\ListUTXOCommand;
 use Blocktrail\SDK\Console\Commands\ListWalletsCommand;
 use Blocktrail\SDK\Console\Commands\PayCommand;
+use Blocktrail\SDK\Console\Commands\SplitUTXOsCommand;
 use Blocktrail\SDK\Console\Commands\StoreWalletPassphraseCommand;
 use Blocktrail\SDK\Console\Commands\UseWalletCommand;
 use Symfony\Component\Console\Application as ConsoleApplication;
@@ -39,6 +40,7 @@ class Application extends ConsoleApplication {
         $commands[] = new BalanceCommand();
         $commands[] = new DiscoveryCommand();
         $commands[] = new ListUTXOCommand();
+        $commands[] = new SplitUTXOsCommand();
 
         return $commands;
     }

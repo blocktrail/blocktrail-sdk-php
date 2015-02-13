@@ -24,7 +24,7 @@ class ListUTXOCommand extends AbstractWalletCommand {
             // ->setAliases(['utxos'])
             ->setDescription("List UTXO set for a wallet")
             ->addOption('page', 'p', InputOption::VALUE_REQUIRED, 'pagination page', 1)
-            ->addOption('per-page', 'pp', InputOption::VALUE_REQUIRED, 'pagination limit', 50);;
+            ->addOption('per-page', 'pp', InputOption::VALUE_REQUIRED, 'pagination limit', 50);
 
         parent::configure();
     }
