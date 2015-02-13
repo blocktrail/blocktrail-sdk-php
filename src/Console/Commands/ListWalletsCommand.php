@@ -49,7 +49,7 @@ class ListWalletsCommand extends AbstractCommand {
         $table = new Table($output);
         $table->setHeaders(['identifier', 'balance', '']);
         foreach ($wallets as $wallet) {
-            $isDefault = isset($config['default_wallet']) && $config['default_wallet'] == $wallet['identifier'];
+            $isDefault = isset($config[$this->getNetwork()]['default_wallet']) && $config[$this->getNetwork()]['default_wallet'] == $wallet['identifier'];
 
             $table->addRow([$wallet['identifier'], BlocktrailSDK::toBTCString($wallet['balance']), $isDefault ? 'IS_DEFAULT' : '']);
         }
