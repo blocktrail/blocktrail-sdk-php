@@ -576,7 +576,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *  we just generate the address based on the master PK as checksum, a simple 'standard' using code we already have
      *
      * @param string    $primaryPrivateKey      the private key for which we want a checksum
-     * @return bool|string
+     * @return string
      */
     public static function createChecksum($primaryPrivateKey) {
         return BIP32::key_to_address($primaryPrivateKey[0]);
@@ -672,7 +672,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @throws \Exception
      */
     protected function generateNewMnemonic($forceEntropy = null) {
-        if (!$forceEntropy) {
+        if ($forceEntropy === null) {
             $entropy = BIP39::generateEntropy(512);
         } else {
             $entropy = $forceEntropy;

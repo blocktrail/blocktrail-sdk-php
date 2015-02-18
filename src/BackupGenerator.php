@@ -47,7 +47,7 @@ class BackupGenerator {
      *
      * @var null
      */
-    protected $blocktrailPubKeyQRs = null;
+    protected $blocktrailPubKeyQRs = [];
 
     /**
      * @param $primaryMnemonic

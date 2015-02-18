@@ -14,6 +14,11 @@ class BIP32Path implements \ArrayAccess {
 
     public function __construct($path) {
         $this->path = is_array($path) ? $path : explode("/", $path);
+
+        if (strtolower($this->path[0]) != "m") {
+            throw new \InvalidArgumentException("BIP32Path can only be used for absolute paths");
+        }
+
     }
 
     public function insert($insert, $offset) {
@@ -61,7 +66,7 @@ class BIP32Path implements \ArrayAccess {
         array_pop($path);
 
         if (empty($path)) {
-            return false;
+            throw new \RuntimeException("Can't get parent of root path");
         }
 
         return new static($path);
@@ -106,7 +111,7 @@ class BIP32Path implements \ArrayAccess {
 
         $last = array_pop($path);
 
-        if ($hardened = (strpos($last, "'") !== false)) {
+        if (strpos($last, "'") !== false) {
             return $this;
         }
 
@@ -160,12 +165,10 @@ class BIP32Path implements \ArrayAccess {
         if ($path[0] === "M") {
 
             return new static($path);
-        } else if ($path[0] === "m") {
+        } else {
             $path[0] = "M";
 
             return new static($path);
-        } else {
-            return false;
         }
     }
 
@@ -180,12 +183,10 @@ class BIP32Path implements \ArrayAccess {
         if ($path[0] === "m") {
 
             return new static($path);
-        } else if ($path[0] === "M") {
+        } else {
             $path[0] = "m";
 
             return new static($path);
-        } else {
-            return false;
         }
     }
 

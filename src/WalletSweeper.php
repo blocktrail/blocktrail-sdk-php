@@ -233,7 +233,6 @@ class WalletSweeper {
         $totalAddressesGenerated = 0;
 
         $addressUTXOs = array();    //addresses and their utxos, paths and redeem scripts
-        $this->sweepData = null;
 
         //for each blocktrail pub key, do fund discovery on batches of addresses
         foreach ($this->blocktrailPublicKeys as $keyIndex => $blocktrailPubKey) {

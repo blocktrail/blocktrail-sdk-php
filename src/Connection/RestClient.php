@@ -160,7 +160,7 @@ class RestClient {
      *
      * @param   string          $method         GET, POST, PUT, DELETE
      * @param   string          $endpointUrl
-     * @param   string          $queryString
+     * @param   array           $queryString
      * @param   array|string    $body
      * @param   string          $auth           http-signatures to enable http-signature signing
      * @param   string          $contentMD5Mode body or url
@@ -210,7 +210,7 @@ class RestClient {
             $request->setHeader('Content-MD5', md5($request->getPath() . ($qs ? "?{$qs}" : "")));
         }
 
-        if ($auth) {
+        if ($auth !== null) {
             $request->getConfig()['auth'] = $auth;
         }
 
