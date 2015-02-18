@@ -607,7 +607,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $response = $this->client->delete("wallet/{$identifier}", null, [
             'checksum' => $checksumAddress,
             'signature' => $signature
-        ], RestClient::AUTH_HTTP_SIG);
+        ], RestClient::AUTH_HTTP_SIG, 120);
         return self::jsonDecode($response->body(), true);
     }
 
