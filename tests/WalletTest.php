@@ -212,8 +212,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
         $this->assertTrue(BitcoinLib::validate_address($address, false, null));
 
+        $value = BlocktrailSDK::toSatoshi(0.0002);
         $txHash = $wallet->pay([
-            $address => BlocktrailSDK::toSatoshi(0.0001),
+            $address => $value,
         ]);
 
         $this->assertTrue(!!$txHash);
@@ -227,6 +228,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         }
 
         $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        $this->assertEquals($txHash, $tx['hash']);
+        $this->assertTrue(count($tx['outputs']) <= 2);
+        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
     }
 
     public function testDiscoveryAndKeyIndexUpgrade() {
