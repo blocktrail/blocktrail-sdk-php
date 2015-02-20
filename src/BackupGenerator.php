@@ -47,7 +47,7 @@ class BackupGenerator {
      *
      * @var null
      */
-    protected $blocktrailPubKeyQRs = [];
+    protected $blocktrailPubKeyQRs = null;
 
     /**
      * @param $primaryMnemonic
@@ -55,12 +55,16 @@ class BackupGenerator {
      * @param $blocktrailPublicKeys
      */
     public function __construct($primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) {
+        /*
+         * if DOMPDF is not already loaded we have to do it
+         * they require a config file to be loaded, no autoloading :/
+         */
         if (!defined('DOMPDF_ENABLE_AUTOLOAD')) {
             // disable DOMPDF's internal autoloader if you are using Composer
             define('DOMPDF_ENABLE_AUTOLOAD', false);
 
-            // include DOMPDF's default configuration
-            require_once dirname(__FILE__) . '/../vendor/dompdf/dompdf/dompdf_config.inc.php';
+            //try the different possible locations for the config file, depending on if the sdk is included as a dependency or is the main project itself
+            (@include_once __DIR__ . '/../../../dompdf/dompdf/dompdf_config.inc.php') || @include_once __DIR__ . '/../vendor/dompdf/dompdf/dompdf_config.inc.php';
         }
 
         //set the fonts path
@@ -378,7 +382,7 @@ EOD;
 
     /**
      * generate text document of backup details (not implemented yet)
-     * 
+     *
      */
     public function generateTxt() {
         //...
