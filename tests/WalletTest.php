@@ -142,6 +142,19 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         return new Wallet($client, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet);
     }
 
+    public function testBIP32() {
+        $masterkey = "tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ";
+
+        $import = BIP32::import($masterkey);
+
+        $this->assertEquals("022f6b9339309e89efb41ecabae60e1d40b7809596c68c03b05deb5a694e33cd26", $import['key']);
+
+        $this->assertEquals("tpubDAtJthHcm9MJwmHp4r2UwSTmiDYZWHbQUMqySJ1koGxQpRNSaJdyL2Ab8wwtMm5DsMMk3v68299LQE6KhT8XPQWzxPLK5TbTHKtnrmjV8Gg", BIP32::build_key($masterkey, "0")[0]);
+        $this->assertEquals("tpubDDfqpEKGqEVa5FbdLtwezc6Xgn81teTFFVA69ZfJBHp4UYmUmhqVZMmqXeJBDahvySZrPjpwMy4gKfNfrxuFHmzo1r6srB4MrsDKWbwEw3d", BIP32::build_key($masterkey, "0/0")[0]);
+
+        $this->assertEquals("tpubDHNy3kAG39ThyiwwsgoKY4iRenXDRtce8qdCFJZXPMCJg5dsCUHayp84raLTpvyiNA9sXPob5rgqkKvkN8S7MMyXbnEhGJMW64Cf4vFAoaF", BIP32::build_key(BIP32::master_key("000102030405060708090a0b0c0d0e0f", "bitcoin", true), "M/0'/1/2'/2/1000000000")[0]);
+    }
+
     public function testCreateWallet() {
         $client = $this->setupBlocktrailSDK();
 
