@@ -424,6 +424,16 @@ interface BlocktrailSDKInterface {
     public function allWallets($page = 1, $limit = 20);
 
     /**
+     * verify a message signed bitcoin-core style
+     *
+     * @param  string           $message
+     * @param  string           $address
+     * @param  string           $signature
+     * @return boolean
+     */
+    public function verifyMessage($message, $address, $signature);
+
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi

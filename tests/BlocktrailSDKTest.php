@@ -404,4 +404,20 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(is_float($price['USD']));
         $this->assertTrue($price['USD'] > 0);
     }
+
+    public function testVerifyMessage() {
+        $client = $this->setupBlocktrailSDK();
+
+
+        $address = "1F26pNMrywyZJdr22jErtKcjF8R3Ttt55G";
+        $message = $address;
+        $signature = "H85WKpqtNZDrajOnYDgUY+abh0KCAcOsAIOQwx2PftAbLEPRA7mzXA/CjXRxzz0MC225pR/hx02Vf2Ag2x33kU4=";
+
+        // test locally
+        $this->assertTrue($client->verifyMessage($message, $address, $signature));
+
+        // test using the API for it
+        $response = $client->getRestClient()->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature]);
+        $this->assertTrue(json_decode($response->body(), true)['result']);
+    }
 }

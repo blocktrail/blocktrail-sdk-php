@@ -903,6 +903,25 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * verify a message signed bitcoin-core style
+     *
+     * @param  string           $message
+     * @param  string           $address
+     * @param  string           $signature
+     * @return boolean
+     */
+    public function verifyMessage($message, $address, $signature) {
+        // we could also use the API instead of the using BitcoinLib to verify
+        // $this->client->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature])['result'];
+
+        try {
+            return BitcoinLib::verifyMessage($address, $signature, $message);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi
