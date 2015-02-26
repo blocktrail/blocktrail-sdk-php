@@ -55,7 +55,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          */
         foreach ($this->wallets as $wallet) {
             try {
-                $wallet->deleteWallet();
+                $wallet->deleteWallet(true);
             } catch (ObjectNotFound $e) {
                 // that's ok
             }

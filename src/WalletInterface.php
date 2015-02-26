@@ -117,9 +117,10 @@ interface WalletInterface {
     /**
      * delete the wallet
      *
+     * @param bool $force       ignore warnings (such as non-zero balance)
      * @return mixed
      */
-    public function deleteWallet();
+    public function deleteWallet($force = false);
 
     /**
      * setup a webhook for our wallet

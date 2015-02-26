@@ -601,10 +601,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param string    $identifier             the identifier of the wallet
      * @param string    $checksumAddress        the address for your master private key (and the checksum used when creating the wallet)
      * @param string    $signature              a signature of the checksum address as message signed by the private key matching that address
+     * @param bool      $force                  ignore warnings (such as a non-zero balance)
      * @return mixed
      */
-    public function deleteWallet($identifier, $checksumAddress, $signature) {
-        $response = $this->client->delete("wallet/{$identifier}", null, [
+    public function deleteWallet($identifier, $checksumAddress, $signature, $force = false) {
+        $response = $this->client->delete("wallet/{$identifier}", ['force' => $force], [
             'checksum' => $checksumAddress,
             'signature' => $signature
         ], RestClient::AUTH_HTTP_SIG, 360);

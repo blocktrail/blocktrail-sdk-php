@@ -630,11 +630,12 @@ class Wallet implements WalletInterface {
     /**
      * delete the wallet
      *
+     * @param bool $force       ignore warnings (such as non-zero balance)
      * @return mixed
      */
-    public function deleteWallet() {
+    public function deleteWallet($force = false) {
         list($checksumAddress, $signature) = $this->createChecksumVerificationSignature();
-        return $this->sdk->deleteWallet($this->identifier, $checksumAddress, $signature)['deleted'];
+        return $this->sdk->deleteWallet($this->identifier, $checksumAddress, $signature, $force)['deleted'];
     }
 
     /**
