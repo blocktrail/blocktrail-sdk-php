@@ -41,6 +41,12 @@ sudo php5enmod mcrypt
 ```
 *BCMath should already be part of the default php5 package*
 
+***On Windows*** you need to uncomment the extensions in your `php.ini` if they are not already enabled:
+```
+extension=php_intl.dll  
+extension=php_gmp.dll  
+```
+
 Installation
 ------------
 To install the SDK, you will need to be using [Composer](http://getcomposer.org/) in your project.
