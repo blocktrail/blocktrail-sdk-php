@@ -41,9 +41,9 @@ class ListUTXOCommand extends AbstractWalletCommand {
         $UTXOs = $wallet->utxos($page, $perpage)['data'];
 
         $table = new Table($output);
-        $table->setHeaders(['tx', 'idx', 'value', 'address']);
+        $table->setHeaders(['tx', 'idx', 'value', 'confirmations', 'address']);
         foreach ($UTXOs as $UTXO) {
-            $table->addRow([$UTXO['hash'], $UTXO['idx'], BlocktrailSDK::toBTCString($UTXO['value']), $UTXO['address']]);
+            $table->addRow([$UTXO['hash'], $UTXO['idx'], BlocktrailSDK::toBTCString($UTXO['value']), $UTXO['confirmations'], $UTXO['address']]);
         }
 
         $table->render();
