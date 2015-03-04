@@ -71,6 +71,18 @@ Or if put the following in your `composer.json`:
 "blocktrail/blocktrail-sdk": "1.1.*"
 ```
 
+
+***Windows Developers***  
+A note for windows developers: you may encounter an issue in php with cURL and SSL certificates, where cURL is unable to verify a server's cert with a CA ((error 60)[http://curl.haxx.se/libcurl/c/libcurl-errors.html]).  
+Too often the suggested solution is to disable ssl cert verification in cURL, but this completely defeats the point of using SSL. Instead you should take two very simple steps to solve the issue permanently:  
+
+1. download `cacert.pem` from the [curl website](http://curl.haxx.se/docs/caextract.html). This is a bundle of trusted CA root certs extracted from mozilla.org. Save it in a folder within your php installation.  
+2. open your `php.ini` and add/edit the following line (use an absolute path to where you placed the cert bundle):  
+  ```
+  curl.cainfo = C:\php\certs\cacert.pem
+  ```
+
+
 Usage
 -----
 Please visit our official documentation at https://www.blocktrail.com/api/docs/lang/php for the usage.
