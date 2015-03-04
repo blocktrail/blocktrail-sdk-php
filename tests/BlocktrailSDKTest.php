@@ -340,6 +340,17 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($address, $response['address'], "address does not match expected value");
         $this->assertEquals(2, $response['confirmations'], "confirmations does not match expected value");
 
+        //add webhook event subscription (transaction)
+        $transaction = "a0a87b1577d606b349cfded85c842bdc53b99bcd49614229a71804b46b1c27cc";
+        $response = $client->subscribeTransaction($webhookID2, $transaction, 2);
+        $this->assertTrue(is_array($response), "Default response is not an array");
+        $this->assertArrayHasKey('event_type', $response, "'event_type' key not in response");
+        $this->assertArrayHasKey('address', $response, "'address' key not in response");
+        $this->assertArrayHasKey('confirmations', $response, "'confirmations' key not in response");
+        $this->assertEquals("transaction", $response['event_type'], "event type does not match expected value");
+        $this->assertEquals($transaction, $response['transaction'], "address does not match expected value");
+        $this->assertEquals(2, $response['confirmations'], "confirmations does not match expected value");
+
         //add webhook event subscription (block)
         $response = $client->subscribeNewBlocks($webhookID2);
         $this->assertTrue(is_array($response), "Default response is not an array");
@@ -355,17 +366,29 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
-        $this->assertEquals(2, $response['total'], "'total' does not match expected value");
-        $this->assertEquals(2, count($response['data']), "Count of events returned is not equal to 2");
+        $this->assertEquals(3, $response['total'], "'total' does not match expected value");
+        $this->assertEquals(3, count($response['data']), "Count of events returned is not equal to 2");
 
-        $this->assertArrayHasKey('event_type', $response['data'][0], "'event_type' key not in first webhook of response");
-        $this->assertArrayHasKey('event_type', $response['data'][1], "'event_type' key not in second webhook of response");
-        $this->assertEquals("address-transactions", $response['data'][0]['event_type'], "First subscription event type does not match expected value");
-        $this->assertEquals("block", $response['data'][1]['event_type'], "Second subscription event type does not match expected value");
+        // because the order is not guarenteed we check if each of the events is present
+        // by removing one entry from the response for each and then checking if the result is empty afterwards
+        foreach (['address-transactions', 'transaction', 'block'] as $eventType) {
+            foreach ($response['data'] as $k => $event) {
+                if ($event['event_type'] === $eventType) {
+                    unset($response['data'][$k]);
+                    break;
+                }
+            }
+        }
+        $this->assertEquals(0, count($response['data']));
 
         //unsubscribe webhook event (address-transaction)
         $address = "1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp";
         $response = $client->unsubscribeAddressTransactions($webhookID2, $address);
+        $this->assertTrue($response === true, "response does not match expected value");
+
+        //unsubscribe webhook event (address-transaction)
+        $transaction = "a0a87b1577d606b349cfded85c842bdc53b99bcd49614229a71804b46b1c27cc";
+        $response = $client->unsubscribeTransaction($webhookID2, $transaction);
         $this->assertTrue($response === true, "response does not match expected value");
 
         //unsubscribe webhook event (block)

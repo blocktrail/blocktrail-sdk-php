@@ -176,7 +176,17 @@ interface BlocktrailSDKInterface {
     public function getWebhookEvents($identifier, $page = 1, $limit = 20);
 
     /**
+     * subscribes a webhook to transaction events of one particular transaction
+     * @param  string  $identifier      the unique identifier of the webhook to be triggered
+     * @param  string  $transaction     the transaction hash
+     * @param  integer $confirmations   the amount of confirmations to send.
+     * @return array                    associative array containing the response
+     */
+    public function subscribeTransaction($identifier, $transaction, $confirmations = 6);
+
+    /**
      * subscribes a webhook to transaction events on a particular address
+     *
      * @param  string  $identifier      the unique identifier of the webhook to be triggered
      * @param  string  $address         the address hash
      * @param  integer $confirmations   the amount of confirmations to send.
@@ -186,13 +196,23 @@ interface BlocktrailSDKInterface {
 
     /**
      * subscribes a webhook to a new block event
+     *
      * @param  string  $identifier  the unique identifier of the webhook to be triggered
      * @return array                associative array containing the response
      */
     public function subscribeNewBlocks($identifier);
 
     /**
+     * removes an transaction event subscription from a webhook
+     * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
+     * @param  string  $transaction     the transaction hash of the event subscription
+     * @return boolean                  true on success
+     */
+    public function unsubscribeTransaction($identifier, $transaction);
+
+    /**
      * removes an address transaction event subscription from a webhook
+     *
      * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
      * @param  string  $address         the address hash of the event subscription
      * @return boolean                  true on success
