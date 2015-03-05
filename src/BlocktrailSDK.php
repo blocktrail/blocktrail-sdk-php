@@ -360,6 +360,23 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $response = $this->client->get("webhook/{$identifier}/events", $queryString);
         return self::jsonDecode($response->body(), true);
     }
+    
+    /**
+     * subscribes a webhook to transaction events of one particular transaction
+     * @param  string  $identifier      the unique identifier of the webhook to be triggered
+     * @param  string  $transaction     the transaction hash
+     * @param  integer $confirmations   the amount of confirmations to send.
+     * @return array                    associative array containing the response
+     */
+    public function subscribeTransaction($identifier, $transaction, $confirmations = 6) {
+        $postData = [
+            'event_type'    => 'transaction',
+            'transaction'   => $transaction,
+            'confirmations' => $confirmations,
+        ];
+        $response = $this->client->post("webhook/{$identifier}/events", null, $postData, RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
 
     /**
      * subscribes a webhook to transaction events on a particular address
@@ -409,6 +426,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'event_type'    => 'block',
         ];
         $response = $this->client->post("webhook/{$identifier}/events", null, $postData, RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
+     * removes an transaction event subscription from a webhook
+     * @param  string  $identifier      the unique identifier of the webhook associated with the event subscription
+     * @param  string  $transaction     the transaction hash of the event subscription
+     * @return boolean                  true on success
+     */
+    public function unsubscribeTransaction($identifier, $transaction) {
+        $response = $this->client->delete("webhook/{$identifier}/transaction/{$transaction}", null, null, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
 
