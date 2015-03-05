@@ -6,6 +6,8 @@ use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Console\Application;
 use Blocktrail\SDK\WalletInterface;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
@@ -53,6 +55,12 @@ abstract class AbstractCommand extends Command {
         }
         if (!$this->apiSecret) {
             throw new \RuntimeException('API_SECRET is required.');
+        }
+
+        if ($output->isVeryVerbose()) {
+            $stderr = new StreamHandler('php://stderr', Logger::DEBUG);
+            $logger = new Logger("blocktrail-sdk", [$stderr]);
+            $this->getBlocktrailSDK()->getRestClient()->setLogger($logger);
         }
     }
 
