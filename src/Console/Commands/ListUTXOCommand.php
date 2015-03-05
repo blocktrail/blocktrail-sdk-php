@@ -41,15 +41,15 @@ class ListUTXOCommand extends AbstractWalletCommand {
         $UTXOs = $wallet->utxos($page, $perpage)['data'];
 
         $table = new Table($output);
-        $table->setHeaders(['tx', 'idx', 'value', 'confirmations', 'address']);
-        foreach ($UTXOs as $UTXO) {
-            $table->addRow([$UTXO['hash'], $UTXO['idx'], BlocktrailSDK::toBTCString($UTXO['value']), $UTXO['confirmations'], $UTXO['address']]);
+        $table->setHeaders(['#', 'tx', 'idx', 'value', 'confirmations', 'address']);
+        foreach ($UTXOs as $i => $UTXO) {
+            $table->addRow([$i, $UTXO['hash'], $UTXO['idx'], BlocktrailSDK::toBTCString($UTXO['value']), $UTXO['confirmations'], $UTXO['address']]);
         }
 
         $table->render();
 
         if (count($UTXOs) >= $perpage) {
-            $output->writeln("there are more wallets, use --page and --perpage to see all of them ...");
+            $output->writeln("there are more UTXOs, use --page and --perpage to see all of them ...");
         }
     }
 }
