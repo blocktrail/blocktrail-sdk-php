@@ -751,7 +751,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'paths' => $paths
         ];
 
-        $response = $this->client->post("wallet/{$identifier}/send", ['check_fee' => (int)!!$checkFee], $data, RestClient::AUTH_HTTP_SIG);
+        // dynamic TTL for when we're signing really big transactions
+        $ttl = max(5.0, count($paths) * 0.15) + 3.0;
+
+        $response = $this->client->post("wallet/{$identifier}/send", ['check_fee' => (int)!!$checkFee], $data, RestClient::AUTH_HTTP_SIG, $ttl);
         $signed = self::jsonDecode($response->body(), true);
 
         if (!$signed['complete'] || $signed['complete'] == 'false') {
