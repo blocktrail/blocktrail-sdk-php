@@ -249,6 +249,60 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
     }
 
+    /**
+     * this test requires / asumes that the test wallet it uses contains a balance
+     *
+     * we keep the wallet topped off with some coins,
+     * but if some funny guy ever empties it or if you use your own API key to run the test then it needs to be topped off again
+     *
+     * @throws \Exception
+     */
+    public function testWalletTransactionWithoutMnemonics() {
+        $client = $this->setupBlocktrailSDK();
+
+        $primaryPrivateKey = BIP32::master_key(BIP39::mnemonicToSeedHex("give pause forget seed dance crawl situate hole keen", "password"), 'bitcoin', true);
+
+        $wallet = $client->initWallet([
+            "identifier" => "unittest-transaction",
+            "primary_private_key" => $primaryPrivateKey,
+            "primary_mnemonic" => false, // explicitly set false because we're reusing unittest-transaction which has a mnemonic stored
+        ]);
+
+        $this->assertEquals("unittest-transaction", $wallet->getIdentifier());
+        $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+
+        list($confirmed, $unconfirmed) = $wallet->getBalance();
+        $this->assertGreaterThan(0, $confirmed + $unconfirmed, "positive unconfirmed balance");
+        $this->assertGreaterThan(0, $confirmed, "positive confirmed balance");
+
+        list($path, $address) = $wallet->getNewAddressPair();
+        $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
+        $this->assertTrue(BitcoinLib::validate_address($address, false, null));
+
+        $value = BlocktrailSDK::toSatoshi(0.0002);
+        $txHash = $wallet->pay([
+            $address => $value,
+        ]);
+
+        $this->assertTrue(!!$txHash);
+
+        sleep(1); // sleep to wait for the TX to be processed
+
+        try {
+            $tx = $client->transaction($txHash);
+        } catch (ObjectNotFound $e) {
+            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        }
+
+        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        $this->assertEquals($txHash, $tx['hash']);
+        $this->assertTrue(count($tx['outputs']) <= 2);
+        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
+    }
+
     public function testDiscoveryAndKeyIndexUpgrade() {
         $client = $this->setupBlocktrailSDK();
 
@@ -389,6 +443,49 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             ]);
         } catch (\Exception $e) {}
         $this->assertTrue(!!$e, "Wallet with bad pass initialized");
+    }
+
+    public function testNewBlankWithoutMnemonicsWallet() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+        $primaryPrivateKey = BIP32::master_key(BIP39::mnemonicToSeedHex(BIP39::entropyToMnemonic(BIP39::generateEntropy(512)), "password"), 'bitcoin', true);
+        $backupPublicKey = BIP32::extended_private_to_public(BIP32::master_key(BIP39::mnemonicToSeedHex(BIP39::entropyToMnemonic(BIP39::generateEntropy(512)), "password"), 'bitcoin', true));
+
+        /**
+         * @var $wallet \Blocktrail\SDK\Wallet
+         */
+        $e = null;
+        try {
+            $wallet = $client->initWallet([
+                "identifier" => $identifier
+            ]);
+        } catch (ObjectNotFound $e) {
+            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+                "identifier" => $identifier,
+                "primary_private_key" => $primaryPrivateKey,
+                "backup_public_key" => $backupPublicKey,
+                "key_index" => 9999
+            ]);
+        }
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
+
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "primary_private_key" => $primaryPrivateKey
+        ]);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals(0, $wallet->getBalance()[0]);
+
+        $e = null;
+        try {
+            $wallet->pay([
+                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+            ]);
+        } catch (\Exception $e) {
+        }
+        $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
     }
 
     public function testNewBlankWalletOldSyntax() {
