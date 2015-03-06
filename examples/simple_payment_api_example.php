@@ -14,9 +14,16 @@ $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet 
  * @var $backupMnemonic     string
  */
 try {
-    $wallet = $client->initWallet("example-wallet", "example-strong-password");
+    $wallet = $client->initWallet([
+        "identifier" => "example-wallet",
+        "passphrase" => "example-strong-password"
+    ]);
 } catch (ObjectNotFound $e) {
-    list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet("example-wallet", "example-strong-password", $_account=9999);
+    list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+        "identifier" => "example-wallet",
+        "passphrase" => "example-strong-password",
+        "key_index" => 9999
+    ]);
     $wallet->doDiscovery();
 }
 

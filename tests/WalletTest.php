@@ -208,7 +208,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testWalletTransaction() {
         $client = $this->setupBlocktrailSDK();
 
-        $wallet = $client->initWallet("unittest-transaction", "password");
+        $wallet = $client->initWallet([
+            "identifier" => "unittest-transaction",
+            "passphrase" => "password"
+        ]);
 
         $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
         $this->assertEquals("unittest-transaction", $wallet->getIdentifier());
@@ -288,7 +291,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testListWalletTxsAddrs() {
         $client = $this->setupBlocktrailSDK();
 
-        $wallet = $client->initWallet("unittest-transaction", "password");
+        $wallet = $client->initWallet([
+            "identifier" => "unittest-transaction",
+            "passphrase" => "password"
+        ]);
 
         $transactions = $wallet->transactions(1, 23);
 
@@ -342,13 +348,23 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          */
         $e = null;
         try {
-            $wallet = $client->initWallet($identifier, "password");
+            $wallet = $client->initWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password"
+            ]);
         } catch (ObjectNotFound $e) {
-            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
+            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password",
+                "key_index" => 9999
+            ]);
         }
         $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
-        $wallet = $client->initWallet($identifier, "password");
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password"
+        ]);
         $this->wallets[] = $wallet; // store for cleanup
 
         $this->assertEquals(0, $wallet->getBalance()[0]);
@@ -367,12 +383,15 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          */
         $e = null;
         try {
-            $wallet = $client->initWallet($identifier, "password2", 9999);
+            $wallet = $client->initWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password2",
+            ]);
         } catch (\Exception $e) {}
         $this->assertTrue(!!$e, "Wallet with bad pass initialized");
     }
 
-    public function testWebhookForWallet() {
+    public function testNewBlankWalletOldSyntax() {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
@@ -388,7 +407,60 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         }
         $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
 
-        $wallet = $client->initWallet($identifier, "password");
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password"
+        ]);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals(0, $wallet->getBalance()[0]);
+
+        $e = null;
+        try {
+            $wallet->pay([
+                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+            ]);
+        } catch (\Exception $e) {
+        }
+        $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
+
+        /*
+         * init same wallet by with bad password
+         */
+        $e = null;
+        try {
+            $wallet = $client->initWallet($identifier, "password2");
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "Wallet with bad pass initialized");
+    }
+
+    public function testWebhookForWallet() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+
+        /**
+         * @var $wallet \Blocktrail\SDK\Wallet
+         */
+        $e = null;
+        try {
+            $wallet = $client->initWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password"
+            ]);
+        } catch (ObjectNotFound $e) {
+            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password",
+                "key_index" => 9999
+            ]);
+        }
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
+
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password"
+        ]);
         $this->wallets[] = $wallet; // store for cleanup
 
         $wallets = $client->allWallets();

@@ -232,13 +232,18 @@ interface BlocktrailSDKInterface {
      *   - send the primary seed (BIP39 'encrypted') and backup public key to the server
      *   - receive the blocktrail co-signing public key from the server
      *
-     * @param      $identifier
-     * @param      $password
-     * @param int  $keyIndex         override for the blocktrail cosigning key to use
+     * Either takes one argument:
+     * @param array $options
+     *
+     * Or takes three arguments (old, deprecated syntax):
+     * (@nonPHP-doc) @param      $identifier
+     * (@nonPHP-doc) @param      $password
+     * (@nonPHP-doc) @param int  $keyIndex         override for the blocktrail cosigning key to use
+     *
      * @return array[WalletInterface, (string)primaryMnemonic, (string)backupMnemonic]
      * @throws \Exception
      */
-    public function createNewWallet($identifier, $password, $keyIndex = 0);
+    public function createNewWallet($options);
 
     /**
      * create wallet using the API
@@ -267,12 +272,17 @@ interface BlocktrailSDKInterface {
     /**
      * initialize a previously created wallet
      *
-     * @param string    $identifier             the wallet identifier to be initialized
-     * @param string    $password               the password to decrypt the mnemonic with
+     * Either takes one argument:
+     * @param array $options
+     *
+     * Or takes two arguments (old, deprecated syntax):
+     * (@nonPHP-doc) @param string    $identifier             the wallet identifier to be initialized
+     * (@nonPHP-doc) @param string    $password               the password to decrypt the mnemonic with
+     *
      * @return WalletInterface
      * @throws \Exception
      */
-    public function initWallet($identifier, $password);
+    public function initWallet($options);
 
     /**
      * get the wallet data from the server

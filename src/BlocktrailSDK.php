@@ -467,13 +467,31 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *   - send the primary seed (BIP39 'encrypted') and backup public key to the server
      *   - receive the blocktrail co-signing public key from the server
      *
-     * @param      $identifier
-     * @param      $password
-     * @param int  $keyIndex         override for the blocktrail cosigning key to use
+     * Either takes one argument:
+     * @param array $options
+     *
+     * Or takes three arguments (old, deprecated syntax):
+     * (@nonPHP-doc) @param      $identifier
+     * (@nonPHP-doc) @param      $password
+     * (@nonPHP-doc) @param int  $keyIndex         override for the blocktrail cosigning key to use
+     *
      * @return array[WalletInterface, (string)primaryMnemonic, (string)backupMnemonic]
      * @throws \Exception
      */
-    public function createNewWallet($identifier, $password, $keyIndex = 0) {
+    public function createNewWallet($options) {
+        if (!is_array($options)) {
+            $args = func_get_args();
+            $options = [
+                "identifier" => $args[0],
+                "password" => $args[1],
+                "key_index" => isset($args[2]) ? $args[2] : null,
+            ];
+        }
+
+        $identifier = $options['identifier'];
+        $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
+        $keyIndex = isset($options['key_index']) ? $options['key_index'] : 0;
+
         $walletPath = WalletPath::create($keyIndex);
 
         // create new primary seed
@@ -558,12 +576,28 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * initialize a previously created wallet
      *
-     * @param string    $identifier             the wallet identifier to be initialized
-     * @param string    $password               the password to decrypt the mnemonic with
+     * Either takes one argument:
+     * @param array $options
+     *
+     * Or takes two arguments (old, deprecated syntax):
+     * (@nonPHP-doc) @param string    $identifier             the wallet identifier to be initialized
+     * (@nonPHP-doc) @param string    $password               the password to decrypt the mnemonic with
+     *
      * @return WalletInterface
      * @throws \Exception
      */
-    public function initWallet($identifier, $password) {
+    public function initWallet($options) {
+        if (!is_array($options)) {
+            $args = func_get_args();
+            $options = [
+                "identifier" => $args[0],
+                "password" => $args[1],
+            ];
+        }
+
+        $identifier = $options['identifier'];
+        $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
+
         // get the wallet data from the server
         $data = $this->getWallet($identifier);
 
