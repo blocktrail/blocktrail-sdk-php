@@ -467,24 +467,97 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *   - send the primary seed (BIP39 'encrypted') and backup public key to the server
      *   - receive the blocktrail co-signing public key from the server
      *
-     * @param      $identifier
-     * @param      $password
-     * @param int  $keyIndex         override for the blocktrail cosigning key to use
+     * Either takes one argument:
+     * @param array $options
+     *
+     * Or takes three arguments (old, deprecated syntax):
+     * (@nonPHP-doc) @param      $identifier
+     * (@nonPHP-doc) @param      $password
+     * (@nonPHP-doc) @param int  $keyIndex         override for the blocktrail cosigning key to use
+     *
      * @return array[WalletInterface, (string)primaryMnemonic, (string)backupMnemonic]
      * @throws \Exception
      */
-    public function createNewWallet($identifier, $password, $keyIndex = 0) {
+    public function createNewWallet($options) {
+        if (!is_array($options)) {
+            $args = func_get_args();
+            $options = [
+                "identifier" => $args[0],
+                "password" => $args[1],
+                "key_index" => isset($args[2]) ? $args[2] : null,
+            ];
+        }
+
+        $identifier = $options['identifier'];
+        $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
+        $keyIndex = isset($options['key_index']) ? $options['key_index'] : 0;
+
         $walletPath = WalletPath::create($keyIndex);
 
-        // create new primary seed
-        list($primaryMnemonic, $primarySeed, $primaryPrivateKey) = $this->newPrimarySeed($password);
+        $storePrimaryMnemonic = isset($options['store_primary_mnemonic']) ? $options['store_primary_mnemonic'] : null;
+
+        if (isset($options['primary_mnemonic']) && $options['primary_private_key']) {
+            throw new \InvalidArgumentException("Can't specify Primary Mnemonic and Primary PrivateKey");
+        }
+
+        $primaryMnemonic = null;
+        $primaryPrivateKey = null;
+        if (!isset($options['primary_mnemonic']) && !isset($options['primary_private_key'])) {
+            if (!$password) {
+                throw new \InvalidArgumentException("Can't generate Primary Mnemonic without a passphrase");
+            } else {
+                // create new primary seed
+                list($primaryMnemonic, $primarySeed, $primaryPrivateKey) = $this->newPrimarySeed($password);
+                if ($storePrimaryMnemonic !== false) {
+                    $storePrimaryMnemonic = true;
+                }
+            }
+        } else if (isset($options['primary_mnemonic'])) {
+            $primaryMnemonic = $options['primary_mnemonic'];
+        } else if (isset($options['primary_private_key'])) {
+            $primaryPrivateKey = $options['primary_private_key'];
+        }
+
+        if ($storePrimaryMnemonic && $primaryMnemonic && !$password) {
+            throw new \InvalidArgumentException("Can't store Primary Mnemonic on server without a passphrase");
+        }
+
+        if ($primaryPrivateKey) {
+            if (is_string($primaryPrivateKey)) {
+                $primaryPrivateKey = [$primaryPrivateKey, "m"];
+            }
+        } else {
+            $primaryPrivateKey = BIP32::master_key(BIP39::mnemonicToSeedHex($primaryMnemonic, $password), 'bitcoin', $this->testnet);
+        }
+
+        if (!$storePrimaryMnemonic) {
+            $primaryMnemonic = false;
+        }
+
         // create primary public key from the created private key
         $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
 
-        // create new backup seed
-        list($backupMnemonic, $backupSeed, $backupPrivateKey) = $this->newBackupSeed();
-        // create backup public key from the created private key
-        $backupPublicKey = BIP32::build_key($backupPrivateKey, "M");
+        if (isset($options['backup_mnemonic']) && $options['backup_public_key']) {
+            throw new \InvalidArgumentException("Can't specify Backup Mnemonic and Backup PublicKey");
+        }
+
+        $backupMnemonic = null;
+        $backupPublicKey = null;
+        if (!isset($options['backup_mnemonic']) && !isset($options['backup_public_key'])) {
+            list($backupMnemonic, $backupSeed, $backupPrivateKey) = $this->newBackupSeed();
+        } else if (isset($options['backup_mnemonic'])) {
+            $backupMnemonic = $options['backup_mnemonic'];
+        } else if (isset($options['backup_public_key'])) {
+            $backupPublicKey = $options['backup_public_key'];
+        }
+
+        if ($backupPublicKey) {
+            if (is_string($backupPublicKey)) {
+                $backupPublicKey = [$backupPublicKey, "m"];
+            }
+        } else {
+            $backupPublicKey = BIP32::extended_private_to_public(BIP32::master_key(BIP39::mnemonicToSeedHex($backupMnemonic, ""), 'bitcoin', $this->testnet));
+        }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
         $checksum = BlocktrailSDK::createChecksum($primaryPrivateKey);
@@ -558,12 +631,28 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * initialize a previously created wallet
      *
-     * @param string    $identifier             the wallet identifier to be initialized
-     * @param string    $password               the password to decrypt the mnemonic with
+     * Either takes one argument:
+     * @param array $options
+     *
+     * Or takes two arguments (old, deprecated syntax):
+     * (@nonPHP-doc) @param string    $identifier             the wallet identifier to be initialized
+     * (@nonPHP-doc) @param string    $password               the password to decrypt the mnemonic with
+     *
      * @return WalletInterface
      * @throws \Exception
      */
-    public function initWallet($identifier, $password) {
+    public function initWallet($options) {
+        if (!is_array($options)) {
+            $args = func_get_args();
+            $options = [
+                "identifier" => $args[0],
+                "password" => $args[1],
+            ];
+        }
+
+        $identifier = $options['identifier'];
+        $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
+
         // get the wallet data from the server
         $data = $this->getWallet($identifier);
 
@@ -572,16 +661,35 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // explode the wallet data
-        $primaryMnemonic = $data['primary_mnemonic'];
+        $primaryMnemonic = isset($options['primary_mnemonic']) ? $options['primary_mnemonic'] : $data['primary_mnemonic'];
+        $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
         $checksum = $data['checksum'];
         $backupPublicKey = $data['backup_public_key'];
         $blocktrailPublicKeys = $data['blocktrail_public_keys'];
-        $keyIndex = $data['key_index'];
+        $keyIndex = isset($options['key_index']) ? $options['key_index'] : $data['key_index'];
 
-        // convert the mnemonic to a seed using BIP39 standard
-        $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
-        // create BIP32 private key from the seed
-        $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
+        if ($primaryMnemonic && $primaryPrivateKey) {
+            throw new \InvalidArgumentException("Can't specify Primary Mnemonic and Primary PrivateKey");
+        }
+
+        if (!$primaryMnemonic && !$primaryPrivateKey) {
+            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic or Primary PrivateKey");
+        }
+
+        if ($primaryMnemonic && !$password) {
+            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic without a passphrase");
+        }
+
+        if ($primaryPrivateKey) {
+            if (is_string($primaryPrivateKey)) {
+                $primaryPrivateKey = [$primaryPrivateKey, "m"];
+            }
+        } else {
+            // convert the mnemonic to a seed using BIP39 standard
+            $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
+            // create BIP32 private key from the seed
+            $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
+        }
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
         $checksum2 = $this->createChecksum($primaryPrivateKey);

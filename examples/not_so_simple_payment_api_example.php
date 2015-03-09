@@ -9,6 +9,9 @@ $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet 
 // $client->setVerboseErrors();
 // $client->setCurlDebugging();
 
+$primaryPrivateKey = ["tprv8ZgxMBicQKsPdMD2AYgpezVQZNi5kxsRJDpQWc5E9mxp747KgzekJbCkvhqv6sBTDErTjkWqZdY14rLP1YL3cJawEtEp2dufHxPhr1YUoeS", "m"];
+$backupPublicKey = ["tpubD6NzVbkrYhZ4Y6Ny2VF2o5wkBGuZLQAsGPn88Y4JzKZH9siB85txQyYq3sDjRBFwnE1YhdthmHWWAurJu7EetmdeJH9M5jz3Chk7Ymw2oyf", "M"];
+
 /**
  * @var $wallet             \Blocktrail\SDK\WalletInterface
  * @var $backupMnemonic     string
@@ -16,12 +19,14 @@ $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet 
 try {
     $wallet = $client->initWallet([
         "identifier" => "example-wallet",
-        "passphrase" => "example-strong-password"
+        "primary_private_key" => $primaryPrivateKey,
+        "primary_mnemonic" => false
     ]);
 } catch (ObjectNotFound $e) {
     list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
         "identifier" => "example-wallet",
-        "passphrase" => "example-strong-password",
+        "primary_private_key" => $primaryPrivateKey,
+        "backup_public_key" => $backupPublicKey,
         "key_index" => 9999
     ]);
     $wallet->doDiscovery();
