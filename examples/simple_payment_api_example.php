@@ -1,5 +1,6 @@
 <?php
 
+use Afk11\Bitcoin\Transaction\TransactionFactory;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 

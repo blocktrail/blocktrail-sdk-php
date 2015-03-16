@@ -2,10 +2,12 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
+use Afk11\Bitcoin\Bitcoin;
+use Afk11\Bitcoin\Key\HierarchicalKey;
+use Afk11\Bitcoin\Key\HierarchicalKeyFactory;
+use Afk11\Bitcoin\Network\Network;
+use Afk11\Bitcoin\Transaction\TransactionFactory;
+use Blocktrail\SDK\BIP39\BIP39;
 use Blocktrail\SDK\Connection\RestClient;
 
 /**
@@ -94,7 +96,15 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param $testnet
      */
     protected function setBitcoinLibMagicBytes($network, $testnet) {
-        BitcoinLib::setMagicByteDefaults($network . ($testnet ? '-testnet' : ''));
+
+        $network = new Network('6f', 'c4', 'ef');
+        $network
+            ->setHDPubByte('043587cf')
+            ->setHDPrivByte('04358394')
+            ->setNetMagicBytes('@TODO');
+        Bitcoin::setNetwork($network);
+
+        // BitcoinLib::setMagicByteDefaults($network . ($testnet ? '-testnet' : ''));
     }
 
     /**
@@ -664,8 +674,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $primaryMnemonic = isset($options['primary_mnemonic']) ? $options['primary_mnemonic'] : $data['primary_mnemonic'];
         $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
         $checksum = $data['checksum'];
-        $backupPublicKey = $data['backup_public_key'];
-        $blocktrailPublicKeys = $data['blocktrail_public_keys'];
+        $backupPublicKey = HierarchicalKeyFactory::fromExtended($data['backup_public_key'][0]);
+        $blocktrailPublicKeys = array_map(function($k) { return HierarchicalKeyFactory::fromExtended($k[0]); }, $data['blocktrail_public_keys']);
         $keyIndex = isset($options['key_index']) ? $options['key_index'] : $data['key_index'];
 
         if ($primaryMnemonic && $primaryPrivateKey) {
@@ -687,8 +697,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         } else {
             // convert the mnemonic to a seed using BIP39 standard
             $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
-            // create BIP32 private key from the seed
-            $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
+            $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($primarySeed);
         }
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
@@ -714,8 +723,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param string    $primaryPrivateKey      the private key for which we want a checksum
      * @return string
      */
-    public static function createChecksum($primaryPrivateKey) {
-        return BIP32::key_to_address($primaryPrivateKey[0]);
+    public static function createChecksum(HierarchicalKey $primaryPrivateKey) {
+        return $primaryPrivateKey->getPublicKey()->getAddress()->getAddress();
     }
 
     /**
@@ -897,8 +906,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             throw new \Exception("Failed to completely sign transaction");
         }
 
-        // create TX hash from the raw signed hex
-        return RawTransaction::hash_from_raw($signed['hex']);
+        return TransactionFactory::fromHex($signed['hex'])->getTransactionId();
     }
 
     /**

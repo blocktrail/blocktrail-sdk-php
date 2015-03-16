@@ -29,6 +29,14 @@ class BIP32Path implements \ArrayAccess {
         return new static($path);
     }
 
+    public function remove($offset) {
+        $path = $this->path;
+
+        array_splice($path, $offset+1, 1, []);
+
+        return new static($path);
+    }
+
     /**
      * increase the last level of the path by 1 and return the new path
      *
@@ -199,6 +207,10 @@ class BIP32Path implements \ArrayAccess {
         return implode("/", $this->path);
     }
 
+    public function getChunks() {
+        return $this->path;
+    }
+
     /**
      * get the last part of the path
      *
@@ -266,7 +278,6 @@ class BIP32Path implements \ArrayAccess {
     public function count() {
         return count($this->path);
     }
-
 
     public function offsetExists($offset) {
         return isset($this->path[$offset]);

@@ -17,6 +17,12 @@
             "Blocktrail\\SDK\\": "src/"
         }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/blocktrail/bitcoin-php"
+        }
+    ],
     "license": "MIT",
     "require": {
         "php": ">=5.4.0",
@@ -28,11 +34,12 @@
         "ext-gd": "*",
         "ext-dom": "*",
 
-        "blocktrail/bitcoin-lib": "1.0.10",
+        "mdanter/ecc": "dev-master",
+        "afk11/bitcoin": "dev-master",
+        "fguillot/json-rpc": "dev-master",
 
         "guzzlehttp/guzzle": "5.2.*",
         "99designs/http-signatures-guzzlehttp": "1.1.0",
-        "mdanter/ecc": "0.2.0",
         "rych/hash_pbkdf2-compat": "~1.0",
         "rhumsaa/array_column": "~1.1",
         "dompdf/dompdf" : "0.6.*",
