@@ -35,7 +35,7 @@
         "ext-dom": "*",
 
         "mdanter/ecc": "dev-master",
-        "afk11/bitcoin": "dev-master",
+        "afk11/bitcoin": "dev-blocktrail",
         "fguillot/json-rpc": "dev-master",
 
         "guzzlehttp/guzzle": "5.2.*",
