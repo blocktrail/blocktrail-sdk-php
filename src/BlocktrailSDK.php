@@ -1136,4 +1136,20 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         return $sortedKeys;
     }
+
+    /**
+     * read and decode the json payload from a webhook's POST request.
+     *
+     * @param bool $returnObject    flag to indicate if an object or associative array should be returned
+     * @return mixed|null
+     * @throws \Exception
+     */
+    public static function getWebhookPayload($returnObject = false) {
+        $data = file_get_contents("php://input");
+        if ($data) {
+            return self::jsonDecode($data, !$returnObject);
+        } else {
+            return null;
+        }
+    }
 }
