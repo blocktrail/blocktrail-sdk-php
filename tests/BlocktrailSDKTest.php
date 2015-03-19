@@ -246,11 +246,11 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $client = $this->setupBlocktrailSDK();
 
         //coinbase TX
-        $response = $client->transaction("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b");
+        $response = $client->transaction("0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098");
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('hash', $response, "'hash' key not in response");
         $this->assertArrayHasKey('confirmations', $response, "'confirmations' key not in response");
-        $this->assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", $response['hash'], "Transaction hash does not match expected value");
+        $this->assertEquals("0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098", $response['hash'], "Transaction hash does not match expected value");
 
         $this->assertNull($response['enough_fee'], "'enough_fee' is not null in coinbase transaction");
 
