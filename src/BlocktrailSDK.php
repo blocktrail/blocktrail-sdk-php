@@ -898,7 +898,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // create TX hash from the raw signed hex
-        return RawTransaction::hash_from_raw($signed['hex']);
+        return RawTransaction::txid_from_raw($signed['hex']);
     }
 
     /**

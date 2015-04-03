@@ -437,7 +437,7 @@ class Wallet implements WalletInterface {
                 'txid' => $utxo['hash'],
                 'vout' => $utxo['idx'],
                 'scriptPubKey' => $utxo['scriptpubkey_hex'],
-                'value' => BlocktrailSDK::toBTC($utxo['value']),
+                'value' => $utxo['value'],
                 'address' => $utxo['address'],
                 'path' => $utxo['path'],
                 'redeemScript' => $utxo['redeem_script']
@@ -453,7 +453,7 @@ class Wallet implements WalletInterface {
         }
         foreach ($addresses as $address) {
             $value = $send[$address];
-            $outputs[$address] = BlocktrailSDK::toBTC($value);
+            $outputs[$address] = $value;
         }
 
         // create raw unsigned TX
