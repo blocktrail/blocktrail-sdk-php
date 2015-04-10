@@ -701,7 +701,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
         if ($this->autoWalletUpgrade && isset($data['upgrade_key_index'])) {
-            $wallet->upgradeKeyIndex($wallet['upgrade_key_index']);
+            $wallet->upgradeKeyIndex($data['upgrade_key_index']);
         }
 
         return $wallet;
