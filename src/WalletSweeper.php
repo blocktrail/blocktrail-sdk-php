@@ -334,7 +334,7 @@ class WalletSweeper {
                         'txid' => $utxo['hash'],
                         'vout' => $utxo['index'],
                         'scriptPubKey' => $utxo['script_hex'],
-                        'value' => BlocktrailSDK::toBTC($utxo['value']),
+                        'value' => $utxo['value'],
                         'address' => $address,
                         'path' => $data['path'],
                         'redeemScript' => $data['redeem']
@@ -345,7 +345,7 @@ class WalletSweeper {
 
         $outputs = [];
         $fee = Wallet::estimateFee($this->sweepData['count'], 1);
-        $outputs[$destinationAddress] = BlocktrailSDK::toBTC($this->sweepData['balance']-$fee);
+        $outputs[$destinationAddress] = $this->sweepData['balance'] - $fee;
 
         //create the raw transaction
         $rawTransaction = RawTransaction::create($inputs, $outputs);
