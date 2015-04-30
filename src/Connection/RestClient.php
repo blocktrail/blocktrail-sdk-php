@@ -52,7 +52,7 @@ class RestClient {
                 ),
                 'exceptions' => false,
                 'connect_timeout' => 3,
-                'timeout' => 60.0, // tmp until we have a good matrix of all the requests and their expect min/max time
+                'timeout' => 20.0, // tmp until we have a good matrix of all the requests and their expect min/max time
                 'verify' => true,
                 'proxy' => '',
                 'debug' => false,
