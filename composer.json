@@ -28,7 +28,7 @@
         "ext-gd": "*",
         "ext-dom": "*",
 
-        "blocktrail/bitcoin-lib": "1.0.14",
+        "blocktrail/bitcoin-lib": "1.0.15",
 
         "guzzlehttp/guzzle": "5.2.*",
         "99designs/http-signatures-guzzlehttp": "1.1.0",
