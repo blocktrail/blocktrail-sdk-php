@@ -411,24 +411,30 @@ class Wallet implements WalletInterface {
             throw new \Exception("the amount of change suggested by the coin selection seems incorrect");
         }
 
-        // only add a change output if there's change
-        if ($change > 0) {
-            if (!$changeAddress) {
-                $changeAddress = $this->getNewAddress();
-            }
-
-            // this should be impossible, but checking for it anyway
-            if (isset($send[$changeAddress])) {
-                throw new \Exception("Change address is already part of the outputs");
-            }
-
-            // add the change output
-            $send[$changeAddress] = $change;
-        }
-
         // validate the fee to make sure the API is correct
         if (($determinedFee = $this->determineFee($utxos, $send)) < $fee) {
             throw new \Exception("the fee suggested by the coin selection ({$fee}) seems incorrect ({$determinedFee})");
+        }
+
+        // only add a change output if there's change
+        if ($change > 0) {
+            if ($change <= Blocktrail::DUST) {
+                // values aren't used atm, but let's correct them anyway
+                $fee += $change;
+                $change = 0;
+            } else {
+                if (!$changeAddress) {
+                    $changeAddress = $this->getNewAddress();
+                }
+
+                // this should be impossible, but checking for it anyway
+                if (isset($send[$changeAddress])) {
+                    throw new \Exception("Change address is already part of the outputs");
+                }
+
+                // add the change output
+                $send[$changeAddress] = $change;
+            }
         }
 
         // create raw transaction
