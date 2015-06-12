@@ -74,6 +74,8 @@ class PayCommand extends AbstractWalletCommand {
             } else {
                 if (!$questionHelper->ask($input, $output, new ConfirmationQuestion("Did you specify this value in satoshi? [y/N] ", false))) {
                     $value = BlocktrailSDK::toSatoshi($value);
+                } else {
+                    $value = (int)$value;
                 }
             }
 
