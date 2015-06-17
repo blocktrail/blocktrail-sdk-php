@@ -27,8 +27,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      */
     protected $testnet;
 
-    protected $autoWalletUpgrade = true;
-
     /**
      * @param   string      $apiKey         the API_KEY to use for authentication
      * @param   string      $apiSecret      the API_SECRET to use for authentication
@@ -560,7 +558,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
-        $checksum = BlocktrailSDK::createChecksum($primaryPrivateKey);
+        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
@@ -568,12 +566,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         // received the blocktrail public keys
         $blocktrailPublicKeys = $data['blocktrail_public_keys'];
 
-        $wallet = new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
+        $wallet = new Wallet($this, $identifier, $primaryMnemonic, [$keyIndex => $primaryPublicKey], $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->network, $this->testnet, $checksum);
 
-        // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if (isset($data['upgrade_key_index'])) {
-            $wallet->upgradeKeyIndex($data['upgrade_key_index']);
-        }
+        $wallet->unlock($options);
 
         // return wallet and backup mnemonic
         return [
@@ -651,7 +646,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         $identifier = $options['identifier'];
-        $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
+        $readonly = isset($options['readonly']) ? $options['readonly'] :
+                    (isset($options['readOnly']) ? $options['readOnly'] :
+                        (isset($options['read-only']) ? $options['read-only'] :
+                            false));
 
         // get the wallet data from the server
         $data = $this->getWallet($identifier);
@@ -662,60 +660,19 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // explode the wallet data
         $primaryMnemonic = isset($options['primary_mnemonic']) ? $options['primary_mnemonic'] : $data['primary_mnemonic'];
-        $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
         $checksum = $data['checksum'];
         $backupPublicKey = $data['backup_public_key'];
+        $primaryPublicKeys = $data['primary_public_keys'];
         $blocktrailPublicKeys = $data['blocktrail_public_keys'];
         $keyIndex = isset($options['key_index']) ? $options['key_index'] : $data['key_index'];
 
-        if ($primaryMnemonic && $primaryPrivateKey) {
-            throw new \InvalidArgumentException("Can't specify Primary Mnemonic and Primary PrivateKey");
-        }
+        $wallet = new Wallet($this, $identifier, $primaryMnemonic, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->network, $this->testnet, $checksum);
 
-        if (!$primaryMnemonic && !$primaryPrivateKey) {
-            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic or Primary PrivateKey");
-        }
-
-        if ($primaryMnemonic && !$password) {
-            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic without a passphrase");
-        }
-
-        if ($primaryPrivateKey) {
-            if (is_string($primaryPrivateKey)) {
-                $primaryPrivateKey = [$primaryPrivateKey, "m"];
-            }
-        } else {
-            // convert the mnemonic to a seed using BIP39 standard
-            $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
-            // create BIP32 private key from the seed
-            $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
-        }
-
-        // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum2 = $this->createChecksum($primaryPrivateKey);
-        if ($checksum2 != $checksum) {
-            throw new \Exception("Checksum [{$checksum2}] does not match [{$checksum}], most likely due to incorrect password");
-        }
-
-        $wallet = new Wallet($this, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $this->testnet);
-
-        // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if ($this->autoWalletUpgrade && isset($data['upgrade_key_index'])) {
-            $wallet->upgradeKeyIndex($data['upgrade_key_index']);
+        if (!$readonly) {
+            $wallet->unlock($options);
         }
 
         return $wallet;
-    }
-
-    /**
-     * generate a 'checksum' of our private key to validate that our mnemonic was correctly decoded
-     *  we just generate the address based on the master PK as checksum, a simple 'standard' using code we already have
-     *
-     * @param string    $primaryPrivateKey      the private key for which we want a checksum
-     * @return string
-     */
-    public static function createChecksum($primaryPrivateKey) {
-        return BIP32::key_to_address($primaryPrivateKey[0]);
     }
 
     /**

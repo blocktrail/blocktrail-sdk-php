@@ -279,7 +279,7 @@ interface BlocktrailSDKInterface {
      * (@nonPHP-doc) @param string    $identifier             the wallet identifier to be initialized
      * (@nonPHP-doc) @param string    $password               the password to decrypt the mnemonic with
      *
-     * @return WalletInterface
+     * @return Wallet
      * @throws \Exception
      */
     public function initWallet($options);

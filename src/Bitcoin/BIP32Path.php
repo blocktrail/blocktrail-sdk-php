@@ -258,6 +258,10 @@ class BIP32Path implements \ArrayAccess {
         return new static($path);
     }
 
+    public function getKeyIndex() {
+        return str_replace("'", "", $this->path[1]);
+    }
+
     /**
      * count the levels in the path (including master)
      *

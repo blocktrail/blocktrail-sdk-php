@@ -3,6 +3,7 @@
 namespace Blocktrail\SDK;
 
 use BitWasp\BitcoinLib\BIP32;
+use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
@@ -47,6 +48,11 @@ class Wallet implements WalletInterface {
     protected $primaryPrivateKey;
 
     /**
+     * @var BIP32Key[]
+     */
+    protected $primaryPublicKeys;
+
+    /**
      * BIP32 master backup public key (M/)
 
      * @var BIP32Key
@@ -68,6 +74,13 @@ class Wallet implements WalletInterface {
      * @var int
      */
     protected $keyIndex;
+
+    /**
+     * 'bitcoin'
+     *
+     * @var string
+     */
+    protected $network;
 
     /**
      * testnet yes / no
@@ -102,30 +115,40 @@ class Wallet implements WalletInterface {
      */
     protected $walletPath;
 
+    private $checksum;
+
+    private $locked = true;
+
     /**
      * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
      * @param string                        $identifier                 identifier of the wallet
      * @param string                        $primaryMnemonic
-     * @param array[string, string]         $primaryPrivateKey          should be BIP32 master key m/
+     * @param array[string, string]         $primaryPublicKeys
      * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
      * @param array[array[string, string]]  $blocktrailPublicKeys
      * @param int                           $keyIndex
+     * @param string                        $network
      * @param bool                          $testnet
+     * @param string                        $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
 
         $this->primaryMnemonic = $primaryMnemonic;
-        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
         $this->backupPublicKey = BIP32Key::create($backupPublicKey);
+        $this->primaryPublicKeys = array_map(function ($key) {
+            return BIP32Key::create($key);
+        }, $primaryPublicKeys);
         $this->blocktrailPublicKeys = array_map(function ($key) {
             return BIP32Key::create($key);
         }, $blocktrailPublicKeys);
 
+        $this->network = $network;
         $this->testnet = $testnet;
         $this->keyIndex = $keyIndex;
+        $this->checksum = $checksum;
 
         $this->walletPath = WalletPath::create($this->keyIndex);
     }
@@ -160,17 +183,101 @@ class Wallet implements WalletInterface {
     }
 
     /**
+     * unlock wallet so it can be used for payments
+     *
+     * @param          $options ['primary_private_key' => key] OR ['passphrase' => pass]
+     * @param callable $fn
+     * @return bool
+     * @throws \Exception
+     */
+    public function unlock($options, callable $fn = null) {
+        // explode the wallet data
+        $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
+        $primaryMnemonic = $this->primaryMnemonic;
+        $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
+
+        if ($primaryMnemonic && $primaryPrivateKey) {
+            throw new \InvalidArgumentException("Can't specify Primary Mnemonic and Primary PrivateKey");
+        }
+
+        if (!$primaryMnemonic && !$primaryPrivateKey) {
+            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic or Primary PrivateKey");
+        }
+
+        if ($primaryMnemonic && !$password) {
+            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic without a passphrase");
+        }
+
+        if ($primaryPrivateKey) {
+            if (is_string($primaryPrivateKey)) {
+                $primaryPrivateKey = [$primaryPrivateKey, "m"];
+            }
+        } else {
+            // convert the mnemonic to a seed using BIP39 standard
+            $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
+            // create BIP32 private key from the seed
+            $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
+        }
+
+        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
+
+        // create checksum (address) of the primary privatekey to compare to the stored checksum
+        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
+        if ($checksum != $this->checksum) {
+            throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
+        }
+
+        $this->locked = false;
+
+        // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
+        if (isset($data['upgrade_key_index'])) {
+            $this->upgradeKeyIndex($data['upgrade_key_index']);
+        }
+
+        if ($fn) {
+            $fn($this);
+            $this->lock();
+        }
+    }
+
+    /**
+     * lock the wallet (unsets primary private key)
+     *
+     * @return void
+     */
+    public function lock() {
+        $this->primaryPrivateKey = null;
+        $this->locked = true;
+    }
+
+    /**
+     * check if wallet is locked
+     *
+     * @return bool
+     */
+    public function isLocked() {
+        return $this->locked;
+    }
+
+    /**
      * upgrade wallet to different blocktrail cosign key
      *
      * @param $keyIndex
+     * @return bool
      * @throws \Exception
      */
     public function upgradeKeyIndex($keyIndex) {
+        if ($this->locked) {
+            throw new \Exception("Wallet needs to be unlocked to upgrade key index");
+        }
+
         $walletPath = WalletPath::create($keyIndex);
 
         // do the upgrade to the new 'key_index'
         $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($this->primaryPrivateKey->tuple(), (string)$walletPath->keyIndexPath()));
         $result = $this->sdk->upgradeKeyIndex($this->identifier, $keyIndex, $primaryPublicKey);
+
+        $this->primaryPublicKeys[$keyIndex] = BIP32Key::create($primaryPublicKey);
 
         $this->keyIndex = $keyIndex;
         $this->walletPath = $walletPath;
@@ -181,6 +288,8 @@ class Wallet implements WalletInterface {
                 $this->blocktrailPublicKeys[$keyIndex] = BIP32Key::create($pubKey);
             }
         }
+
+        return true;
     }
 
     /**
@@ -235,7 +344,7 @@ class Wallet implements WalletInterface {
         }
 
         if (!isset($this->pubKeys[(string)$path])) {
-            $this->pubKeys[(string)$path] = $this->primaryPrivateKey->buildKey($path);
+            $this->pubKeys[(string)$path] = $this->primaryPublicKeys[$path->getKeyIndex()]->buildKey($path);
         }
 
         return $this->pubKeys[(string)$path];
@@ -272,7 +381,7 @@ class Wallet implements WalletInterface {
         if ($pubKey = $this->getParentPublicKey($path)) {
             $key = $pubKey->buildKey($path->publicPath());
         } else {
-            $key = $this->primaryPrivateKey->buildKey($path);
+            $key = $this->primaryPublicKeys[$path->getKeyIndex()]->buildKey($path);
         }
 
         return $this->getRedeemScriptFromKey($key, $path);
@@ -382,6 +491,10 @@ class Wallet implements WalletInterface {
      * @throws \Exception
      */
     public function pay(array $pay, $changeAddress = null, $allowZeroConf = false, $randomizeChangeIdx = true) {
+        if ($this->locked) {
+            throw new \Exception("Wallet needs to be unlocked to pay");
+        }
+
         foreach ($pay as $address => $value) {
             if (!BitcoinLib::validate_address($address)) {
                 throw new \Exception("Invalid address [{$address}]");
@@ -636,10 +749,15 @@ class Wallet implements WalletInterface {
     /**
      * delete the wallet
      *
-     * @param bool $force       ignore warnings (such as non-zero balance)
+     * @param bool $force ignore warnings (such as non-zero balance)
      * @return mixed
+     * @throws \Exception
      */
     public function deleteWallet($force = false) {
+        if ($this->locked) {
+            throw new \Exception("Wallet needs to be unlocked to delete wallet");
+        }
+
         list($checksumAddress, $signature) = $this->createChecksumVerificationSignature();
         return $this->sdk->deleteWallet($this->identifier, $checksumAddress, $signature, $force)['deleted'];
     }

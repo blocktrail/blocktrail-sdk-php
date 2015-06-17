@@ -29,7 +29,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     /**
      * setup an instance of BlocktrailSDK
      *
-     * @return BlocktrailSDKInterface
+     * @return BlocktrailSDK
      */
     public function setupBlocktrailSDK() {
         $apiKey = getenv('BLOCKTRAIL_SDK_APIKEY') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APIKEY';
@@ -55,6 +55,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          */
         foreach ($this->wallets as $wallet) {
             try {
+                if ($wallet->isLocked()) {
+                    $wallet->unlock(['passphrase' => 'password']);
+                }
                 $wallet->deleteWallet(true);
             } catch (ObjectNotFound $e) {
                 // that's ok
@@ -119,7 +122,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         return $this->_createTestWallet($client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic);
     }
 
-    protected function _createTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic) {
+    protected function _createTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic, $readOnly = false) {
         $walletPath = WalletPath::create(9999);
 
         $seed = BIP39::mnemonicToSeedHex($primaryMnemonic, $passphrase);
@@ -132,14 +135,21 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $testnet = true;
 
-        $checksum = BlocktrailSDK::createChecksum($primaryPrivateKey);
+        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
 
         $result = $client->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, 9999);
 
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
         $keyIndex = $result['key_index'];
 
-        return new Wallet($client, $identifier, $primaryMnemonic, $primaryPrivateKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $testnet);
+        $wallet = new Wallet($client, $identifier, $primaryMnemonic, [$keyIndex => $primaryPublicKey], $backupPublicKey, $blocktrailPublicKeys, $keyIndex, 'bitcoin', $testnet, $checksum);
+
+        if (!$readOnly) {
+            $wallet->unlock(['password' => $passphrase]);
+        }
+
+
+        return $wallet;
     }
 
     public function testBIP32() {
@@ -425,6 +435,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         ]);
         $this->wallets[] = $wallet; // store for cleanup
 
+        $this->assertFalse($wallet->isLocked());
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $this->assertTrue(!!$wallet->getNewAddress());
+
         $this->assertEquals(0, $wallet->getBalance()[0]);
 
         $e = null;
@@ -434,7 +450,56 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             ]);
         } catch (\Exception $e) {
         }
+        $this->assertTrue(!!$e && strpos($e->getMessage(), "lock") !== false, "Locked wallet is able to pay...");
+
+        $e = null;
+        try {
+            $wallet->upgradeKeyIndex(10000);
+        } catch (\Exception $e) {
+        }
+        $this->assertTrue(!!$e && strpos($e->getMessage(), "lock") !== false, "Locked wallet is able to upgrade key index...");
+
+        // repeat above but starting with readonly = true
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "readonly" => true
+        ]);
+
+        $this->assertTrue($wallet->isLocked());
+
+        $this->assertTrue(!!$wallet->getNewAddress());
+
+        $this->assertEquals(0, $wallet->getBalance()[0]);
+
+        $e = null;
+        try {
+            $wallet->pay([
+                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+            ]);
+        } catch (\Exception $e) {
+        }
+        $this->assertTrue(!!$e && strpos($e->getMessage(), "lock") !== false, "Locked wallet is able to pay...");
+
+        $e = null;
+        try {
+            $wallet->upgradeKeyIndex(10000);
+        } catch (\Exception $e) {
+        }
+        $this->assertTrue(!!$e && strpos($e->getMessage(), "lock") !== false, "Locked wallet is able to upgrade key index...");
+
+        $wallet->unlock(['passphrase' => "password"]);
+        $this->assertFalse($wallet->isLocked());
+
+        $e = null;
+        try {
+            $wallet->pay([
+                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+            ]);
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
+
+        $wallet->upgradeKeyIndex(10000);
 
         /*
          * init same wallet by with bad password
