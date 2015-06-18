@@ -94,6 +94,14 @@ interface WalletInterface {
     public function getRedeemScriptByPath($path);
 
     /**
+     * get the path (and redeemScript) to specified address
+     *
+     * @param string $address
+     * @return array
+     */
+    public function getPathForAddress($address);
+
+    /**
      * @param string|BIP32Path  $path
      * @return BIP32Key
      * @throws \Exception
@@ -139,6 +147,27 @@ interface WalletInterface {
      * @return string                       the txid / transaction hash
      */
     public function pay(array $pay, $changeAddress = null, $allowZeroConf = false, $randomizeChangeIdx = true);
+
+    /**
+     * build inputs and outputs lists for TransactionBuilder
+     *
+     * @param TransactionBuilder $txBuilder
+     * @return array
+     * @throws \Exception
+     */
+    public function buildTx(TransactionBuilder $txBuilder);
+
+    /**
+     * !! INTERNAL METHOD !!
+     * create, sign and send transction based on inputs and outputs
+     *
+     * @param $inputs
+     * @param $outputs
+     * @return string
+     * @throws \Exception
+     * @internal
+     */
+    public function sendTx($inputs, $outputs);
 
     /**
      * delete the wallet

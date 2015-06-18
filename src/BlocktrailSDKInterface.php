@@ -323,6 +323,16 @@ interface BlocktrailSDKInterface {
     public function doWalletDiscovery($identifier, $gap = 200);
 
     /**
+     * get the path (and redeemScript) to specified address
+     *
+     * @param string $identifier
+     * @param string $address
+     * @return array
+     * @throws \Exception
+     */
+    public function getPathForAddress($identifier, $address);
+
+    /**
      * get a new derivation number for specified parent path
      *  eg; m/44'/1'/0/0 results in m/44'/1'/0/0/0 and next time in m/44'/1'/0/0/1 and next time in m/44'/1'/0/0/2
      *

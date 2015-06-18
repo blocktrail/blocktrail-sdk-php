@@ -8,6 +8,7 @@ use BitWasp\BitcoinLib\BitcoinLib;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
+use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\Wallet;
 use Blocktrail\SDK\WalletPath;
 
@@ -24,6 +25,9 @@ use Blocktrail\SDK\WalletPath;
  */
 class WalletTest extends \PHPUnit_Framework_TestCase {
 
+    /**
+     * @var Wallet[]
+     */
     protected $wallets = [];
 
     /**
@@ -50,9 +54,6 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     }
 
     protected function cleanUp() {
-        /**
-         * @var Wallet $wallet
-         */
         foreach ($this->wallets as $wallet) {
             try {
                 if ($wallet->isLocked()) {
@@ -697,5 +698,312 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testEstimateFee() {
         $this->assertEquals(30000, Wallet::estimateFee(1, 66));
         $this->assertEquals(40000, Wallet::estimateFee(2, 71));
+    }
+
+    public function testBuildTx() {
+        $client = $this->setupBlocktrailSDK();
+
+        $wallet = $client->initWallet([
+            "identifier" => "unittest-transaction",
+            "passphrase" => "password"
+        ]);
+
+        /*
+         * test simple (real world TX) scenario
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", BlocktrailSDK::toSatoshi(0.0001))
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum($outputs);
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0), $fee);
+
+        // assert the input(s)
+        $this->assertEquals(1, count($inputs));
+        $this->assertEquals("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", $inputs[0]['txid']);
+        $this->assertEquals(0, $inputs[0]['vout']);
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $inputs[0]['address']);
+        $this->assertEquals("a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", $inputs[0]['scriptPubKey']);
+        $this->assertEquals(10000, $inputs[0]['value']);
+        $this->assertEquals("M/9999'/0/1537", $inputs[0]['path']);
+        $this->assertEquals("5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae", $inputs[0]['redeemScript']);
+
+        // assert the output(s)
+        $this->assertEquals(1, count($outputs));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[0]);
+        $this->assertEquals(10000, $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+
+        /*
+         * test trying to spend too much
+         */
+        $e = null;
+        try {
+            list($inputs, $outputs) = $wallet->buildTx(
+                (new TransactionBuilder())
+                    ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
+                        "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                    ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", BlocktrailSDK::toSatoshi(0.0002))
+            );
+        } catch (\Exception $e) {
+
+        }
+        $this->assertTrue(!!$e);
+
+
+        /*
+         * test change
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NE2uSqCktMXfe512kTPrKPhQck7vMNvaGK", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3SEVZ8cpT8zm6yiQphgxCL3wLfQ75f7wK", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MyCfumM2MwnCfMAqLFQeRzaovetvpV63Pt", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7ZNbgb6kEPuok2L8KwAEGnHq7Y8k6XR8B", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtamUPcc8U12sUQ2zhgoXg34c31XRd9h2E", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N1jJJxEHnQfdKMh2wor7HQ9aHp6KfpeSgw", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mx5ZJEdJus7TekzM8Jr9H2xaKH1iy4775y", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MzzvxQNZtE4NP5U2HGgLhFzsRQJaRQouKY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N8inYmbUT9wM1ewvtEy6RW4zBQstgPkfCQ", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7TZBUcr7dTJaDFPN6aWtWmRsh5MErv4nu", BlocktrailSDK::toSatoshi(0.0001))
+                ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
+                ->randomizeChangeOutput(false)
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum($outputs);
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
+        $this->assertEquals(14, count($outputs));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[13]);
+        $this->assertEquals(99860000, $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+
+        /*
+         * 1 input (1 * 294b) = 294b
+         * 19 recipients (19 * 34b) = 646b
+         *
+         * size = 8b + 294b + 646b = 948b
+         * + change output (34b) = 982b
+         *
+         * fee = 0.0001
+         *
+         * 1 - (19 * 0.0001) = 0.9981
+         * change = 0.9980
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3SEVZ8cpT8zm6yiQphgxCL3wLfQ75f7wK", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MyCfumM2MwnCfMAqLFQeRzaovetvpV63Pt", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7ZNbgb6kEPuok2L8KwAEGnHq7Y8k6XR8B", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtamUPcc8U12sUQ2zhgoXg34c31XRd9h2E", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N1jJJxEHnQfdKMh2wor7HQ9aHp6KfpeSgw", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mx5ZJEdJus7TekzM8Jr9H2xaKH1iy4775y", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MzzvxQNZtE4NP5U2HGgLhFzsRQJaRQouKY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N8inYmbUT9wM1ewvtEy6RW4zBQstgPkfCQ", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7TZBUcr7dTJaDFPN6aWtWmRsh5MErv4nu", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mw34qYu3rCmFkzZeNsDJ9aQri8HjmUZ6wY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MsTtsupHuqy6JvWUscn5HQ54EscLiXaPSF", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtR3Qa9eeYEpBmw3kLNywWGVmUuGjwRGXk", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N6GmkegBNA1D8wbHMLZFwxMPoNRjVnZgvv", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NBCPVQ6xX3KAVPKmGENH1eHhPwJzmN1Bpf", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NAHY321fSVz4wKnE4eWjyLfRmoauCrQpBD", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N2anz2GmZdrKNNeEZD7Xym8djepwnTqPXY", BlocktrailSDK::toSatoshi(0.0001))
+                ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
+                ->randomizeChangeOutput(false)
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum($outputs);
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
+        $this->assertEquals(20, count($outputs));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[19]);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+
+        /*
+         * test change output bumps size over 1kb, fee += 0.0001
+         *
+         * 1 input (1 * 294b) = 294b
+         * 20 recipients (19 * 34b) = 680b
+         *
+         * size = 8b + 294b + 680b = 982b
+         * + change output (34b) = 1006b
+         *
+         * fee = 0.0002
+         * input = 1.0000
+         * 1.0000 - (20 * 0.0001) = 0.9980
+         * change = 0.9978
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3SEVZ8cpT8zm6yiQphgxCL3wLfQ75f7wK", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MyCfumM2MwnCfMAqLFQeRzaovetvpV63Pt", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7ZNbgb6kEPuok2L8KwAEGnHq7Y8k6XR8B", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtamUPcc8U12sUQ2zhgoXg34c31XRd9h2E", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N1jJJxEHnQfdKMh2wor7HQ9aHp6KfpeSgw", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mx5ZJEdJus7TekzM8Jr9H2xaKH1iy4775y", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MzzvxQNZtE4NP5U2HGgLhFzsRQJaRQouKY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N8inYmbUT9wM1ewvtEy6RW4zBQstgPkfCQ", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7TZBUcr7dTJaDFPN6aWtWmRsh5MErv4nu", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mw34qYu3rCmFkzZeNsDJ9aQri8HjmUZ6wY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MsTtsupHuqy6JvWUscn5HQ54EscLiXaPSF", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtR3Qa9eeYEpBmw3kLNywWGVmUuGjwRGXk", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N6GmkegBNA1D8wbHMLZFwxMPoNRjVnZgvv", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NBCPVQ6xX3KAVPKmGENH1eHhPwJzmN1Bpf", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NAHY321fSVz4wKnE4eWjyLfRmoauCrQpBD", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N2anz2GmZdrKNNeEZD7Xym8djepwnTqPXY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
+                ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
+                ->randomizeChangeOutput(false)
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum($outputs);
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9998), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0002), $fee);
+        $this->assertEquals(21, count($outputs));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[20]);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9978), $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+
+        /*
+         * test change
+         *
+         * 1 input (1 * 294b) = 294b
+         * 20 recipients (19 * 34b) = 680b
+         *
+         * size = 8b + 294b + 680b = 982b
+         * + change output (34b) = 1006b
+         *
+         * fee = 0.0001
+         * input = 0.0021
+         * 0.0021 - (20 * 0.0001) = 0.0001
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0021),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3SEVZ8cpT8zm6yiQphgxCL3wLfQ75f7wK", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MyCfumM2MwnCfMAqLFQeRzaovetvpV63Pt", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7ZNbgb6kEPuok2L8KwAEGnHq7Y8k6XR8B", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtamUPcc8U12sUQ2zhgoXg34c31XRd9h2E", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N1jJJxEHnQfdKMh2wor7HQ9aHp6KfpeSgw", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mx5ZJEdJus7TekzM8Jr9H2xaKH1iy4775y", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MzzvxQNZtE4NP5U2HGgLhFzsRQJaRQouKY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N8inYmbUT9wM1ewvtEy6RW4zBQstgPkfCQ", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7TZBUcr7dTJaDFPN6aWtWmRsh5MErv4nu", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mw34qYu3rCmFkzZeNsDJ9aQri8HjmUZ6wY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MsTtsupHuqy6JvWUscn5HQ54EscLiXaPSF", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtR3Qa9eeYEpBmw3kLNywWGVmUuGjwRGXk", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N6GmkegBNA1D8wbHMLZFwxMPoNRjVnZgvv", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NBCPVQ6xX3KAVPKmGENH1eHhPwJzmN1Bpf", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NAHY321fSVz4wKnE4eWjyLfRmoauCrQpBD", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N2anz2GmZdrKNNeEZD7Xym8djepwnTqPXY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
+                ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
+                ->randomizeChangeOutput(false)
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum($outputs);
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0021), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
+        $this->assertEquals(20, count($outputs));
+
+        /*
+         * test change output bumps size over 1kb, fee += 0.0001
+         *  but change was < 0.0001 so better to just fee it all
+         *
+         * 1 input (1 * 294b) = 294b
+         * 20 recipients (19 * 34b) = 680b
+         *
+         * input = 0.00219
+         *
+         * size = 8b + 294b + 680b = 982b
+         * fee = 0.0001
+         * 0.00219 - (20 * 0.0001) = 0.00019
+         *
+         * + change output (0.00009) (34b) = 1006b
+         * fee = 0.0002
+         * 0.00219 - (20 * 0.0001) = 0.00019
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.00219),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N3SEVZ8cpT8zm6yiQphgxCL3wLfQ75f7wK", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MyCfumM2MwnCfMAqLFQeRzaovetvpV63Pt", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7ZNbgb6kEPuok2L8KwAEGnHq7Y8k6XR8B", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtamUPcc8U12sUQ2zhgoXg34c31XRd9h2E", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N1jJJxEHnQfdKMh2wor7HQ9aHp6KfpeSgw", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mx5ZJEdJus7TekzM8Jr9H2xaKH1iy4775y", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MzzvxQNZtE4NP5U2HGgLhFzsRQJaRQouKY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N8inYmbUT9wM1ewvtEy6RW4zBQstgPkfCQ", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N7TZBUcr7dTJaDFPN6aWtWmRsh5MErv4nu", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mw34qYu3rCmFkzZeNsDJ9aQri8HjmUZ6wY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MsTtsupHuqy6JvWUscn5HQ54EscLiXaPSF", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2MtR3Qa9eeYEpBmw3kLNywWGVmUuGjwRGXk", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N6GmkegBNA1D8wbHMLZFwxMPoNRjVnZgvv", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NBCPVQ6xX3KAVPKmGENH1eHhPwJzmN1Bpf", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2NAHY321fSVz4wKnE4eWjyLfRmoauCrQpBD", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2N2anz2GmZdrKNNeEZD7Xym8djepwnTqPXY", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
+                ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
+                ->randomizeChangeOutput(false)
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum($outputs);
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.00219), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.00019), $fee);
+        $this->assertEquals(20, count($outputs));
     }
 }

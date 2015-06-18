@@ -420,6 +420,16 @@ class Wallet implements WalletInterface {
     }
 
     /**
+     * get the path (and redeemScript) to specified address
+     *
+     * @param string $address
+     * @return array
+     */
+    public function getPathForAddress($address) {
+        return $this->sdk->getPathForAddress($this->identifier, $address);
+    }
+
+    /**
      * @param string|BIP32Path  $path
      * @return BIP32Key
      * @throws \Exception
@@ -495,21 +505,6 @@ class Wallet implements WalletInterface {
             throw new \Exception("Wallet needs to be unlocked to pay");
         }
 
-        foreach ($pay as $address => $value) {
-            if (!BitcoinLib::validate_address($address)) {
-                throw new \Exception("Invalid address [{$address}]");
-            }
-
-            // using this 'dirty' way of checking for a float since there's no other reliable way in PHP
-            if (!is_int($value)) {
-                throw new \Exception("Values should be in Satoshis (int)");
-            }
-
-            if ($value <= Blocktrail::DUST) {
-                throw new \Exception("Values should be more than dust (" . Blocktrail::DUST . ")");
-            }
-        }
-
         // the output structure equals $pay right now ...
         $send = $pay;
 
@@ -519,35 +514,131 @@ class Wallet implements WalletInterface {
         $fee = $coinSelection['fee'];
         $change = $coinSelection['change'];
 
-        // validate the change to make sure the API is correct
-        if ($this->determineChange($utxos, $send, $fee) != $change) {
+        $txBuilder = new TransactionBuilder();
+        $txBuilder->randomizeChangeOutput($randomizeChangeIdx);
+
+        foreach ($utxos as $utxo) {
+            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'], $utxo['scriptpubkey_hex'], $utxo['path'], $utxo['redeem_script']);
+        }
+
+        foreach ($send as $address => $value) {
+            $txBuilder->addRecipient($address, $value);
+        }
+
+        $txBuilder->validateChange($change);
+        $txBuilder->validateFee($fee);
+
+        list($inputs, $outputs) = $this->buildTx($txBuilder);
+
+        return $this->sendTx($inputs, $outputs);
+    }
+
+    /**
+     * build inputs and outputs lists for TransactionBuilder
+     *
+     * @param TransactionBuilder $txBuilder
+     * @return array
+     * @throws \Exception
+     */
+    public function buildTx(TransactionBuilder $txBuilder) {
+        $send = $txBuilder->getOutputs();
+
+        $utxos = $txBuilder->getUtxos();
+
+        foreach ($utxos as &$utxo_ref) {
+            if (!$utxo_ref['address'] || !$utxo_ref['value'] || !$utxo_ref['scriptpubkey_hex']) {
+                $tx = $this->sdk->transaction($utxo_ref['hash']);
+
+                if (!$tx || !isset($tx['outputs'][$utxo_ref['idx']])) {
+                    throw new \Exception("Invalid output [{$utxo_ref['hash']}][{$utxo_ref['index']}]");
+                }
+
+                $output = $tx['outputs'][$utxo_ref['idx']];
+
+                if (!$utxo_ref['address']) {
+                    $utxo_ref['address'] = $output['address'];
+                }
+                if (!$utxo_ref['value']) {
+                    $utxo_ref['value'] = $output['value'];
+                }
+                if (!$utxo_ref['scriptpubkey_hex']) {
+                    $utxo_ref['scriptpubkey_hex'] = $output['script_hex'];
+                }
+            }
+
+            if (!$utxo_ref['path']) {
+                $address = $utxo_ref['address'];
+                if (!BitcoinLib::validate_address($address)) {
+                    throw new \Exception("Invalid address [{$address}]");
+                }
+
+                $utxo_ref['path'] = $this->getPathForAddress($address);
+            }
+
+            if (!isset($utxo_ref['redeem_script'])) {
+                list($address, $redeemScript) = $this->getRedeemScriptByPath($utxo_ref['path']);
+                $utxo_ref['redeem_script'] = $redeemScript;
+            }
+        }
+
+        if (array_sum(array_column($utxos, 'value')) < array_sum($send)) {
+            throw new \Exception("Atempting to spend too more than sum of UTXOs");
+        }
+
+        $fee = $txBuilder->getFee();
+
+        // if the fee is fixed we just need to calculate the change
+        if ($fee !== null) {
+            $change = $this->determineChange($utxos, $send, $fee);
+
+            // if change is not dust we need to add a change output
+            if ($change > Blocktrail::DUST) {
+                $changeAddress = $txBuilder->getChangeAddress() ?: $this->getNewAddress();
+                $send[$changeAddress] = $change;
+            } else {
+                // if change is dust we do nothing (implicitly it's added to the fee)
+                $change = 0;
+            }
+        } else {
+            $fee = $this->determineFee($utxos, $send);
+            $change = $this->determineChange($utxos, $send, $fee);
+
+            if ($change > 0) {
+                // set dummy change output
+                $send['change'] = $change;
+
+                // recaculate fee now that we know that we have a change output
+                $fee2 = $this->determineFee($utxos, $send);
+
+                // unset dummy change output
+                unset($send['change']);
+
+                // if adding the change output made the fee bump up and the change is smaller than the fee
+                //  then we're not doing change
+                if ($fee2 > $fee && $fee2 > $change) {
+                    $change = 0;
+                } else {
+                    $change = $this->determineChange($utxos, $send, $fee2);
+
+                    // if change is not dust we need to add a change output
+                    if ($change > Blocktrail::DUST) {
+                        $changeAddress = $txBuilder->getChangeAddress() ?: $this->getNewAddress();
+                        $send[$changeAddress] = $change;
+                    } else {
+                        // if change is dust we do nothing (implicitly it's added to the fee)
+                    }
+                }
+            }
+        }
+
+        $fee = $this->determineFee($utxos, $send);
+
+        if ($txBuilder->getValidateChange() !== null && $txBuilder->getValidateChange() != $change) {
             throw new \Exception("the amount of change suggested by the coin selection seems incorrect");
         }
 
-        // validate the fee to make sure the API is correct
-        if (($determinedFee = $this->determineFee($utxos, $send)) < $fee) {
-            throw new \Exception("the fee suggested by the coin selection ({$fee}) seems incorrect ({$determinedFee})");
-        }
-
-        // only add a change output if there's change
-        if ($change > 0) {
-            if ($change <= Blocktrail::DUST) {
-                // values aren't used atm, but let's correct them anyway
-                $fee += $change;
-                $change = 0;
-            } else {
-                if (!$changeAddress) {
-                    $changeAddress = $this->getNewAddress();
-                }
-
-                // this should be impossible, but checking for it anyway
-                if (isset($send[$changeAddress])) {
-                    throw new \Exception("Change address is already part of the outputs");
-                }
-
-                // add the change output
-                $send[$changeAddress] = $change;
-            }
+        if ($txBuilder->getValidateFee() !== null && $txBuilder->getValidateFee() != $fee) {
+            throw new \Exception("the fee suggested by the coin selection ({$txBuilder->getValidateFee()}) seems incorrect ({$fee})");
         }
 
         // create raw transaction
@@ -555,9 +646,9 @@ class Wallet implements WalletInterface {
             return [
                 'txid' => $utxo['hash'],
                 'vout' => $utxo['idx'],
+                'address' => $utxo['address'],
                 'scriptPubKey' => $utxo['scriptpubkey_hex'],
                 'value' => $utxo['value'],
-                'address' => $utxo['address'],
                 'path' => $utxo['path'],
                 'redeemScript' => $utxo['redeem_script']
             ];
@@ -567,12 +658,30 @@ class Wallet implements WalletInterface {
         $outputs = [];
         $addresses = array_keys($send);
         // outputs should be randomized to make the change harder to detect
-        if ($randomizeChangeIdx) {
+        if ($txBuilder->shouldRandomizeChangeOuput()) {
             shuffle($addresses);
         }
         foreach ($addresses as $address) {
             $value = $send[$address];
             $outputs[$address] = $value;
+        }
+
+        return [$inputs, $outputs];
+    }
+
+    /**
+     * !! INTERNAL METHOD !!
+     * create, sign and send transction based on inputs and outputs
+     *
+     * @param $inputs
+     * @param $outputs
+     * @return string
+     * @throws \Exception
+     * @internal
+     */
+    public function sendTx($inputs, $outputs) {
+        if ($this->locked) {
+            throw new \Exception("Wallet needs to be unlocked to pay");
         }
 
         // create raw unsigned TX
@@ -590,7 +699,7 @@ class Wallet implements WalletInterface {
         }
 
         // send the transaction
-        $finished = $this->sendTransaction($signed['hex'], array_column($utxos, 'path'), true);
+        $finished = $this->sendTransaction($signed['hex'], array_column($inputs, 'path'), true);
 
         return $finished;
     }
