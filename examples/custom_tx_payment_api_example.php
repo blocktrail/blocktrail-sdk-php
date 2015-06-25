@@ -42,5 +42,4 @@ var_dump($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'], $utxo['s
 $txBuilder->spendOutput($utxo['hash'], $utxo['idx']);
 $txBuilder->addRecipient($wallet->getNewAddress(), $utxo['value'] / 2);
 
-list($inputs, $outputs) = $wallet->buildTx($txBuilder);
-var_dump($wallet->sendTx($inputs, $outputs));
+var_dump($wallet->sendTx($txBuilder));

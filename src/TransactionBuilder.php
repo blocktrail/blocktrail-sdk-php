@@ -64,10 +64,6 @@ class TransactionBuilder {
      * @throws \Exception
      */
     public function addRecipient($address, $value) {
-        if (isset($this->outputs[$address])) {
-            throw new \Exception("Recipient already exists!");
-        }
-
         if (!BitcoinLib::validate_address($address)) {
             throw new \Exception("Invalid address [{$address}]");
         }
@@ -81,7 +77,7 @@ class TransactionBuilder {
             throw new \Exception("Values should be more than dust (" . Blocktrail::DUST . ")");
         }
 
-        $this->outputs[$address] = $value;
+        $this->outputs[] = ['address' => $address, 'value' => $value];
 
         return $this;
     }

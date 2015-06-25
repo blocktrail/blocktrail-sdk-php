@@ -208,6 +208,22 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(BitcoinLib::validate_address($address, false, null));
     }
 
+    public function testNormalizeOutputStruct() {
+        $expected = [['address' => 'address1', 'value' => 'value1'], ['address' => 'address2', 'value' => 'value2']];
+
+        $this->assertEquals($expected, Wallet::normalizeOutputsStruct(['address1' => 'value1', 'address2' => 'value2']));
+        $this->assertEquals($expected, Wallet::normalizeOutputsStruct([['address1', 'value1'], ['address2', 'value2']]));
+        $this->assertEquals($expected, Wallet::normalizeOutputsStruct($expected));
+
+        // duplicate address
+        $expected = [['address' => 'address1', 'value' => 'value1'], ['address' => 'address1', 'value' => 'value2']];
+
+        // not possible, keyed by address
+        // $this->assertEquals($expected, Wallet::normalizeOutputsStruct(['address1' => 'value1', 'address1' => 'value2']));
+        $this->assertEquals($expected, Wallet::normalizeOutputsStruct([['address1', 'value1'], ['address1', 'value2']]));
+        $this->assertEquals($expected, Wallet::normalizeOutputsStruct($expected));
+    }
+
     /**
      * this test requires / asumes that the test wallet it uses contains a balance
      *
@@ -719,7 +735,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum($outputs);
+        $outputTotal = array_sum(array_column($outputs, 'value'));
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -739,8 +755,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         // assert the output(s)
         $this->assertEquals(1, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[0]);
-        $this->assertEquals(10000, $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[0]['address']);
+        $this->assertEquals(10000, $outputs[0]['value']);
 
         /*
          * test trying to spend too much
@@ -784,7 +800,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum($outputs);
+        $outputTotal = array_sum(array_column($outputs, 'value'));
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -792,8 +808,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
         $this->assertEquals(14, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[13]);
-        $this->assertEquals(99860000, $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[13]['address']);
+        $this->assertEquals(99860000, $outputs[13]['value']);
 
         /*
          * 1 input (1 * 294b) = 294b
@@ -835,7 +851,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum($outputs);
+        $outputTotal = array_sum(array_column($outputs, 'value'));
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -843,8 +859,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
         $this->assertEquals(20, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[19]);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[19]['address']);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $outputs[19]['value']);
 
         /*
          * test change output bumps size over 1kb, fee += 0.0001
@@ -889,7 +905,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum($outputs);
+        $outputTotal = array_sum(array_column($outputs, 'value'));
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -897,8 +913,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9998), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0002), $fee);
         $this->assertEquals(21, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", array_keys($outputs)[20]);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9978), $outputs['2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT']);
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[20]['address']);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9978), $outputs[20]['value']);
 
         /*
          * test change
@@ -942,7 +958,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum($outputs);
+        $outputTotal = array_sum(array_column($outputs, 'value'));
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -997,7 +1013,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum($outputs);
+        $outputTotal = array_sum(array_column($outputs, 'value'));
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -1005,5 +1021,50 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.00019), $fee);
         $this->assertEquals(20, count($outputs));
+
+        /*
+         * custom fee
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.002001),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.002))
+                ->setFee(BlocktrailSDK::toSatoshi(0.000001))
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.002001), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.002), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.000001), $fee);
+
+        /*
+         * multiple outputs same address
+         */
+        list($inputs, $outputs) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.002),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0005))
+                ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0005))
+                ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
+                ->randomizeChangeOutput(false)
+        );
+
+        $inputTotal = array_sum(array_column($inputs, 'value'));
+        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.002), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0019), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
+
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $outputs[0]['address']);
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $outputs[1]['address']);
     }
 }
