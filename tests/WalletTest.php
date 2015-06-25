@@ -256,9 +256,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(BitcoinLib::validate_address($address, false, null));
 
         $value = BlocktrailSDK::toSatoshi(0.0002);
-        $txHash = $wallet->pay([
-            $address => $value,
-        ]);
+        $txHash = $wallet->pay([$address => $value,]);
 
         $this->assertTrue(!!$txHash);
 
@@ -272,6 +270,29 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
         $this->assertEquals($txHash, $tx['hash']);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $tx['total_fee']);
+        $this->assertTrue(count($tx['outputs']) <= 2);
+        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
+
+        /*
+         * do another TX but with a custom fee
+         */
+        $value = BlocktrailSDK::toSatoshi(0.0002);
+        $txHash = $wallet->pay([$address => $value,], null, false, true, BlocktrailSDK::toSatoshi(0.0003));
+
+        $this->assertTrue(!!$txHash);
+
+        sleep(1); // sleep to wait for the TX to be processed
+
+        try {
+            $tx = $client->transaction($txHash);
+        } catch (ObjectNotFound $e) {
+            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        }
+
+        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        $this->assertEquals($txHash, $tx['hash']);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0003), $tx['total_fee']);
         $this->assertTrue(count($tx['outputs']) <= 2);
         $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
     }

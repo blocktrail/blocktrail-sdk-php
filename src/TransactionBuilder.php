@@ -132,6 +132,11 @@ class TransactionBuilder {
      * @return $this
      */
     public function setFee($value) {
+        // using this 'dirty' way of checking for a float since there's no other reliable way in PHP
+        if (!is_int($value)) {
+            throw new \Exception("Fee should be in Satoshis (int) - can be 0");
+        }
+
         $this->fee = $value;
 
         return $this;
