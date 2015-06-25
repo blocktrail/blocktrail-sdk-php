@@ -16,6 +16,7 @@ abstract class Blocktrail {
     const EVENT_BLOCK = 'block';
 
     const DUST = 546;
+    const BASE_FEE = 10000;
 
     const SDK_VERSION = "1.0.2";
     const SDK_USER_AGENT = "blocktrail-sdk-php";

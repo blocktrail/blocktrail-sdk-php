@@ -829,6 +829,19 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * get the path (and redeemScript) to specified address
+     *
+     * @param string $identifier
+     * @param string $address
+     * @return array
+     * @throws \Exception
+     */
+    public function getPathForAddress($identifier, $address) {
+        $response = $this->client->post("wallet/{$identifier}/path_for_address", null, ['address' => $address], RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true)['path'];
+    }
+
+    /**
      * send the transaction using the API
      *
      * @param string    $identifier             the identifier of the wallet
