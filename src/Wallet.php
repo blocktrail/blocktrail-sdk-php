@@ -781,24 +781,23 @@ class Wallet implements WalletInterface {
                 $txinSize += array_sum([
                     32, // txhash
                     4, // idx
-                    72 * $sigCnt, // sig
-                    106, // script
-                    4, // pad
+                    3, // scriptVarInt[>=253]
+                    ((1 + 72) * $sigCnt), // (OP_PUSHDATA[<75] + 72) * sigCnt
+                    (2 + 105) + // OP_PUSHDATA[>=75] + script
                     4, // sequence
                 ]);
             } else {
                 $txinSize += array_sum([
                     32, // txhash
                     4, // idx
-                    72, // sig
-                    32, // script
-                    4, // ?
+                    73, // sig
+                    34, // script
                     4, // sequence
                 ]);
             }
         }
 
-        $size = 4 + $txoutSize + $txinSize + 4;
+        $size = 4 + 4 + $txinSize + 4 + $txoutSize + 4; // version + txinVarInt + txin + txoutVarInt + txout + locktime
 
         $sizeKB = (int)ceil($size / 1000);
 
