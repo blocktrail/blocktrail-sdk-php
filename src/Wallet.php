@@ -687,7 +687,7 @@ class Wallet implements WalletInterface {
         $inputs = array_map(function ($utxo) {
             return [
                 'txid' => $utxo['hash'],
-                'vout' => $utxo['idx'],
+                'vout' => (int)$utxo['idx'],
                 'address' => $utxo['address'],
                 'scriptPubKey' => $utxo['scriptpubkey_hex'],
                 'value' => $utxo['value'],
