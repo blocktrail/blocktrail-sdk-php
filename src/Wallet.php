@@ -625,7 +625,48 @@ class Wallet implements WalletInterface {
             throw new \Exception("Atempting to spend too more than sum of UTXOs");
         }
 
+        list($fee, $change) = $this->determineFeeAndChange($txBuilder);
+
+        if ($txBuilder->getValidateChange() !== null && $txBuilder->getValidateChange() != $change) {
+            throw new \Exception("the amount of change suggested by the coin selection seems incorrect");
+        }
+
+        if ($txBuilder->getValidateFee() !== null && $txBuilder->getValidateFee() != $fee) {
+            throw new \Exception("the fee suggested by the coin selection ({$txBuilder->getValidateFee()}) seems incorrect ({$fee})");
+        }
+
+        if ($change > 0) {
+            $send[] = ['address' => $txBuilder->getChangeAddress() ?: $this->getNewAddress(), 'value' => $change];
+        }
+
+        // create raw transaction
+        $inputs = array_map(function ($utxo) {
+            return [
+                'txid' => $utxo['hash'],
+                'vout' => (int)$utxo['idx'],
+                'address' => $utxo['address'],
+                'scriptPubKey' => $utxo['scriptpubkey_hex'],
+                'value' => $utxo['value'],
+                'path' => $utxo['path'],
+                'redeemScript' => $utxo['redeem_script']
+            ];
+        }, $utxos);
+
+
+        // outputs should be randomized to make the change harder to detect
+        if ($txBuilder->shouldRandomizeChangeOuput()) {
+            shuffle($send);
+        }
+
+        return [$inputs, $send];
+    }
+
+    public function determineFeeAndChange(TransactionBuilder $txBuilder) {
+        $send = $txBuilder->getOutputs();
+        $utxos = $txBuilder->getUtxos();
+
         $fee = $txBuilder->getFee();
+        $change = null;
 
         // if the fee is fixed we just need to calculate the change
         if ($fee !== null) {
@@ -633,9 +674,7 @@ class Wallet implements WalletInterface {
 
             // if change is not dust we need to add a change output
             if ($change > Blocktrail::DUST) {
-                $changeIdx = count($send);
-                $changeAddress = $txBuilder->getChangeAddress() ?: $this->getNewAddress();
-                $send[$changeIdx] = ['address' => $changeAddress, 'value' => $change];
+                $send[] = ['address' => 'change', 'value' => $change];
             } else {
                 // if change is dust we do nothing (implicitly it's added to the fee)
                 $change = 0;
@@ -664,10 +703,10 @@ class Wallet implements WalletInterface {
 
                     // if change is not dust we need to add a change output
                     if ($change > Blocktrail::DUST) {
-                        $changeAddress = $txBuilder->getChangeAddress() ?: $this->getNewAddress();
-                        $send[$changeIdx] = ['address' => $changeAddress, 'value' => $change];
+                        $send[$changeIdx] = ['address' => 'change', 'value' => $change];
                     } else {
                         // if change is dust we do nothing (implicitly it's added to the fee)
+                        $change = 0;
                     }
                 }
             }
@@ -675,34 +714,7 @@ class Wallet implements WalletInterface {
 
         $fee = $this->determineFee($utxos, $send);
 
-        if ($txBuilder->getValidateChange() !== null && $txBuilder->getValidateChange() != $change) {
-            throw new \Exception("the amount of change suggested by the coin selection seems incorrect");
-        }
-
-        if ($txBuilder->getValidateFee() !== null && $txBuilder->getValidateFee() != $fee) {
-            throw new \Exception("the fee suggested by the coin selection ({$txBuilder->getValidateFee()}) seems incorrect ({$fee})");
-        }
-
-        // create raw transaction
-        $inputs = array_map(function ($utxo) {
-            return [
-                'txid' => $utxo['hash'],
-                'vout' => (int)$utxo['idx'],
-                'address' => $utxo['address'],
-                'scriptPubKey' => $utxo['scriptpubkey_hex'],
-                'value' => $utxo['value'],
-                'path' => $utxo['path'],
-                'redeemScript' => $utxo['redeem_script']
-            ];
-        }, $utxos);
-
-
-        // outputs should be randomized to make the change harder to detect
-        if ($txBuilder->shouldRandomizeChangeOuput()) {
-            shuffle($send);
-        }
-
-        return [$inputs, $send];
+        return [$fee, $change];
     }
 
     /**
