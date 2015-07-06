@@ -3,6 +3,7 @@
 namespace Blocktrail\SDK\Connection;
 
 use GuzzleHttp\Client as Guzzle;
+use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\ResponseInterface;
 use GuzzleHttp\Post\PostBodyInterface;
 use GuzzleHttp\Query;
@@ -165,9 +166,9 @@ class RestClient {
      * @param   string          $auth           http-signatures to enable http-signature signing
      * @param   string          $contentMD5Mode body or url
      * @param   float           $timeout        timeout in seconds
-     * @return Response
+     * @return RequestInterface
      */
-    protected function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
+    public function buildRequest($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
         if (is_null($contentMD5Mode)) {
             $contentMD5Mode = !is_null($body) ? 'body' : 'url';
         }
@@ -204,7 +205,7 @@ class RestClient {
         if ($contentMD5Mode == 'body') {
             $request->setHeader('Content-MD5', md5((string)$body));
 
-        // for POST/PUT requests, MD5 the body
+            // for POST/PUT requests, MD5 the body
         } else {
             $qs = (string)$request->getQuery();
             $request->setHeader('Content-MD5', md5($request->getPath() . ($qs ? "?{$qs}" : "")));
@@ -218,6 +219,23 @@ class RestClient {
             $request->getConfig()['timeout'] = $timeout;
         }
 
+        return $request;
+    }
+
+    /**
+     * generic request executor
+     *
+     * @param   string          $method         GET, POST, PUT, DELETE
+     * @param   string          $endpointUrl
+     * @param   array           $queryString
+     * @param   array|string    $body
+     * @param   string          $auth           http-signatures to enable http-signature signing
+     * @param   string          $contentMD5Mode body or url
+     * @param   float           $timeout        timeout in seconds
+     * @return Response
+     */
+    public function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
+        $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $auth, $contentMD5Mode, $timeout);
         $response = $this->guzzle->send($request);
 
         return $this->responseHandler($response);
