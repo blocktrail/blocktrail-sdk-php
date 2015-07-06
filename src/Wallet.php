@@ -913,7 +913,7 @@ class Wallet implements WalletInterface {
      * @param bool    $allowZeroConf
      * @return array
      */
-    protected function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false) {
+    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false) {
         return $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf);
     }
 
