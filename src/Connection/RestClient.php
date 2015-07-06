@@ -74,6 +74,13 @@ class RestClient {
     }
 
     /**
+     * @return Guzzle
+     */
+    public function getGuzzleClient() {
+        return $this->guzzle;
+    }
+
+    /**
      * enable CURL debugging output
      *
      * @param   bool        $debug
@@ -204,8 +211,6 @@ class RestClient {
         // for GET/DELETE requests, MD5 the request URI (excludes domain, includes query strings)
         if ($contentMD5Mode == 'body') {
             $request->setHeader('Content-MD5', md5((string)$body));
-
-            // for POST/PUT requests, MD5 the body
         } else {
             $qs = (string)$request->getQuery();
             $request->setHeader('Content-MD5', md5($request->getPath() . ($qs ? "?{$qs}" : "")));
