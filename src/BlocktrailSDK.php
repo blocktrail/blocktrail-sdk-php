@@ -954,6 +954,19 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * unlock a specific unspent output
+     *
+     * @param     $identifier
+     * @param     $txHash
+     * @param     $txIdx
+     * @return bool
+     */
+    public function unlockWalletUTXO($identifier, $txHash, $txIdx) {
+        $response = $this->client->post("wallet/{$identifier}/unlock-utxo", null, ['hash' => $txHash, 'idx' => $txIdx], RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true)['unlocked'];
+    }
+
+    /**
      * get all transactions for wallet (paginated)
      *
      * @param  string  $identifier  the wallet identifier for which to get transactions

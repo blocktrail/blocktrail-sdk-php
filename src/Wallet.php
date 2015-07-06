@@ -981,6 +981,17 @@ class Wallet implements WalletInterface {
     }
 
     /**
+     * unlock a specific unspent output
+     *
+     * @param     $txHash
+     * @param     $txIdx
+     * @return bool
+     */
+    public function unlockUTXO($txHash, $txIdx) {
+        return $this->sdk->unlockWalletUTXO($this->identifier, $txHash, $txIdx);
+    }
+
+    /**
      * get all transactions for the wallet (paginated)
      *
      * @param  integer $page    pagination: page number
