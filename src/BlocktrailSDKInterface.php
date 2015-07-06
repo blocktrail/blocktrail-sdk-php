@@ -423,6 +423,17 @@ interface BlocktrailSDKInterface {
     public function deleteWalletWebhook($identifier, $webhookIdentifier);
 
     /**
+     * lock a specific unspent output
+     *
+     * @param     $identifier
+     * @param     $txHash
+     * @param     $txIdx
+     * @param int $ttl
+     * @return
+     */
+    public function lockWalletUTXO($identifier, $txHash, $txIdx, $ttl = 3);
+
+    /**
      * get all transactions for wallet (paginated)
      *
      * @param  string  $identifier  the wallet identifier for which to get transactions

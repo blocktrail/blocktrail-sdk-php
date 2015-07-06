@@ -940,6 +940,20 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * lock a specific unspent output
+     *
+     * @param     $identifier
+     * @param     $txHash
+     * @param     $txIdx
+     * @param int $ttl
+     * @return bool
+     */
+    public function lockWalletUTXO($identifier, $txHash, $txIdx, $ttl = 3) {
+        $response = $this->client->post("wallet/{$identifier}/lock-utxo", null, ['hash' => $txHash, 'idx' => $txIdx, 'ttl' => $ttl], RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true)['locked'];
+    }
+
+    /**
      * get all transactions for wallet (paginated)
      *
      * @param  string  $identifier  the wallet identifier for which to get transactions
