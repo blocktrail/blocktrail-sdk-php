@@ -263,7 +263,7 @@ class RestClient {
             $data = json_decode($body, true);
 
             if ($data && isset($data['msg'], $data['code'])) {
-                throw new EndpointSpecificError($data['msg'], $data['code']);
+                throw new EndpointSpecificError(!is_string($data['msg']) ? json_encode($data['msg']) : $data['msg'], $data['code']);
             } else {
                 throw new UnknownEndpointSpecificError($this->verboseErrors ? $body : Blocktrail::EXCEPTION_UNKNOWN_ENDPOINT_SPECIFIC_ERROR);
             }
