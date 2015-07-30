@@ -305,7 +305,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * create a new webhook
      * @param  string  $url        the url to receive the webhook events
-     * @param  string  $identifier a unique identifier to associate with this webhook (optional)
+     * @param  string  $identifier a unique identifier to associate with this webhook
      * @return array               associative array containing the response
      */
     public function setupWebhook($url, $identifier = null) {
@@ -320,8 +320,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * update an existing webhook
      * @param  string  $identifier      the unique identifier of the webhook to update
-     * @param  string  $newUrl          the new url to receive the webhook events (optional)
-     * @param  string  $newIdentifier   a new unique identifier to associate with this webhook (optional)
+     * @param  string  $newUrl          the new url to receive the webhook events
+     * @param  string  $newIdentifier   a new unique identifier to associate with this webhook
      * @return array                    associative array containing the response
      */
     public function updateWebhook($identifier, $newUrl = null, $newIdentifier = null) {
@@ -395,10 +395,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
     /**
      * batch subscribes a webhook to multiple transaction events
+     *
      * @param  string $identifier   the unique identifier of the webhook
      * @param  array  $batchData    A 2D array of event data:
      *                              [address => $address, confirmations => $confirmations]
-     *                              where $address is the address to subscibe to and $confirmations (optional) is the amount of confirmations
+     *                              where $address is the address to subscibe to
+     *                              and optionally $confirmations is the amount of confirmations
      * @return boolean              true on success
      */
     public function batchSubscribeAddressTransactions($identifier, $batchData) {
@@ -742,7 +744,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *  3) a private key from that seed
      *
      * @param string    $passphrase             the password to use in the BIP39 creation of the seed
-     * @param string    $forceEntropy           (optional) forced entropy instead of random entropy for testing purposes
+     * @param string    $forceEntropy           forced entropy instead of random entropy for testing purposes
      * @return array
      */
     protected function generateNewSeed($passphrase = "", $forceEntropy = null) {
@@ -761,7 +763,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * generate a new mnemonic from some random entropy (512 bit)
      *
-     * @param string    $forceEntropy           (optional) forced entropy instead of random entropy for testing purposes
+     * @param string    $forceEntropy           forced entropy instead of random entropy for testing purposes
      * @return string
      * @throws \Exception
      */
@@ -891,16 +893,32 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *  "change"=> 1010109201,
      * ]
      *
-     * @param string $identifier                 the identifier of the wallet
-     * @param array  $outputs                    the outputs you want to create - array[address => satoshi-value]
-     * @param bool   $lockUTXO                   when TRUE the UTXOs selected will be locked for a few seconds
-     *                                           so you have some time to spend them without race-conditions
-     * @param bool   $allowZeroConf
+     * @param string    $identifier             the identifier of the wallet
+     * @param array     $outputs                the outputs you want to create - array[address => satoshi-value]
+     * @param bool      $lockUTXO               when TRUE the UTXOs selected will be locked for a few seconds
+     *                                          so you have some time to spend them without race-conditions
+     * @param bool      $allowZeroConf
+     * @param null|int  $forceFee
      * @return array
      * @throws \Exception
      */
-    public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false) {
-        $response = $this->client->post("wallet/{$identifier}/coin-selection", ['lock' => (int)!!$lockUTXO, 'zeroconf' => (int)!!$allowZeroConf], $outputs, RestClient::AUTH_HTTP_SIG);
+    public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false, $forceFee = null) {
+        $args = [
+            'lock' => (int)!!$lockUTXO,
+            'zeroconf' => (int)!!$allowZeroConf,
+        ];
+
+        if ($forceFee !== null) {
+            $args['forcefee'] = (int)$forceFee;
+        }
+
+        $response = $this->client->post(
+            "wallet/{$identifier}/coin-selection",
+            $args,
+            $outputs,
+            RestClient::AUTH_HTTP_SIG
+        );
+
         return self::jsonDecode($response->body(), true);
     }
 

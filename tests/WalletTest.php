@@ -5,6 +5,7 @@ namespace Blocktrail\SDK\Tests;
 use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
+use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
@@ -235,6 +236,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testWalletTransaction() {
         $client = $this->setupBlocktrailSDK();
 
+        /** @var Wallet $wallet */
         $wallet = $client->initWallet([
             "identifier" => "unittest-transaction",
             "passphrase" => "password"
@@ -275,10 +277,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
 
         /*
-         * do another TX but with a custom fee
+         * do another TX but with a custom - high - fee
          */
-        $value = BlocktrailSDK::toSatoshi(0.0002);
-        $txHash = $wallet->pay([$address => $value,], null, false, true, BlocktrailSDK::toSatoshi(0.0003));
+        $value = BlocktrailSDK::toSatoshi(0.0001);
+        $forceFee = BlocktrailSDK::toSatoshi(0.0010);
+        $txHash = $wallet->pay([$address => $value,], null, false, true, $forceFee);
 
         $this->assertTrue(!!$txHash);
 
@@ -292,9 +295,40 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
         $this->assertEquals($txHash, $tx['hash']);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0003), $tx['total_fee']);
+        $this->assertEquals($forceFee, $tx['total_fee']);
         $this->assertTrue(count($tx['outputs']) <= 2);
         $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
+
+        /*
+         * do another TX with OP_RETURN using TxBuilder
+         */
+        $value = BlocktrailSDK::toSatoshi(0.0002);
+        $moon = "MOOOOOOOOOOOOON!";
+        $txBuilder = new TransactionBuilder();
+        $txBuilder->randomizeChangeOutput(false);
+        $txBuilder->addRecipient($address, $value);
+        $txBuilder->addOpReturn($moon);
+
+        $txBuilder = $wallet->coinSelectionForTxBuilder($txBuilder);
+
+        $txHash = $wallet->sendTx($txBuilder);
+
+        $this->assertTrue(!!$txHash);
+
+        sleep(1); // sleep to wait for the TX to be processed
+
+        try {
+            $tx = $client->transaction($txHash);
+        } catch (ObjectNotFound $e) {
+            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        }
+
+        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        $this->assertEquals($txHash, $tx['hash']);
+        $this->assertTrue(count($tx['outputs']) <= 3);
+        $this->assertEquals($value, $tx['outputs'][0]['value']);
+        $this->assertEquals(0, $tx['outputs'][1]['value']);
+        $this->assertEquals("6a" /* OP_RETURN */ . "10" /* OP_PUSH16 */ . bin2hex($moon), $tx['outputs'][1]['script_hex']);
     }
 
     /**

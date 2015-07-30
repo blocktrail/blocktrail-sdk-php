@@ -3,6 +3,8 @@
 namespace Blocktrail\SDK;
 
 use BitWasp\BitcoinLib\BitcoinLib;
+use BitWasp\BitcoinLib\RawTransaction;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 /**
  * Class TransactionBuilder
@@ -11,7 +13,16 @@ use BitWasp\BitcoinLib\BitcoinLib;
  */
 class TransactionBuilder {
 
+    const OP_RETURN = '6a';
+
+    /**
+     * @var UTXO[]
+     */
     private $utxos = [];
+
+    /**
+     * @var array[]
+     */
     private $outputs = [];
 
     private $changeAddress = null;
@@ -37,21 +48,13 @@ class TransactionBuilder {
      * @return $this
      */
     public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null) {
-        $this->utxos[] = [
-            'hash' => $txId,
-            'idx' => $index,
-            'value' => $value,
-            'address' => $address,
-            'scriptpubkey_hex' => $scriptPubKey,
-            'path' => $path,
-            'redeem_script' => $redeemScript,
-        ];
+        $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript);
 
         return $this;
     }
 
     /**
-     * @return array[]
+     * @return UTXO[]
      */
     public function getUtxos() {
         return $this->utxos;
@@ -77,9 +80,44 @@ class TransactionBuilder {
             throw new \Exception("Values should be more than dust (" . Blocktrail::DUST . ")");
         }
 
-        $this->outputs[] = ['address' => $address, 'value' => $value];
+        $this->addOutput([
+            'address' => $address,
+            'value' => $value
+        ]);
 
         return $this;
+    }
+
+    /**
+     * add a 'raw' output, normally addRecipient or addOpReturn should be used
+     *
+     * @param array $output     [value => int, address => string]
+     *                          or [value => int, scriptPubKey => string] (scriptPubKey should be hex)
+     */
+    public function addOutput($output) {
+        $this->outputs[] = $output;
+    }
+
+    /**
+     * add OP_RETURN output
+     *
+     * $data will be bin2hex and will be prefixed with a proper OP_PUSHDATA
+     *
+     * @param string $data
+     * @param bool   $allowNonStandard  when TRUE will allow scriptPubKey > 40 bytes (so $data > 39 bytes)
+     * @throws BlocktrailSDKException
+     */
+    public function addOpReturn($data, $allowNonStandard = false) {
+        $pushdata = RawTransaction::pushdata(bin2hex($data));
+
+        if (!$allowNonStandard && strlen($pushdata) / 2 > 40) {
+            throw new BlocktrailSDKException("OP_RETURN data should be <= 39 bytes to remain standard!");
+        }
+
+        $this->addOutput([
+            'scriptPubKey' => self::OP_RETURN . RawTransaction::pushdata(bin2hex($data)),
+            'value' => 0
+        ]);
     }
 
     /**
