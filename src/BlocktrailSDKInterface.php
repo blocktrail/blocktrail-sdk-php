@@ -145,7 +145,7 @@ interface BlocktrailSDKInterface {
     /**
      * create a new webhook
      * @param  string  $url        the url to receive the webhook events
-     * @param  string  $identifier a unique identifier to associate with this webhook (optional)
+     * @param  string  $identifier a unique identifier to associate with this webhook
      * @return array               associative array containing the response
      */
     public function setupWebhook($url, $identifier = null);
@@ -153,8 +153,8 @@ interface BlocktrailSDKInterface {
     /**
      * update an existing webhook
      * @param  string  $identifier      the unique identifier of the webhook to update
-     * @param  string  $newUrl          the new url to receive the webhook events (optional)
-     * @param  string  $newIdentifier   a new unique identifier to associate with this webhook (optional)
+     * @param  string  $newUrl          the new url to receive the webhook events
+     * @param  string  $newIdentifier   a new unique identifier to associate with this webhook
      * @return array                    associative array containing the response
      */
     public function updateWebhook($identifier, $newUrl = null, $newIdentifier = null);
@@ -218,6 +218,18 @@ interface BlocktrailSDKInterface {
      * @return boolean                  true on success
      */
     public function unsubscribeAddressTransactions($identifier, $address);
+
+    /**
+     * batch subscribes a webhook to multiple transaction events
+     *
+     * @param  string $identifier   the unique identifier of the webhook
+     * @param  array  $batchData    A 2D array of event data:
+     *                              [address => $address, confirmations => $confirmations]
+     *                              where $address is the address to subscibe to
+     *                              and optionally $confirmations is the amount of confirmations
+     * @return boolean              true on success
+     */
+    public function batchSubscribeAddressTransactions($identifier, $batchData);
 
     /**
      * removes a block event subscription from a webhook
@@ -386,15 +398,16 @@ interface BlocktrailSDKInterface {
      *  "change"=> 1010109201,
      * ]
      *
-     * @param string $identifier                 the identifier of the wallet
-     * @param array  $outputs                    the outputs you want to create - array[address => satoshi-value]
-     * @param bool   $lockUTXO                   when TRUE the UTXOs selected will be locked for a few seconds
-     *                                           so you have some time to spend them without race-conditions
-     * @param bool   $allowZeroConf
+     * @param string    $identifier             the identifier of the wallet
+     * @param array     $outputs                the outputs you want to create - array[address => satoshi-value]
+     * @param bool      $lockUTXO               when TRUE the UTXOs selected will be locked for a few seconds
+     *                                          so you have some time to spend them without race-conditions
+     * @param bool      $allowZeroConf
+     * @param null|int  $forceFee
      * @return array
      * @throws \Exception
      */
-    public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false);
+    public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false, $forceFee = null);
 
     /**
      * get the current price index
