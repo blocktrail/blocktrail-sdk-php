@@ -145,7 +145,6 @@ abstract class Wallet implements WalletInterface {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
-
         $this->backupPublicKey = BlocktrailSDK::normalizeBIP32Key($backupPublicKey);
         $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);
         $this->blocktrailPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($blocktrailPublicKeys);
@@ -915,13 +914,11 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
-     * use the API to get the best inputs to use based on the outputs
-     *
-     * @param array[]  $outputs
-     * @param bool     $lockUTXO
-     * @param bool     $allowZeroConf
-     * @param string   $feeStrategy
-     * @param null|int $forceFee
+     * @param \array[] $outputs
+     * @param bool $lockUTXO
+     * @param bool $allowZeroConf
+     * @param int|null|string $feeStrategy
+     * @param null $forceFee
      * @return array
      */
     public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {

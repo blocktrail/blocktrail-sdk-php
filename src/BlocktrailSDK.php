@@ -16,8 +16,6 @@ use BitWasp\Bitcoin\MessageSigner\SignedMessage;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Bitcoin\Network\NetworkFactory;
-use BitWasp\Bitcoin\Serializer\MessageSigner\SignedMessageSerializer;
-use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
@@ -574,7 +572,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             } else {
                 // create new primary seed
                 /** @var HierarchicalKey $primaryPrivateKey */
-                list($primaryMnemonic, $primarySeed, $primaryPrivateKey) = $this->newPrimarySeed($options['passphrase']);
+                list($primaryMnemonic, , $primaryPrivateKey) = $this->newPrimarySeed($options['passphrase']);
                 if ($storePrimaryMnemonic !== false) {
                     $storePrimaryMnemonic = true;
                 }
@@ -613,7 +611,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $backupPublicKey = null;
         if (!isset($options['backup_mnemonic']) && !isset($options['backup_public_key'])) {
             /** @var HierarchicalKey $backupPrivateKey */
-            list($backupMnemonic, $backupSeed, $backupPrivateKey) = $this->newBackupSeed();
+            list($backupMnemonic, , ) = $this->newBackupSeed();
         } else if (isset($options['backup_mnemonic'])) {
             $backupMnemonic = $options['backup_mnemonic'];
         } else if (isset($options['backup_public_key'])) {

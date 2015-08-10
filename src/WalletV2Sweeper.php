@@ -4,8 +4,6 @@ namespace Blocktrail\SDK;
 
 
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
-
-
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 
