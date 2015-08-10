@@ -22,7 +22,7 @@ try {
         "readonly" => true
     ]);
 } catch (ObjectNotFound $e) {
-    list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+    list($wallet, $backupInfo) = $client->createNewWallet([
         "identifier" => "example-wallet",
         "passphrase" => "example-strong-password",
         "key_index" => 9999
