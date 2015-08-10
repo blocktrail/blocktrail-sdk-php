@@ -171,7 +171,7 @@
 
 <?php endif; ?>
 
-<div style="page-break-before: always;"></div>
+<!-- save some paper <div style="page-break-before: always;"></div> -->
 
 <section class="backup-instructions">
     <div>
