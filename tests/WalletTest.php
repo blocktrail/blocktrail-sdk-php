@@ -412,7 +412,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         ]);
 
         $this->assertTrue(!!$txHash);
-
+        
         $tx = $this->getTx($client, $txHash);
 
         $this->assertEquals($txHash, $tx['hash']);

@@ -14,6 +14,7 @@ use BitWasp\Bitcoin\Transaction\OutPoint;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
+use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -69,15 +70,15 @@ abstract class WalletSweeper {
     protected $debug = false;
 
     /**
-     * @param Buffer              $primarySeed
-     * @param Buffer              $backupSeed
+     * @param BufferInterface     $primarySeed
+     * @param BufferInterface     $backupSeed
      * @param array               $blocktrailPublicKeys =
      * @param UnspentOutputFinder $utxoFinder
      * @param string              $network
      * @param bool                $testnet
      * @throws \Exception
      */
-    public function __construct(Buffer $primarySeed, Buffer $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
+    public function __construct(BufferInterface $primarySeed, BufferInterface $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
 
