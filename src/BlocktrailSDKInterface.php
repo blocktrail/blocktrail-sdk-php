@@ -81,6 +81,18 @@ interface BlocktrailSDKInterface {
     public function addressUnspentOutputs($address, $page = 1, $limit = 20, $sortDir = 'asc');
 
     /**
+     * get all unspent outputs for a batch of addresses (paginated)
+     *
+     * @param  string[] $addresses
+     * @param  integer  $page    pagination: page number
+     * @param  integer  $limit   pagination: records per page (max 500)
+     * @param  string   $sortDir pagination: sort direction (asc|desc)
+     * @return array associative array containing the response
+     * @throws \Exception
+     */
+    public function batchAddressUnspentOutputs($addresses, $page = 1, $limit = 20, $sortDir = 'asc');
+
+    /**
      * verify ownership of an address
      * @param  string  $address     address hash
      * @param  string  $signature   a signed message (the address hash) using the private key of the address
@@ -250,9 +262,9 @@ interface BlocktrailSDKInterface {
      * Or takes three arguments (old, deprecated syntax):
      * (@nonPHP-doc) @param      $identifier
      * (@nonPHP-doc) @param      $password
-     * (@nonPHP-doc) @param int  $keyIndex         override for the blocktrail cosigning key to use
+     * (@nonPHP-doc) @param int  $keyIndex          override for the blocktrail cosigning key to use
      *
-     * @return array[WalletInterface, (string)primaryMnemonic, (string)backupMnemonic]
+     * @return array[WalletInterface, array]      list($wallet, $backupInfo)
      * @throws \Exception
      */
     public function createNewWallet($options);
@@ -268,7 +280,23 @@ interface BlocktrailSDKInterface {
      * @param int       $keyIndex               account that we expect to use
      * @return mixed
      */
-    public function _createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex);
+    public function storeNewWalletV1($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex);
+
+    /**
+     * create wallet using the API
+     *
+     * @param string $identifier       the wallet identifier to create
+     * @param array  $primaryPublicKey BIP32 extended public key - [key, path]
+     * @param string $backupPublicKey  plain public key
+     * @param        $encryptedPrimarySeed
+     * @param        $encryptedSecret
+     * @param        $recoverySecret
+     * @param string $checksum         checksum to store
+     * @param int    $keyIndex         account that we expect to use
+     * @return mixed
+     * @throws \Exception
+     */
+    public function storeNewWalletV2($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex);
 
     /**
      * upgrade wallet to use a new account number

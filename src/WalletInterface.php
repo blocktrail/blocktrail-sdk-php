@@ -9,34 +9,12 @@ use Blocktrail\SDK\Bitcoin\BIP32Path;
  * Interface Wallet
  */
 interface WalletInterface {
-
-    /**
-     * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
-     * @param string                        $identifier                 identifier of the wallet
-     * @param string                        $primaryMnemonic
-     * @param array[string, string]         $primaryPublicKeys
-     * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
-     * @param array[array[string, string]]  $blocktrailPublicKeys
-     * @param int                           $keyIndex
-     * @param string                        $network
-     * @param bool                          $testnet
-     * @param string                        $checksum
-     */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, $primaryPublicKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum);
-
     /**
      * return the wallet identifier
      *
      * @return string
      */
     public function getIdentifier();
-
-    /**
-     * return the wallet primary mnemonic (for backup purposes)
-     *
-     * @return string
-     */
-    public function getPrimaryMnemonic();
 
     /**
      * return list of Blocktrail co-sign extended public keys

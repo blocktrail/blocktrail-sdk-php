@@ -2,14 +2,7 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
-use Blocktrail\SDK\Bitcoin\BIP32Key;
-use Blocktrail\SDK\Bitcoin\BIP32Path;
-
-class UTXO implements \ArrayAccess {
+class UTXO {
 
     public $hash;
     public $index;
@@ -27,21 +20,5 @@ class UTXO implements \ArrayAccess {
         $this->scriptPubKeyHex = $scriptPubKeyHex;
         $this->path = $path;
         $this->redeemScript = $redeemScript;
-    }
-
-    public function offsetExists($offset) {
-
-    }
-
-    public function offsetGet($offset) {
-
-    }
-
-    public function offsetSet($offset, $value) {
-
-    }
-
-    public function offsetUnset($offset) {
-
     }
 }
