@@ -5,6 +5,7 @@ namespace Blocktrail\SDK;
 use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
+use Blocktrail\SDK\Exceptions\NotImplementedException;
 
 class WalletV1 extends Wallet {
 
@@ -89,5 +90,26 @@ class WalletV1 extends Wallet {
             $fn($this);
             $this->lock();
         }
+    }
+
+    /**
+     * lock the wallet (unsets primary private key)
+     *
+     * @return void
+     */
+    public function lock() {
+        $this->primaryPrivateKey = null;
+        $this->locked = true;
+    }
+
+    /**
+     * change password that is used to store data encrypted on server
+     *
+     * @param $newPassword
+     * @return array backupInfo
+     * @throws NotImplementedException
+     */
+    public function passwordChange($newPassword) {
+        throw new NotImplementedException();
     }
 }

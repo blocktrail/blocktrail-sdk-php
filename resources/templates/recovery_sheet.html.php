@@ -1,8 +1,9 @@
 <?php
 /**
  * @var string $identifier
- * @var array[] $backupInfo
- * @var array[] $extraInfo
+ * @var array $backupInfo
+ * @var array $extraInfo
+ * @var array $options
  * @var string $pubKeysHtml
  * @var int $totalPubKeys
  * @var string $passwordEncryptedSecret
@@ -100,86 +101,91 @@
     </a>
 </header>
 
-<section class="intro">
-    <h1>Wallet Recovery Data Sheet</h1>
-    <p>
-        This document holds the information and instructions required for you to recover your Blocktrail wallet should anything happen. <br>
-        Print it out and keep it in a safe location; if you lose these details you will never be able to recover your wallet.
-    </p>
-</section>
+<?php if ($options['page1']): ?>
+    <section class="intro">
+        <h1>Wallet Recovery Data Sheet</h1>
+        <p>
+            This document holds the information and instructions required for you to recover your Blocktrail wallet should anything happen. <br>
+            Print it out and keep it in a safe location; if you lose these details you will never be able to recover your wallet.
+        </p>
+    </section>
 
-<section class="backup-info">
-    <h2>Backup Info</h2>
-    <div>
-        <h3>Identifier</h3>
-        <p><?php echo $identifier; ?></p>
-    </div>
-
-    <?php foreach ($backupInfo as $row): ?>
+    <section class="backup-info">
+        <h2>Backup Info</h2>
         <div>
-            <h3><?php echo $row['title']; ?></h3>
-            <?php if (isset($row['mnemonic'])): ?>
-            <code><?php echo $row['mnemonic']; ?></code>
-            <?php endif; ?>
+            <h3>Identifier</h3>
+            <p><?php echo $identifier; ?></p>
         </div>
-    <?php endforeach; ?>
 
-    <div style="page-break-before: always;"></div>
+        <?php foreach ($backupInfo as $row): ?>
+            <div>
+                <h3><?php echo $row['title']; ?></h3>
+                <?php if (isset($row['mnemonic'])): ?>
+                <code><?php echo $row['mnemonic']; ?></code>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
 
-    <?php if ($totalPubKeys > 0): ?>
-        <div class="blocktrail-pubkeys">
-            <h3>
-                Blocktrail Public Keys
-                <small><?php echo $totalPubKeys; ?> in total</small>
-            </h3>
+        <div style="page-break-before: always;"></div>
 
-            <?php echo $pubKeysHtml; ?>
-        </div>
-    <?php endif; ?>
+        <?php if ($totalPubKeys > 0): ?>
+            <div class="blocktrail-pubkeys">
+                <h3>
+                    Blocktrail Public Keys
+                    <small><?php echo $totalPubKeys; ?> in total</small>
+                </h3>
 
-    <?php if (count($extraInfo) > 0): ?>
-        <h2>Extra Info</h2>
-        <div class="extra">
-            <?php foreach ($extraInfo as $row): ?>
-                <div>
-                    <h3><?php echo $row['title']; ?></h3>
-                    <?php if (isset($row['mnemonic'])): ?>
-                        <code><?php echo $row['mnemonic']; ?></code>
-                    <?php elseif (isset($row['value'])): ?>
-                        <p><?php echo $row['value']; ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
+                <?php echo $pubKeysHtml; ?>
+            </div>
+        <?php endif; ?>
 
-</section>
+        <?php if (count($extraInfo) > 0): ?>
+            <h2>Extra Info</h2>
+            <div class="extra">
+                <?php foreach ($extraInfo as $row): ?>
+                    <div>
+                        <h3><?php echo $row['title']; ?></h3>
+                        <?php if (isset($row['mnemonic'])): ?>
+                            <code><?php echo $row['mnemonic']; ?></code>
+                        <?php elseif (isset($row['value'])): ?>
+                            <p><?php echo $row['value']; ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
 
-<?php if ($passwordEncryptedSecret): ?>
-<div style="page-break-before: always;"></div>
-
-<section class="password-info">
-    <h2>Backup Info - part 2</h2>
-    <p>
-        This page needs to be replaced / updated when wallet password is changed!
-    </p>
-    <div>
-        <h3>Password Encrypted Secret</h3>
-        <code><?php echo $passwordEncryptedSecret; ?></code>
-    </div>
-</section>
-
+    </section>
 <?php endif; ?>
 
-<!-- save some paper <div style="page-break-before: always;"></div> -->
+<?php if ($passwordEncryptedSecret && $options['page2']): ?>
+    <?php if ($options['page1']): ?>
+        <div style="page-break-before: always;"></div>
+    <?php endif; ?>
 
-<section class="backup-instructions">
-    <div>
-        <h2>Wallet Recovery Instructions</h2>
+    <section class="password-info">
+        <h2>Backup Info - part 2</h2>
         <p>
-            For instructions on how to recover your wallet, see the "wallet_recovery_example.php" script in the examples folder of the Blocktrail SDK.
+            This page needs to be replaced / updated when wallet password is changed!
         </p>
-    </div>
-</section>
+        <div>
+            <h3>Password Encrypted Secret</h3>
+            <code><?php echo $passwordEncryptedSecret; ?></code>
+        </div>
+    </section>
+<?php endif; ?>
+
+<?php if ($options['page3']): ?>
+    <!-- save some paper <div style="page-break-before: always;"></div> -->
+
+    <section class="backup-instructions">
+        <div>
+            <h2>Wallet Recovery Instructions</h2>
+            <p>
+                For instructions on how to recover your wallet, see the "wallet_recovery_example.php" script in the examples folder of the Blocktrail SDK.
+            </p>
+        </div>
+    </section>
+<?php endif; ?>
 </body>
 </html>

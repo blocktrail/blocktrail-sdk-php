@@ -167,16 +167,6 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
-     * lock the wallet (unsets primary private key)
-     *
-     * @return void
-     */
-    public function lock() {
-        $this->primaryPrivateKey = null;
-        $this->locked = true;
-    }
-
-    /**
      * check if wallet is locked
      *
      * @return bool

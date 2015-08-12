@@ -5,8 +5,10 @@ namespace Blocktrail\SDK;
 use BitWasp\BitcoinLib\BIP32;
 
 
+use BitWasp\BitcoinLib\BIP39\BIP39;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
 
 
@@ -55,6 +57,13 @@ class WalletV2 extends Wallet {
         $encryptedSecret = $this->encryptedSecret;
         $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
 
+        if (isset($options['secret'])) {
+            $this->secret = $options['secret'];
+        }
+        if (isset($options['primary_seed'])) {
+            $this->primarySeed = $options['primary_seed'];
+        }
+
         if (!$primaryPrivateKey) {
             if (!$password) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a passphrase");
@@ -68,17 +77,17 @@ class WalletV2 extends Wallet {
                 $primaryPrivateKey = [$primaryPrivateKey, "m"];
             }
         } else {
-            if (!($secret = CryptoJSAES::decrypt($encryptedSecret, $password))) {
+            if (!($this->secret = CryptoJSAES::decrypt($encryptedSecret, $password))) {
                 throw new WalletDecryptException("Failed to decrypt secret with password");
             }
 
             // convert the mnemonic to a seed using BIP39 standard
-            if (!($primarySeed = CryptoJSAES::decrypt($encryptedPrimarySeed, $secret))) {
+            if (!($this->primarySeed = CryptoJSAES::decrypt($encryptedPrimarySeed, $this->secret))) {
                 throw new WalletDecryptException("Failed to decrypt primary seed with secret");
             }
 
             // create BIP32 private key from the seed
-            $primaryPrivateKey = BIP32::master_key(bin2hex(base64_decode($primarySeed)), $this->network, $this->testnet);
+            $primaryPrivateKey = BIP32::master_key(bin2hex(base64_decode($this->primarySeed)), $this->network, $this->testnet);
         }
 
         $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
@@ -100,5 +109,44 @@ class WalletV2 extends Wallet {
             $fn($this);
             $this->lock();
         }
+    }
+
+    /**
+     * lock the wallet (unsets primary private key)
+     *
+     * @return void
+     */
+    public function lock() {
+        $this->primaryPrivateKey = null;
+        $this->secret = null;
+        $this->primarySeed = null;
+        $this->locked = true;
+    }
+
+    /**
+     * change password that is used to store data encrypted on server
+     *
+     * @param $newPassword
+     * @return array backupInfo
+     * @throws BlocktrailSDKException
+     */
+    public function passwordChange($newPassword) {
+        if ($this->locked) {
+            throw new BlocktrailSDKException("Wallet needs to be unlocked to change password");
+        }
+
+        if (!$this->secret) {
+            throw new BlocktrailSDKException("No secret");
+        }
+
+        $encryptedSecret = CryptoJSAES::encrypt($this->secret, $newPassword);
+
+        $this->sdk->updateWallet($this->identifier, ['encrypted_secret' => $encryptedSecret]);
+
+        $this->encryptedSecret = $encryptedSecret;
+
+        return [
+            'encrypted_secret' => BIP39::entropyToMnemonic(bin2hex(base64_decode($this->encryptedSecret))),
+        ];
     }
 }

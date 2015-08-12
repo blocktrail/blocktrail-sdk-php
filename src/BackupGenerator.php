@@ -24,7 +24,7 @@ class BackupGenerator {
      *
      * @var null
      */
-    protected $blocktrailPubKeyQRs = null;
+    protected $blocktrailPubKeyQRs = [];
 
     protected $identifier;
 
@@ -32,12 +32,19 @@ class BackupGenerator {
 
     protected $extra;
 
+    protected $options = [
+        'page1' => true,
+        'page2' => true,
+        'page3' => true,
+    ];
+
     /**
-     * @param string    $identifier
-     * @param array     $backupInfo
-     * @param array     $extra
+     * @param string $identifier
+     * @param array  $backupInfo
+     * @param array  $extra
+     * @param null   $options
      */
-    public function __construct($identifier, $backupInfo, $extra = null) {
+    public function __construct($identifier, $backupInfo, $extra = null, $options = null) {
         /*
          * if DOMPDF is not already loaded we have to do it
          * they require a config file to be loaded, no autoloading :/
@@ -55,7 +62,8 @@ class BackupGenerator {
 
         $this->identifier = $identifier;
         $this->backupInfo = $backupInfo;
-        $this->extra = $extra;
+        $this->extra = $extra ?: [];
+        $this->options = array_merge($this->options, $options);
     }
 
     /**
@@ -120,6 +128,7 @@ class BackupGenerator {
             'backupInfo' => $backupInfo,
             'extraInfo' => $extraInfo,
             'passwordEncryptedSecret' => $passwordEncryptedSecret,
+            'options' => $this->options,
         ]);
 
         return $html;

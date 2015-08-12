@@ -47,6 +47,14 @@ interface WalletInterface {
     public function isLocked();
 
     /**
+     * change password that is used to store data encrypted on server
+     *
+     * @param $newPassword
+     * @return array        backupInfo
+     */
+    public function passwordChange($newPassword);
+
+    /**
      * upgrade wallet to different blocktrail cosign key
      *
      * @param $keyIndex

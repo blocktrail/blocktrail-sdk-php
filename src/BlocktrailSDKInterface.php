@@ -333,6 +333,15 @@ interface BlocktrailSDKInterface {
     public function getWallet($identifier);
 
     /**
+     * update the wallet data on the server
+     *
+     * @param string    $identifier
+     * @param $data
+     * @return mixed
+     */
+    public function updateWallet($identifier, $data);
+
+    /**
      * delete a wallet from the server
      *  the checksum address and a signature to verify you ownership of the key of that checksum address
      *  is required to be able to delete a wallet

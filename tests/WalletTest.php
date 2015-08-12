@@ -510,7 +510,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
      *
      * @throws \Exception
      */
-    public function testNewBlankWalletDefault() {
+    public function testNewBlankWalletV2() {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
@@ -544,6 +544,19 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue($wallet instanceof WalletV2);
 
         $this->_testNewBlankWallet($wallet);
+
+        /*
+         * test password change
+         */
+        $wallet->unlock(['passphrase' => "password"]);
+        $wallet->passwordChange("password2");
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password2"
+        ]);
+
+        $this->assertTrue($wallet instanceof WalletV2);
+        $this->assertTrue(!$wallet->isLocked());
     }
 
     public function testNewBlankWalletV1() {

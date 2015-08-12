@@ -746,7 +746,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $checksum
         );
 
-        $wallet->unlock($options);
+        $wallet->unlock([
+            'passphrase' => isset($options['passphrase']) ? $options['passphrase'] : null,
+            'primary_private_key' => $options['primary_private_key'],
+            'primary_seed' => $primarySeed,
+            'secret' => $secret,
+        ]);
 
         // return wallet and mnemonics for backup sheet
         return [
@@ -920,6 +925,18 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      */
     public function getWallet($identifier) {
         $response = $this->client->get("wallet/{$identifier}", null, RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
+     * update the wallet data on the server
+     *
+     * @param string    $identifier
+     * @param $data
+     * @return mixed
+     */
+    public function updateWallet($identifier, $data) {
+        $response = $this->client->post("wallet/{$identifier}", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
 
