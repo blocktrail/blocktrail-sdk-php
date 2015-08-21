@@ -546,6 +546,15 @@ interface BlocktrailSDKInterface {
     public function verifyMessage($message, $address, $signature);
 
     /**
+     * testnet only ;-)
+     *
+     * @param     $address
+     * @param int $amount       defaults to 0.0001 BTC, max 0.001 BTC
+     * @return mixed
+     * @throws \Exception
+     */
+    public function faucetWithdrawl($address, $amount = 10000);
+    /**
      * convert a Satoshi value to a BTC value
      *
      * @param int       $satoshi

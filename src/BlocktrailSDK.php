@@ -1310,6 +1310,22 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * testnet only ;-)
+     *
+     * @param     $address
+     * @param int $amount       defaults to 0.0001 BTC, max 0.001 BTC
+     * @return mixed
+     * @throws \Exception
+     */
+    public function faucetWithdrawl($address, $amount = 10000) {
+        $response = $this->client->post("faucet/withdrawl", null, [
+            'address' => $address,
+            'amount' => $amount,
+        ], RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
      * verify a message signed bitcoin-core style
      *
      * @param  string           $message
