@@ -2,9 +2,7 @@
 
 namespace Blocktrail\SDK;
 
-
 use BitWasp\BitcoinLib\BIP39\BIP39;
-
 
 class WalletV1Sweeper extends WalletSweeper {
 

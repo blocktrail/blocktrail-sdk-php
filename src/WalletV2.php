@@ -11,7 +11,6 @@ use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
 
-
 class WalletV2 extends Wallet {
 
     protected $encryptedPrimarySeed;
