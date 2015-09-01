@@ -77,8 +77,6 @@ class BlocktrailBatchUnspentOutputFinder extends UnspentOutputFinder {
 
                 $more = count($results['data']) > 0;
 
-                var_dump($results);
-
             } catch (\Exception $e) {
                 //if rate limit hit, sleep for a short while and try again
                 if ($retries < $this->retryLimit) {

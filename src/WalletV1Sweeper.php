@@ -14,7 +14,6 @@ class WalletV1Sweeper extends WalletSweeper {
      * @param UnspentOutputFinder $unspentOutputFinder
      * @param string              $network
      * @param bool                $testnet
-     * @internal param BlockchainDataServiceInterface $bitcoinClient
      */
     public function __construct($primaryMnemonic, $primaryPassphrase, $backupMnemonic, array $blocktrailPublicKeys, UnspentOutputFinder $unspentOutputFinder, $network = 'btc', $testnet = false) {
         // cleanup copy paste errors from mnemonics
