@@ -15,9 +15,6 @@ use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
  */
 class Wallet implements WalletInterface {
 
-    const FEE_STRATEGY_BASE_FEE = 'base_fee';
-    const FEE_STRATEGY_OPTIMAL = 'optimal';
-
     const BASE_FEE = 10000;
 
     /**
