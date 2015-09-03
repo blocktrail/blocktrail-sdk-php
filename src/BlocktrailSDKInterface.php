@@ -412,7 +412,7 @@ interface BlocktrailSDKInterface {
     /**
      * @return array        ['optimal_fee' => 10000, 'low_priority_fee' => 5000]
      */
-    public function getFeePerKB();
+    public function feePerKB();
 
     /**
      * get the current price index
