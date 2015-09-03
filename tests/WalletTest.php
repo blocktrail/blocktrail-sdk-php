@@ -891,6 +891,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
                 ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", BlocktrailSDK::toSatoshi(0.0001))
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
@@ -927,6 +928,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                     ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
                         "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
                     ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", BlocktrailSDK::toSatoshi(0.0002))
+                    ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
             );
         } catch (\Exception $e) {
 
@@ -956,6 +958,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->addRecipient("2N7TZBUcr7dTJaDFPN6aWtWmRsh5MErv4nu", BlocktrailSDK::toSatoshi(0.0001))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
                 ->randomizeChangeOutput(false)
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
@@ -1007,6 +1010,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->addRecipient("2N2anz2GmZdrKNNeEZD7Xym8djepwnTqPXY", BlocktrailSDK::toSatoshi(0.0001))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
                 ->randomizeChangeOutput(false)
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
@@ -1061,6 +1065,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
                 ->randomizeChangeOutput(false)
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
@@ -1114,6 +1119,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
                 ->randomizeChangeOutput(false)
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
@@ -1169,6 +1175,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
                 ->randomizeChangeOutput(false)
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
@@ -1190,6 +1197,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.002))
                 ->setFee(BlocktrailSDK::toSatoshi(0.000001))
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
@@ -1212,6 +1220,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0005))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
                 ->randomizeChangeOutput(false)
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
         $inputTotal = array_sum(array_column($inputs, 'value'));
