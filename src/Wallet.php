@@ -918,7 +918,7 @@ abstract class Wallet implements WalletInterface {
     }
 
     public function updateOptimalFeePerKB() {
-        $result = $this->sdk->getFeePerKB();
+        $result = $this->sdk->feePerKB();
 
         $this->optimalFeePerKB = $result[self::FEE_STRATEGY_OPTIMAL];
 

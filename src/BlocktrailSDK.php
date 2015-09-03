@@ -1178,7 +1178,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * @return array        ['optimal_fee' => 10000, 'low_priority_fee' => 5000]
      */
-    public function getFeePerKB() {
+    public function feePerKB() {
         $response = $this->client->get("fee-per-kb");
         return self::jsonDecode($response->body(), true);
     }
