@@ -284,8 +284,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
         $this->assertTrue(BitcoinLib::validate_address($address, false, null));
 
+        ///*
         $value = BlocktrailSDK::toSatoshi(0.0002);
-        $txHash = $wallet->pay([$address => $value,]);
+        $txHash = $wallet->pay([$address => $value,], null, false, true, Wallet::FEE_STRATEGY_BASE_FEE);
 
         $this->assertTrue(!!$txHash);
 
@@ -303,13 +304,14 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $tx['total_fee']);
         $this->assertTrue(count($tx['outputs']) <= 2);
         $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
+        //*/
 
         /*
          * do another TX but with a custom - high - fee
          */
         $value = BlocktrailSDK::toSatoshi(0.0001);
         $forceFee = BlocktrailSDK::toSatoshi(0.0010);
-        $txHash = $wallet->pay([$address => $value,], null, false, true, $forceFee);
+        $txHash = $wallet->pay([$address => $value,], null, false, true, Wallet::FEE_STRATEGY_BASE_FEE, $forceFee);
 
         $this->assertTrue(!!$txHash);
 
