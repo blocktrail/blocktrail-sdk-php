@@ -166,6 +166,11 @@ interface WalletInterface {
     public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $forceFee = null);
 
     /**
+     * @return int
+     */
+    public function getOptimalFeePerKB();
+
+    /**
      * @param TransactionBuilder    $txBuilder
      * @param bool|true             $lockUTXOs
      * @param bool|false            $allowZeroConf

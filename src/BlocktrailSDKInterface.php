@@ -435,16 +435,21 @@ interface BlocktrailSDKInterface {
      *  "change"=> 1010109201,
      * ]
      *
-     * @param string    $identifier             the identifier of the wallet
-     * @param array     $outputs                the outputs you want to create - array[address => satoshi-value]
-     * @param bool      $lockUTXO               when TRUE the UTXOs selected will be locked for a few seconds
+     * @param string   $identifier              the identifier of the wallet
+     * @param array    $outputs                 the outputs you want to create - array[address => satoshi-value]
+     * @param bool     $lockUTXO                when TRUE the UTXOs selected will be locked for a few seconds
      *                                          so you have some time to spend them without race-conditions
-     * @param bool      $allowZeroConf
-     * @param null|int  $forceFee
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee
      * @return array
-     * @throws \Exception
      */
-    public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false, $forceFee = null);
+    public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false, $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL, $forceFee = null);
+
+    /**
+     * @return array        ['optimal_fee' => 10000, 'low_priority_fee' => 5000]
+     */
+    public function getFeePerKB();
 
     /**
      * get the current price index
