@@ -917,6 +917,20 @@ abstract class Wallet implements WalletInterface {
         return $result;
     }
 
+    /**
+     * use the API to get the max spendable
+     *
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee
+     * @return array
+     */
+    public function maxSpendable($allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
+        $result = $this->sdk->walletMaxSpendable($this->identifier, $allowZeroConf, $feeStrategy, $forceFee);
+
+        return $result;
+    }
+
     public function updateOptimalFeePerKB() {
         $result = $this->sdk->feePerKB();
 

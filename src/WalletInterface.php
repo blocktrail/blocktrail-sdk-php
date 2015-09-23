@@ -165,10 +165,21 @@ interface WalletInterface {
      * @param array[]   $outputs
      * @param bool      $lockUTXO
      * @param bool      $allowZeroConf
+     * @param string    $feeStrategy
      * @param null|int  $forceFee
      * @return array
      */
-    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $forceFee = null);
+    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null);
+
+    /**
+     * use the API to get the max spendable
+     *
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee
+     * @return array
+     */
+    public function maxSpendable($allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null);
 
     /**
      * @return int

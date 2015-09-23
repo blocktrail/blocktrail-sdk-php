@@ -446,6 +446,8 @@ interface BlocktrailSDKInterface {
      */
     public function coinSelection($identifier, $outputs, $lockUTXO = false, $allowZeroConf = false, $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL, $forceFee = null);
 
+    public function walletMaxSpendable($identifier, $allowZeroConf = false, $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL, $forceFee = null);
+
     /**
      * @return array        ['optimal_fee' => 10000, 'low_priority_fee' => 5000]
      */

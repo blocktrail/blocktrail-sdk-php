@@ -1175,6 +1175,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         return self::jsonDecode($response->body(), true);
     }
+
     /**
      * @return array        ['optimal_fee' => 10000, 'low_priority_fee' => 5000]
      */
@@ -1243,6 +1244,26 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     public function unlockWalletUTXO($identifier, $txHash, $txIdx) {
         $response = $this->client->post("wallet/{$identifier}/unlock-utxo", null, ['hash' => $txHash, 'idx' => $txIdx], RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true)['unlocked'];
+    }
+
+
+    public function walletMaxSpendable($identifier, $allowZeroConf = false, $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
+        $args = [
+            'zeroconf' => (int)!!$allowZeroConf,
+            'fee_strategy' => $feeStrategy,
+        ];
+
+        if ($forceFee !== null) {
+            $args['forcefee'] = (int)$forceFee;
+        }
+
+        $response = $this->client->get(
+            "wallet/{$identifier}/max-spendable",
+            $args,
+            RestClient::AUTH_HTTP_SIG
+        );
+
+        return self::jsonDecode($response->body(), true);
     }
 
     /**
