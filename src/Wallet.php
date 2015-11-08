@@ -8,6 +8,7 @@ use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
+use Blocktrail\SDK\Exceptions\WalletChecksumException;
 
 /**
  * Class Wallet
@@ -224,7 +225,7 @@ class Wallet implements WalletInterface {
         // create checksum (address) of the primary privatekey to compare to the stored checksum
         $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
         if ($checksum != $this->checksum) {
-            throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
+            throw new WalletChecksumException("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
         }
 
         $this->locked = false;

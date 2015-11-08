@@ -7,6 +7,8 @@ use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use Blocktrail\SDK\Connection\RestClient;
+use Blocktrail\SDK\Exceptions\WalletChecksumException;
+use Monolog\Logger;
 
 /**
  * Class BlocktrailSDK
@@ -16,6 +18,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @var Connection\RestClient
      */
     protected $client;
+
+    /**
+     * @var Logger
+     */
+    private $logger = null;
 
     /**
      * @var string          currently only supporting; bitcoin
@@ -133,6 +140,24 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      */
     public function getRestClient() {
         return $this->client;
+    }
+
+    /**
+     * @return  Logger
+     */
+    public function getLogger() {
+        return $this->logger;
+    }
+
+    /**
+     * @param Logger $logger
+     * @param bool   $setOnRestClient
+     */
+    public function setLogger(Logger $logger, $setOnRestClient = true) {
+        $this->logger = $logger;
+        if ($setOnRestClient) {
+            $this->client->setLogger($logger);
+        }
     }
 
     /**
