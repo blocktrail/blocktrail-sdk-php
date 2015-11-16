@@ -3,13 +3,11 @@
 namespace Blocktrail\SDK\Connection;
 
 use GuzzleHttp\Client as Guzzle;
-use GuzzleHttp\Message\RequestInterface;
-use GuzzleHttp\Message\ResponseInterface;
-use GuzzleHttp\Post\PostBodyInterface;
-use GuzzleHttp\Query;
-use GuzzleHttp\Stream\Stream;
+use GuzzleHttp\Handler\CurlHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Uri;
 use HttpSignatures\Context;
-use HttpSignatures\GuzzleHttp\RequestSubscriber;
 use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\Connection\Exceptions\EndpointSpecificError;
 use Blocktrail\SDK\Connection\Exceptions\GenericServerError;
@@ -19,7 +17,8 @@ use Blocktrail\SDK\Connection\Exceptions\EmptyResponse;
 use Blocktrail\SDK\Connection\Exceptions\InvalidCredentials;
 use Blocktrail\SDK\Connection\Exceptions\MissingEndpoint;
 use Blocktrail\SDK\Connection\Exceptions\GenericHTTPError;
-use Symfony\Component\HttpFoundation\Request;
+use HttpSignatures\GuzzleHttpSignatures;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Class RestClient
@@ -40,36 +39,77 @@ class RestClient {
     protected $apiKey;
 
     /**
+     * @var string
+     */
+    protected $apiEndpoint;
+
+    /**
+     * @var string
+     */
+    protected $apiVersion;
+
+    /**
+     * @var string
+     */
+    protected $apiSecret;
+
+    /**
+     * @var array
+     */
+    protected $options = [];
+
+    /**
+     * @var array
+     */
+    protected $curlOptions = [];
+
+    /**
      * @var bool
      */
     protected $verboseErrors = false;
 
     public function __construct($apiEndpoint, $apiVersion, $apiKey, $apiSecret) {
-        $this->guzzle = new Guzzle(array(
-            'base_url' => $apiEndpoint,
-            'defaults' => array(
-                'headers' => array(
-                    'User-Agent' => Blocktrail::SDK_USER_AGENT . '/' . Blocktrail::SDK_VERSION
-                ),
-                'exceptions' => false,
-                'connect_timeout' => 3,
-                'timeout' => 20.0, // tmp until we have a good matrix of all the requests and their expect min/max time
-                'verify' => true,
-                'proxy' => '',
-                'debug' => false,
-                'config' => array(),
-                'auth' => '',
-            ),
-        ));
-
+        $this->apiEndpoint = $apiEndpoint;
+        $this->apiVersion = $apiVersion;
         $this->apiKey = $apiKey;
+        $this->apiSecret = $apiSecret;
 
-        $this->guzzle->getEmitter()->attach(new RequestSubscriber(
-            new Context([
-                'keys' => [$apiKey => $apiSecret],
-                'algorithm' => 'hmac-sha256',
-                'headers' => ['(request-target)', 'Content-MD5', 'Date'],
-            ])
+        $this->guzzle = $this->createGuzzleClient();
+    }
+
+    /**
+     * @param array $options
+     * @param array $curlOptions
+     * @return Guzzle
+     */
+    protected function createGuzzleClient(array $options = [], array $curlOptions = []) {
+        $options = $options + $this->options;
+        $curlOptions = $curlOptions + $this->curlOptions;
+
+        $context = new Context([
+            'keys' => [$this->apiKey => $this->apiSecret],
+            'algorithm' => 'hmac-sha256',
+            'headers' => ['(request-target)', 'Content-MD5', 'Date'],
+        ]);
+
+        $curlHandler = new CurlHandler($curlOptions);
+        $handler = HandlerStack::create($curlHandler);
+        $handler->push(GuzzleHttpSignatures::middlewareFromContext($context));
+
+        return new Guzzle($options + array(
+            'handler' => $handler,
+            'base_uri' => $this->apiEndpoint,
+            'headers' => array(
+                'User-Agent' => Blocktrail::SDK_USER_AGENT . '/' . Blocktrail::SDK_VERSION
+            ),
+            'http_errors' => false,
+            'connect_timeout' => 3,
+            'timeout' => 20.0, // tmp until we have a good matrix of all the requests and their expect min/max time
+            'verify' => true,
+            'proxy' => '',
+            'debug' => false,
+            'config' => array(),
+            'auth' => '',
         ));
     }
 
@@ -86,7 +126,9 @@ class RestClient {
      * @param   bool        $debug
      */
     public function setCurlDebugging($debug = true) {
-        $this->guzzle->setDefaultOption('debug', $debug);
+        $this->options['debug'] = $debug;
+
+        $this->guzzle = $this->createGuzzleClient();
     }
 
     /**
@@ -104,7 +146,9 @@ class RestClient {
      * @param bool      $value
      */
     public function setCurlDefaultOption($key, $value) {
-        $this->guzzle->setDefaultOption($key, $value);
+        $this->curlOptions[$key] = $value;
+
+        $this->guzzle = $this->createGuzzleClient();
     }
 
     /**
@@ -113,7 +157,9 @@ class RestClient {
      * @param   $proxy
      */
     public function setProxy($proxy) {
-        $this->guzzle->setDefaultOption('proxy', $proxy);
+        $this->options['proxy'] = $proxy;
+
+        $this->guzzle = $this->createGuzzleClient();
     }
 
     /**
@@ -163,6 +209,25 @@ class RestClient {
         return $this->request('DELETE', $endpointUrl, $queryString, $postData, $auth, 'url', $timeout);
     }
 
+    private static $replaceQuery = ['=' => '%3D', '&' => '%26'];
+    public static function hasQueryValue(Uri $uri, $key) {
+        $current = $uri->getQuery();
+        $key = strtr($key, self::$replaceQuery);
+
+        if (!$current) {
+            $result = [];
+        } else {
+            $result = [];
+            foreach (explode('&', $current) as $part) {
+                if (explode('=', $part)[0] === $key) {
+                    return true;
+                };
+            }
+        }
+
+        return false;
+    }
+
     /**
      * generic request executor
      *
@@ -173,55 +238,50 @@ class RestClient {
      * @param   string          $auth           http-signatures to enable http-signature signing
      * @param   string          $contentMD5Mode body or url
      * @param   float           $timeout        timeout in seconds
-     * @return RequestInterface
+     * @return Request
      */
     public function buildRequest($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
         if (is_null($contentMD5Mode)) {
             $contentMD5Mode = !is_null($body) ? 'body' : 'url';
         }
 
-        $request = $this->guzzle->createRequest($method, $endpointUrl);
+        $request = new Request($method, $endpointUrl);
+        $uri = $request->getUri();
 
         if ($queryString) {
-            $request->getQuery()->replace($queryString);
+            foreach ($queryString as $k => $v) {
+                $uri = Uri::withQueryValue($uri, $k, $v);
+            }
         }
 
-        if (!$request->getQuery()->get('api_key')) {
-            $request->getQuery()->set('api_key', $this->apiKey);
+        if (!self::hasQueryValue($uri, 'api_key')) {
+            $uri = Uri::withQueryValue($uri, 'api_key', $this->apiKey);
         }
 
         // normalize the query string the same way the server expects it
-        $request->setQuery(Query::fromString(Request::normalizeQueryString((string)$request->getQuery())));
+        /** @var Request $request */
+        $request = $request->withUri($uri->withQuery(\Symfony\Component\HttpFoundation\Request::normalizeQueryString($uri->getQuery())));
 
         if (!$request->hasHeader('Date')) {
-            $request->setHeader('Date', $this->getRFC1123DateString());
+            $request = $request->withHeader('Date', $this->getRFC1123DateString());
         }
 
         if (!is_null($body)) {
             if (!$request->hasHeader('Content-Type')) {
-                $request->setHeader('Content-Type', 'application/json');
+                $request = $request->withHeader('Content-Type', 'application/json');
             }
 
             if (!is_string($body)) {
                 $body = json_encode($body);
             }
-            $request->setBody(Stream::factory($body));
+            $request = $request->withBody(\GuzzleHttp\Psr7\stream_for($body));
         }
 
         // for GET/DELETE requests, MD5 the request URI (excludes domain, includes query strings)
         if ($contentMD5Mode == 'body') {
-            $request->setHeader('Content-MD5', md5((string)$body));
+            $request = $request->withHeader('Content-MD5', md5((string)$body));
         } else {
-            $qs = (string)$request->getQuery();
-            $request->setHeader('Content-MD5', md5($request->getPath() . ($qs ? "?{$qs}" : "")));
-        }
-
-        if ($auth !== null) {
-            $request->getConfig()['auth'] = $auth;
-        }
-
-        if ($timeout !== null) {
-            $request->getConfig()['timeout'] = $timeout;
+            $request = $request->withHeader('Content-MD5', md5($request->getRequestTarget()));
         }
 
         return $request;
@@ -240,8 +300,8 @@ class RestClient {
      * @return Response
      */
     public function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
-        $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $auth, $contentMD5Mode, $timeout);
-        $response = $this->guzzle->send($request);
+        $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $contentMD5Mode);
+        $response = $this->guzzle->send($request, ['auth' => $auth, 'timeout' => $timeout]);
 
         return $this->responseHandler($response);
     }

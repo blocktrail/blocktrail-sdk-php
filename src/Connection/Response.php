@@ -1,8 +1,8 @@
-<?PHP
+<?php
 
 namespace Blocktrail\SDK\Connection;
 
-use GuzzleHttp\Stream\StreamInterface;
+use Psr\Http\Message\StreamInterface;
 
 /**
  * Class Response
@@ -16,7 +16,7 @@ class Response {
     private $responseCode;
 
     /**
-     * @var \GuzzleHttp\Stream\StreamInterface
+     * @var StreamInterface
      */
     private $responseBody;
 

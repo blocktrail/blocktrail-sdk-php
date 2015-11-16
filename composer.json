@@ -17,9 +17,15 @@
             "Blocktrail\\SDK\\": "src/"
         }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/rubensayshi/http-signatures-guzzlehttp"
+        }
+    ],
     "license": "MIT",
     "require": {
-        "php": ">=5.4.0",
+        "php": ">=5.6.0",
 
         "ext-intl": "*",
         "ext-gmp": "*",
@@ -30,8 +36,9 @@
 
         "blocktrail/bitcoin-lib": "1.0.20",
 
-        "guzzlehttp/guzzle": "~5.3.1",
-        "99designs/http-signatures-guzzlehttp": "~1.2.2",
+        "guzzlehttp/guzzle": "6.*",
+        "99designs/http-signatures-guzzlehttp": "dev-guzzle-v6",
+
         "mdanter/ecc": "0.2.0",
         "rych/hash_pbkdf2-compat": "~1.0",
         "ramsey/array_column": "~1.1",
