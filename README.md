@@ -68,7 +68,7 @@ use Blocktrail\SDK\BlocktrailSDK;
 
 Or if put the following in your `composer.json`:
 ```
-"blocktrail/blocktrail-sdk": "1.1.*"
+"blocktrail/blocktrail-sdk": "1.2.*"
 ```
 
 
