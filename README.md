@@ -11,6 +11,10 @@ at https://www.blocktrail.com/api/docs/lang/php
 
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.svg?branch=master)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
 
+Upgrading from v1.x to v2.0.0
+-----------------------------
+**IMPORTANT** `v2.0.0` has a few BC breaks, please check [docs/CHANGELOG.md](docs/CHANGELOG.md)!!
+
 IMPORTANT! FLOATS ARE EVIL!!
 ----------------------------
 As is best practice with financial data, The API returns all values as an integer, the Bitcoin value in Satoshi's.

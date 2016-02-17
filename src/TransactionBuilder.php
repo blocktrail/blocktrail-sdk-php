@@ -30,8 +30,9 @@ class TransactionBuilder {
 
     private $fee = null;
 
-    private $validateChange = null;
     private $validateFee = null;
+
+    private $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL;
 
     public function __construct() {
 
@@ -147,6 +148,23 @@ class TransactionBuilder {
     }
 
     /**
+     * @param string $feeStrategy
+     * @return $this
+     */
+    public function setFeeStrategy($feeStrategy) {
+        $this->feeStrategy = $feeStrategy;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFeeStrategy() {
+        return $this->feeStrategy;
+    }
+
+    /**
      * @param bool $randomizeChangeOutput
      * @return $this
      */
@@ -185,23 +203,6 @@ class TransactionBuilder {
      */
     public function getFee() {
         return $this->fee;
-    }
-
-    /**
-     * @param int $change
-     * @return $this
-     */
-    public function validateChange($change) {
-        $this->validateChange = $change;
-
-        return $this;
-    }
-
-    /**
-     * @return int|null
-     */
-    public function getValidateChange() {
-        return $this->validateChange;
     }
 
     /**

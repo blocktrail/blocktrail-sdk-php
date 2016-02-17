@@ -3,16 +3,19 @@
 namespace Blocktrail\SDK;
 
 use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 /**
  * Class Wallet
  */
-class Wallet implements WalletInterface {
+abstract class Wallet implements WalletInterface {
+
+    const WALLET_VERSION_V1 = 'v1';
+    const WALLET_VERSION_V2 = 'v2';
 
     const BASE_FEE = 10000;
 
@@ -32,13 +35,6 @@ class Wallet implements WalletInterface {
      * @var string
      */
     protected $identifier;
-
-    /**
-     * BIP39 Mnemonic for the master primary private key
-     *
-     * @var string
-     */
-    protected $primaryMnemonic;
 
     /**
      * BIP32 master primary private key (m/)
@@ -115,14 +111,16 @@ class Wallet implements WalletInterface {
      */
     protected $walletPath;
 
-    private $checksum;
+    protected $checksum;
 
-    private $locked = true;
+    protected $locked = true;
+
+    protected $optimalFeePerKB;
+    protected $optimalFeePerKBAge;
 
     /**
      * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
      * @param string                        $identifier                 identifier of the wallet
-     * @param string                        $primaryMnemonic
      * @param array[string, string]         $primaryPublicKeys
      * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
      * @param array[array[string, string]]  $blocktrailPublicKeys
@@ -131,12 +129,11 @@ class Wallet implements WalletInterface {
      * @param bool                          $testnet
      * @param string                        $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
 
-        $this->primaryMnemonic = $primaryMnemonic;
         $this->backupPublicKey = BIP32Key::create($backupPublicKey);
         $this->primaryPublicKeys = array_map(function ($key) {
             return BIP32Key::create($key);
@@ -163,15 +160,6 @@ class Wallet implements WalletInterface {
     }
 
     /**
-     * return the wallet primary mnemonic (for backup purposes)
-     *
-     * @return string
-     */
-    public function getPrimaryMnemonic() {
-        return $this->primaryMnemonic;
-    }
-
-    /**
      * return list of Blocktrail co-sign extended public keys
      *
      * @return array[]      [ [xpub, path] ]
@@ -180,74 +168,6 @@ class Wallet implements WalletInterface {
         return array_map(function (BIP32Key $key) {
             return $key->tuple();
         }, $this->blocktrailPublicKeys);
-    }
-
-    /**
-     * unlock wallet so it can be used for payments
-     *
-     * @param          $options ['primary_private_key' => key] OR ['passphrase' => pass]
-     * @param callable $fn
-     * @return bool
-     * @throws \Exception
-     */
-    public function unlock($options, callable $fn = null) {
-        // explode the wallet data
-        $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
-        $primaryMnemonic = $this->primaryMnemonic;
-        $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
-
-        if ($primaryMnemonic && $primaryPrivateKey) {
-            throw new \InvalidArgumentException("Can't specify Primary Mnemonic and Primary PrivateKey");
-        }
-
-        if (!$primaryMnemonic && !$primaryPrivateKey) {
-            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic or Primary PrivateKey");
-        }
-
-        if ($primaryMnemonic && !$password) {
-            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic without a passphrase");
-        }
-
-        if ($primaryPrivateKey) {
-            if (is_string($primaryPrivateKey)) {
-                $primaryPrivateKey = [$primaryPrivateKey, "m"];
-            }
-        } else {
-            // convert the mnemonic to a seed using BIP39 standard
-            $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
-            // create BIP32 private key from the seed
-            $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
-        }
-
-        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
-
-        // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
-        if ($checksum != $this->checksum) {
-            throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
-        }
-
-        $this->locked = false;
-
-        // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if (isset($data['upgrade_key_index'])) {
-            $this->upgradeKeyIndex($data['upgrade_key_index']);
-        }
-
-        if ($fn) {
-            $fn($this);
-            $this->lock();
-        }
-    }
-
-    /**
-     * lock the wallet (unsets primary private key)
-     *
-     * @return void
-     */
-    public function lock() {
-        $this->primaryPrivateKey = null;
-        $this->locked = true;
     }
 
     /**
@@ -493,16 +413,17 @@ class Wallet implements WalletInterface {
     /**
      * create, sign and send a transaction
      *
-     * @param array     $outputs            [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ] coins to send
+     * @param array    $outputs             [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ] coins to send
      *                                      value should be INT
-     * @param string    $changeAddress      change address to use (autogenerated if NULL)
-     * @param bool      $allowZeroConf
-     * @param bool      $randomizeChangeIdx randomize the location of the change (for increased privacy / anonimity)
-     * @param null|int  $forceFee           set a fixed fee instead of automatically calculating the correct fee, not recommended!
+     * @param string   $changeAddress       change address to use (autogenerated if NULL)
+     * @param bool     $allowZeroConf
+     * @param bool     $randomizeChangeIdx  randomize the location of the change (for increased privacy / anonimity)
+     * @param string   $feeStrategy
+     * @param null|int $forceFee            set a fixed fee instead of automatically calculating the correct fee, not recommended!
      * @return string the txid / transaction hash
      * @throws \Exception
      */
-    public function pay(array $outputs, $changeAddress = null, $allowZeroConf = false, $randomizeChangeIdx = true, $forceFee = null) {
+    public function pay(array $outputs, $changeAddress = null, $allowZeroConf = false, $randomizeChangeIdx = true, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
         if ($this->locked) {
             throw new \Exception("Wallet needs to be unlocked to pay");
         }
@@ -511,6 +432,7 @@ class Wallet implements WalletInterface {
 
         $txBuilder = new TransactionBuilder();
         $txBuilder->randomizeChangeOutput($randomizeChangeIdx);
+        $txBuilder->setFeeStrategy($feeStrategy);
 
         foreach ($outputs as $output) {
             $txBuilder->addRecipient($output['address'], $output['value']);
@@ -569,7 +491,7 @@ class Wallet implements WalletInterface {
      */
     public function coinSelectionForTxBuilder(TransactionBuilder $txBuilder, $lockUTXOs = true, $allowZeroConf = false, $forceFee = null) {
         // get the data we should use for this transaction
-        $coinSelection = $this->coinSelection($txBuilder->getOutputs(), $lockUTXOs, $allowZeroConf, $forceFee);
+        $coinSelection = $this->coinSelection($txBuilder->getOutputs(), $lockUTXOs, $allowZeroConf, $txBuilder->getFeeStrategy(), $forceFee);
         $utxos = $coinSelection['utxos'];
         $fee = $coinSelection['fee'];
         $change = $coinSelection['change'];
@@ -577,7 +499,6 @@ class Wallet implements WalletInterface {
         if ($forceFee !== null) {
             $txBuilder->setFee($forceFee);
         } else {
-            $txBuilder->validateChange($change);
             $txBuilder->validateFee($fee);
         }
 
@@ -640,14 +561,12 @@ class Wallet implements WalletInterface {
             throw new \Exception("Atempting to spend more than sum of UTXOs");
         }
 
-        list($fee, $change) = $this->determineFeeAndChange($txBuilder);
+        list($fee, $change) = $this->determineFeeAndChange($txBuilder, $this->getOptimalFeePerKB());
 
-        if ($txBuilder->getValidateChange() !== null && $txBuilder->getValidateChange() != $change) {
-            throw new \Exception("the amount of change suggested by the coin selection seems incorrect");
-        }
-
-        if ($txBuilder->getValidateFee() !== null && $txBuilder->getValidateFee() != $fee) {
-            throw new \Exception("the fee suggested by the coin selection ({$txBuilder->getValidateFee()}) seems incorrect ({$fee})");
+        if ($txBuilder->getValidateFee() !== null) {
+            if (abs($txBuilder->getValidateFee() - $fee) > Wallet::BASE_FEE) {
+                throw new \Exception("the fee suggested by the coin selection ({$txBuilder->getValidateFee()}) seems incorrect ({$fee})");
+            }
         }
 
         if ($change > 0) {
@@ -679,7 +598,7 @@ class Wallet implements WalletInterface {
         return [$inputs, $send];
     }
 
-    public function determineFeeAndChange(TransactionBuilder $txBuilder) {
+    public function determineFeeAndChange(TransactionBuilder $txBuilder, $optimalFeePerKB) {
         $send = $txBuilder->getOutputs();
         $utxos = $txBuilder->getUtxos();
 
@@ -698,7 +617,7 @@ class Wallet implements WalletInterface {
                 $change = 0;
             }
         } else {
-            $fee = $this->determineFee($utxos, $send);
+            $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB);
 
             $change = $this->determineChange($utxos, $send, $fee);
 
@@ -708,7 +627,7 @@ class Wallet implements WalletInterface {
                 $send[$changeIdx] = ['address' => 'change', 'value' => $change];
 
                 // recaculate fee now that we know that we have a change output
-                $fee2 = $this->determineFee($utxos, $send);
+                $fee2 = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB);
 
                 // unset dummy change output
                 unset($send[$changeIdx]);
@@ -731,7 +650,7 @@ class Wallet implements WalletInterface {
             }
         }
 
-        $fee = $this->determineFee($utxos, $send);
+        $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB);
 
         return [$fee, $change];
     }
@@ -875,11 +794,14 @@ class Wallet implements WalletInterface {
      * determine how much fee is required based on the inputs and outputs
      *  this is an estimation, not a proper 100% correct calculation
      *
-     * @param UTXO[]    $utxos
-     * @param array[]   $outputs
+     * @param UTXO[]  $utxos
+     * @param array[] $outputs
+     * @param         $feeStrategy
+     * @param         $optimalFeePerKB
      * @return int
+     * @throws BlocktrailSDKException
      */
-    protected function determineFee($utxos, $outputs) {
+    protected function determineFee($utxos, $outputs, $feeStrategy, $optimalFeePerKB) {
         $outputSize = 0;
         foreach ($outputs as $output) {
             if (isset($output['scriptPubKey'])) {
@@ -891,7 +813,16 @@ class Wallet implements WalletInterface {
 
         $size = self::estimateSize(self::estimateSizeUTXOs(count($utxos)), $outputSize);
 
-        return self::baseFeeForSize($size);
+        switch ($feeStrategy) {
+            case self::FEE_STRATEGY_BASE_FEE:
+                return self::baseFeeForSize($size);
+
+            case self::FEE_STRATEGY_OPTIMAL:
+                return (int)round(($size / 1000) * $optimalFeePerKB);
+
+            default:
+                throw new BlocktrailSDKException("Unknown feeStrategy [{$feeStrategy}]");
+        }
     }
 
     /**
@@ -971,14 +902,49 @@ class Wallet implements WalletInterface {
     /**
      * use the API to get the best inputs to use based on the outputs
      *
-     * @param array[]   $outputs
-     * @param bool      $lockUTXO
-     * @param bool      $allowZeroConf
-     * @param null|int  $forceFee
+     * @param array[]  $outputs
+     * @param bool     $lockUTXO
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee
      * @return array
      */
-    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $forceFee = null) {
-        return $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $forceFee);
+    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
+        $result = $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
+
+        $this->optimalFeePerKB = $result['fees'][self::FEE_STRATEGY_OPTIMAL];
+
+        return $result;
+    }
+
+    /**
+     * use the API to get the max spendable
+     *
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee
+     * @return array
+     */
+    public function maxSpendable($allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
+        $result = $this->sdk->walletMaxSpendable($this->identifier, $allowZeroConf, $feeStrategy, $forceFee);
+
+        return $result;
+    }
+
+    public function updateOptimalFeePerKB() {
+        $result = $this->sdk->feePerKB();
+
+        $this->optimalFeePerKB = $result[self::FEE_STRATEGY_OPTIMAL];
+
+        return $this->optimalFeePerKB;
+    }
+
+    public function getOptimalFeePerKB() {
+        if (!$this->optimalFeePerKB || $this->optimalFeePerKBAge < time() - 60) {
+            $this->updateOptimalFeePerKB();
+        }
+
+        return $this->optimalFeePerKB;
     }
 
     /**

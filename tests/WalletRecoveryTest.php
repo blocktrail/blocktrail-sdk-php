@@ -4,9 +4,11 @@ namespace Blocktrail\SDK\Tests;
 
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
-use Blocktrail\SDK\Services\BlocktrailBitcoinService;
+use Blocktrail\SDK\Services\BlocktrailBatchUnspentOutputFinder;
+use Blocktrail\SDK\Services\InsightUnspentOutputFinder;
 use Blocktrail\SDK\UnspentOutputFinder;
 use Blocktrail\SDK\WalletSweeper;
+use Blocktrail\SDK\WalletV1Sweeper;
 
 /**
  * Class WalletRecoveryTest
@@ -44,32 +46,6 @@ class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
         //No cleanup to do
     }
 
-    public function testBlocktrailBicoinService() {
-        //test the blocktrail bitcoin data service provider
-        $blockchainDataService = new BlocktrailBitcoinService("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
-
-        //get unspent outputs for a single address
-        $address = '2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA';   //has 0.2 tbtc in 2 utxos
-        $result = $blockchainDataService->getUnspentOutputs($address);
-        $this->assertEquals(2, count($result));
-        $this->assertArrayHasKey('hash', $result[0]);
-        $this->assertArrayHasKey('index', $result[0]);
-        $this->assertArrayHasKey('value', $result[0]);
-        $this->assertArrayHasKey('script_hex', $result[0]);
-        $this->assertEquals(10000000, $result[0]['value']);
-        $this->assertEquals(10000000, $result[1]['value']);
-
-        //ensure all outputs are found when dealing with paginated results (pagination forced by limiting to 1 result per page)
-        $blockchainDataService->setPaginationLimit(1);
-        $result = $blockchainDataService->getUnspentOutputs($address);
-        $this->assertEquals(2, count($result), "failed to find all utxos when results are paginated");
-
-        //attempt to get unspent outputs for an empty address
-        $address = '2Mu1xrQAEd8LsiRHNvgXDaU8kQU5WKqzCq7';   //has 0 tbtc in 0 utxos
-        $result = $blockchainDataService->getUnspentOutputs($address);
-        $this->assertEquals(0, count($result));
-    }
-
     public function testUnspentOutputFinder() {
         //some addresses with known unspent outputs, and some without any
         $addresses = array(
@@ -79,25 +55,78 @@ class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
             '2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg'       //has 0.1 tbtc in 1 utxo
         );
 
-        $blockchainDataService = new BlocktrailBitcoinService("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
-        $unspenOutputFinder = new UnspentOutputFinder($blockchainDataService);
+        $unspenOutputFinder = new BlocktrailBatchUnspentOutputFinder("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
 
         //get unspent outputs for an array of addresses
         $result = $unspenOutputFinder->getUTXOs($addresses);
-        $this->assertEquals(3, count($result), "expected results for 3 of the 4 given addresses");
-        $this->assertArrayHasKey('2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH', $result);
-        $this->assertArrayHasKey('2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA', $result);
-        $this->assertArrayHasKey('2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg', $result);
-        $this->assertEquals(2, count($result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA']), "expected address to have 2 unspent outputs");
-        $this->assertArrayHasKey('hash', $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
-        $this->assertArrayHasKey('index', $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
-        $this->assertArrayHasKey('value', $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
-        $this->assertArrayHasKey('script_hex', $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
-        $this->assertEquals(10000000, $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]['value']);
-        $this->assertEquals(10000000, $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][1]['value']);
+        $this->assertEquals(4, count($result));
 
-        $total = $result['2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH'][0]['value'] + $result['2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg'][0]['value']
-                + $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]['value'] + $result['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][1]['value'];
+        // easier to test when keyed by address
+        $resultKeyedByAddress = [];
+        foreach ($result as $utxo) {
+            if (!isset($resultKeyedByAddress[$utxo['address']])) {
+                $resultKeyedByAddress[$utxo['address']] = [];
+            }
+
+            $resultKeyedByAddress[$utxo['address']][] = $utxo;
+        }
+
+        $this->assertEquals(3, count($resultKeyedByAddress));
+        $this->assertArrayHasKey('2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH', $resultKeyedByAddress);
+        $this->assertArrayHasKey('2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA', $resultKeyedByAddress);
+        $this->assertArrayHasKey('2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg', $resultKeyedByAddress);
+        $this->assertEquals(2, count($resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA']), "expected address to have 2 unspent outputs");
+        $this->assertArrayHasKey('hash', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertArrayHasKey('index', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertArrayHasKey('value', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertArrayHasKey('script_hex', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertEquals(10000000, $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]['value']);
+        $this->assertEquals(10000000, $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][1]['value']);
+
+        $total = $resultKeyedByAddress['2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH'][0]['value'] + $resultKeyedByAddress['2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg'][0]['value']
+            + $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]['value'] + $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][1]['value'];
+        $this->assertEquals(40000000, $total);
+    }
+
+    public function testUnspentOutputFinderInsightApi() {
+        //some addresses with known unspent outputs, and some without any
+        $addresses = array(
+            '2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH',      //has 0.1 tbtc in 1 utxo
+            '2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA',      //has 0.2 tbtc in 2 utxos
+            '2Mu1xrQAEd8LsiRHNvgXDaU8kQU5WKqzCq7',      //has 0 tbtc
+            '2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg'       //has 0.1 tbtc in 1 utxo
+        );
+
+        $unspenOutputFinder = new InsightUnspentOutputFinder(true);
+
+        //get unspent outputs for an array of addresses
+        $result = $unspenOutputFinder->getUTXOs($addresses);
+        $this->assertEquals(4, count($result));
+
+        // easier to test when keyed by address
+        $resultKeyedByAddress = [];
+        foreach ($result as $utxo) {
+            if (!isset($resultKeyedByAddress[$utxo['address']])) {
+                $resultKeyedByAddress[$utxo['address']] = [];
+            }
+
+            $resultKeyedByAddress[$utxo['address']][] = $utxo;
+        }
+
+        $this->assertEquals(3, count($resultKeyedByAddress));
+        $this->assertArrayHasKey('2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH', $resultKeyedByAddress);
+        $this->assertArrayHasKey('2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA', $resultKeyedByAddress);
+        $this->assertArrayHasKey('2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg', $resultKeyedByAddress);
+        $this->assertEquals(2, count($resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA']), "expected address to have 2 unspent outputs");
+        $this->assertArrayHasKey('hash', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertArrayHasKey('index', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertArrayHasKey('value', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertArrayHasKey('script_hex', $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]);
+        $this->assertEquals(10000000, $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]['value']);
+        $this->assertEquals(10000000, $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][1]['value']);
+
+        $total = $resultKeyedByAddress['2NG3QEhJc1xzN5qxPdNAZfGaTdGAv3ixMbH'][0]['value'] + $resultKeyedByAddress['2N9ijhGSX3kGbe16RMCQ2hviH8RLAVdaqZg'][0]['value']
+            + $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][0]['value'] + $resultKeyedByAddress['2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA'][1]['value'];
         $this->assertEquals(40000000, $total);
     }
 
@@ -122,10 +151,10 @@ class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
             ]
         );
 
-        $bitcoinClient = new BlocktrailBitcoinService("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
+        $bitcoinClient = new BlocktrailBatchUnspentOutputFinder("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
 
         //create the wallet sweeper and do fund discovery
-        $walletSweeper = new WalletSweeper($primaryMnemonic, $primaryPassphrase, $backupMnemonic, $blocktrailKeys, $bitcoinClient, 'btc', true);
+        $walletSweeper = new WalletV1Sweeper($primaryMnemonic, $primaryPassphrase, $backupMnemonic, $blocktrailKeys, $bitcoinClient, 'btc', true);
         //$walletSweeper->enableLogging();    //can enable logging if test is taking too long or something seems to be wrong. NB: this test will take a long time - be patient
 
         $results = $walletSweeper->discoverWalletFunds($increment);

@@ -3,13 +3,13 @@
 namespace Blocktrail\SDK;
 
 use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
-class WalletSweeper {
+abstract class WalletSweeper {
 
     /**
      * network to use - currently only supporting 'bitcoin'
@@ -42,12 +42,6 @@ class WalletSweeper {
     protected $blocktrailPublicKeys;
 
     /**
-     * bitcoin client service used to initialise unspent output finder and then query bitcoin data
-     * @var BlockchainDataServiceInterface
-     */
-    protected $bitcoinClient;
-
-    /**
      * gets unspent outputs for addresses
      * @var UnspentOutputFinder
      */
@@ -66,16 +60,15 @@ class WalletSweeper {
     protected $debug = false;
 
     /**
-     * @param                                $primaryMnemonic
-     * @param                                $primaryPassphrase
-     * @param                                $backupMnemonic
-     * @param array                          $blocktrailPublicKeys
-     * @param BlockchainDataServiceInterface $bitcoinClient
-     * @param string                         $network
-     * @param bool                           $testnet
+     * @param string              $primarySeed          hex string
+     * @param string              $backupSeed           hex string
+     * @param array               $blocktrailPublicKeys =
+     * @param UnspentOutputFinder $utxoFinder
+     * @param string              $network
+     * @param bool                $testnet
      * @throws \Exception
      */
-    public function __construct($primaryMnemonic, $primaryPassphrase, $backupMnemonic, array $blocktrailPublicKeys, BlockchainDataServiceInterface $bitcoinClient, $network = 'btc', $testnet = false) {
+    public function __construct($primarySeed, $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
         BitcoinLib::setMagicByteDefaults($this->network . ($this->testnet ? '-testnet' : ''));
@@ -85,17 +78,8 @@ class WalletSweeper {
             $this->blocktrailPublicKeys[$blocktrailKey['keyIndex']] = BIP32Key::create($blocktrailKey['pubkey'], $blocktrailKey['path']);
         }
 
-        //set the unspent output finder, using the given bitcoin data service provider
-        $this->bitcoinClient = $bitcoinClient;
-        $this->utxoFinder = new UnspentOutputFinder($this->bitcoinClient);
+        $this->utxoFinder = $utxoFinder;
 
-        // cleanup copy paste errors from mnemonics
-        $primaryMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($primaryMnemonic))));
-        $backupMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($backupMnemonic))));
-
-        // convert the primary and backup mnemonics to seeds (using BIP39), then create private keys (using BIP32)
-        $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $primaryPassphrase);
-        $backupSeed = BIP39::mnemonicToSeedHex($backupMnemonic, "");
         $this->primaryPrivateKey = BIP32Key::create(BIP32::master_key($primarySeed, $this->network, $this->testnet));
         $this->backupPrivateKey = BIP32Key::create(BIP32::master_key($backupSeed, $this->network, $this->testnet));
     }
@@ -251,22 +235,30 @@ class WalletSweeper {
                 //get the unspent outputs for this batch of addresses
                 $utxos = $this->utxoFinder->getUTXOs(array_keys($addresses));
                 //save the address utxos, along with relevant path and redeem script
-                foreach ($utxos as $address => $outputs) {
-                    $addressUTXOs[$address] = array(
-                        'path' =>  $addresses[$address]['path'],
-                        'redeem' =>  $addresses[$address]['redeem'],
-                        'utxos' =>  $outputs,
-                    );
-                    $totalUTXOs += count($outputs);
+                foreach ($utxos as $utxo) {
+                    if (!isset($utxo['address'], $utxo['value'])) {
+                        throw new BlocktrailSDKException("Missing data");
+                    }
+
+                    $address = $utxo['address'];
+
+                    if (!isset($addressUTXOs[$address])) {
+                        $addressUTXOs[$address] = [
+                            'path' =>  $addresses[$address]['path'],
+                            'redeem' =>  $addresses[$address]['redeem'],
+                            'utxos' =>  [],
+                        ];
+                    }
+
+                    $addressUTXOs[$address]['utxos'][] = $utxo;
+                    $totalUTXOs ++;
 
                     //add up the total utxo value for all addresses
-                    $totalBalance = array_reduce($outputs, function ($carry, $output) {
-                        return $carry += $output['value'];
-                    }, $totalBalance);
+                    $totalBalance += $utxo['value'];
+                }
 
-                    if ($this->debug) {
-                        echo "\nfound ".count($outputs)." unspent outputs in address $address";
-                    }
+                if ($this->debug) {
+                    echo "\nfound ".count($utxos)." unspent outputs";
                 }
 
                 //increment for next batch

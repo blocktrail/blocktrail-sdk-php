@@ -1,10 +1,7 @@
 <?php
 
-use BitWasp\BitcoinLib\RawTransaction;
-use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
-use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\Wallet;
 use Blocktrail\SDK\WalletInterface;
 
@@ -25,7 +22,6 @@ try {
         "passphrase" => "example-strong-password"
     ]);
 } catch (ObjectNotFound $e) {
-    /** @var Wallet $wallet */
     list($wallet, $backupInfo) = $client->createNewWallet([
         "identifier" => "example-wallet",
         "passphrase" => "example-strong-password",
@@ -34,16 +30,14 @@ try {
     $wallet->doDiscovery();
 }
 
-// var_dump($wallet->deleteWebhook());
-// var_dump($wallet->setupWebhook("http://www.example.com/wallet/webhook/example-wallet"));
+$addr = $wallet->getNewAddress();
+$zeroConf = true;
+$feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL;
 
-// $utxos = $wallet->utxos()['data'];
-// $utxo = $utxos[array_rand($utxos)];
+$maxSpendable = $wallet->maxSpendable($zeroConf, $feeStrategy);
 
-$txBuilder = new TransactionBuilder();
-$txBuilder->addRecipient($wallet->getNewAddress(), Blocktrail::DUST + 1);
-$txBuilder->addOpReturn("TO DAAAA MOOOON@!的");
+var_dump($maxSpendable);
 
-$txBuilder = $wallet->coinSelectionForTxBuilder($txBuilder);
-
-echo $wallet->sendTx($txBuilder);
+var_dump($wallet->pay([
+    $addr => $maxSpendable['max'],
+], null, $zeroConf, true, $feeStrategy));
