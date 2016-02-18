@@ -150,9 +150,14 @@ class TransactionBuilder {
     /**
      * @param string $feeStrategy
      * @return $this
+     * @throws BlocktrailSDKException
      */
     public function setFeeStrategy($feeStrategy) {
         $this->feeStrategy = $feeStrategy;
+
+        if (!in_array($feeStrategy, [Wallet::FEE_STRATEGY_BASE_FEE, Wallet::FEE_STRATEGY_OPTIMAL])) {
+            throw new BlocktrailSDKException("Unknown feeStrategy [{$feeStrategy}]");
+        }
 
         return $this;
     }
