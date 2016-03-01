@@ -1,6 +1,10 @@
 BlockTrail PHP SDK Changelog
 ============================
 
+v1.3.1
+------
+ - add `Wallet::FEE_STRATEGY_LOW_PRIORITY` which should give a 75% chance to get into the next 3 blocks.
+
 v1.3.0
 ------
  - Floating Fees
@@ -13,7 +17,7 @@ When `$feeStrategy` is `Wallet::FEE_STRATEGY_BASE_FEE` it will use the BASE_FEE 
 For using the `TransactionBuilder` use the `$txBuilder->setFeeStrategy()` if you don't want the default `Wallet::FEE_STRATEGY_OPTIMAL`.
 
 Optimal fee is calculated by taking all transactions from the last 30 blocks and calculating what the lowest possible fee is 
-that still gives more than 80% chance to end up in the next block.
+that still gives more than 75% chance to end up in the next block.
 
 v1.2.17
 -------
