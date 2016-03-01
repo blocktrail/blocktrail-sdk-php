@@ -12,6 +12,7 @@ interface WalletInterface {
 
     const FEE_STRATEGY_BASE_FEE = 'base_fee';
     const FEE_STRATEGY_OPTIMAL = 'optimal';
+    const FEE_STRATEGY_LOW_PRIORITY = 'low_priority';
 
     /**
      * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
