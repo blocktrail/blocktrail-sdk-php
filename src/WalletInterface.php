@@ -190,6 +190,11 @@ interface WalletInterface {
     public function getOptimalFeePerKB();
 
     /**
+     * @return int
+     */
+    public function getLowPriorityFeePerKB();
+
+    /**
      * @param TransactionBuilder    $txBuilder
      * @param bool|true             $lockUTXOs
      * @param bool|false            $allowZeroConf

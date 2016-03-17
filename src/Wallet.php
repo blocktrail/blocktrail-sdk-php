@@ -121,7 +121,8 @@ class Wallet implements WalletInterface {
     private $locked = true;
 
     protected $optimalFeePerKB;
-    protected $optimalFeePerKBAge;
+    protected $lowPriorityFeePerKB;
+    protected $feePerKBAge;
 
     /**
      * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
@@ -645,7 +646,7 @@ class Wallet implements WalletInterface {
             throw new \Exception("Atempting to spend more than sum of UTXOs");
         }
 
-        list($fee, $change) = $this->determineFeeAndChange($txBuilder, $this->getOptimalFeePerKB());
+        list($fee, $change) = $this->determineFeeAndChange($txBuilder, $this->getOptimalFeePerKB(), $this->getLowPriorityFeePerKB());
 
         if ($txBuilder->getValidateFee() !== null) {
             if (abs($txBuilder->getValidateFee() - $fee) > Wallet::BASE_FEE) {
@@ -682,7 +683,7 @@ class Wallet implements WalletInterface {
         return [$inputs, $send];
     }
 
-    public function determineFeeAndChange(TransactionBuilder $txBuilder, $optimalFeePerKB) {
+    public function determineFeeAndChange(TransactionBuilder $txBuilder, $optimalFeePerKB, $lowPriorityFeePerKB) {
         $send = $txBuilder->getOutputs();
         $utxos = $txBuilder->getUtxos();
 
@@ -701,7 +702,7 @@ class Wallet implements WalletInterface {
                 $change = 0;
             }
         } else {
-            $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB);
+            $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB, $lowPriorityFeePerKB);
 
             $change = $this->determineChange($utxos, $send, $fee);
 
@@ -711,7 +712,7 @@ class Wallet implements WalletInterface {
                 $send[$changeIdx] = ['address' => 'change', 'value' => $change];
 
                 // recaculate fee now that we know that we have a change output
-                $fee2 = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB);
+                $fee2 = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB, $lowPriorityFeePerKB);
 
                 // unset dummy change output
                 unset($send[$changeIdx]);
@@ -734,7 +735,7 @@ class Wallet implements WalletInterface {
             }
         }
 
-        $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB);
+        $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB, $lowPriorityFeePerKB);
 
         return [$fee, $change];
     }
@@ -882,10 +883,11 @@ class Wallet implements WalletInterface {
      * @param array[] $outputs
      * @param         $feeStrategy
      * @param         $optimalFeePerKB
+     * @param         $lowPriorityFeePerKB
      * @return int
      * @throws BlocktrailSDKException
      */
-    protected function determineFee($utxos, $outputs, $feeStrategy, $optimalFeePerKB) {
+    protected function determineFee($utxos, $outputs, $feeStrategy, $optimalFeePerKB, $lowPriorityFeePerKB) {
         $outputSize = 0;
         foreach ($outputs as $output) {
             if (isset($output['scriptPubKey'])) {
@@ -903,6 +905,9 @@ class Wallet implements WalletInterface {
 
             case self::FEE_STRATEGY_OPTIMAL:
                 return (int)round(($size / 1000) * $optimalFeePerKB);
+
+            case self::FEE_STRATEGY_LOW_PRIORITY:
+                return (int)round(($size / 1000) * $lowPriorityFeePerKB);
 
             default:
                 throw new BlocktrailSDKException("Unknown feeStrategy [{$feeStrategy}]");
@@ -997,24 +1002,35 @@ class Wallet implements WalletInterface {
         $result = $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
 
         $this->optimalFeePerKB = $result['fees'][self::FEE_STRATEGY_OPTIMAL];
+        $this->lowPriorityFeePerKB = $result['fees'][self::FEE_STRATEGY_LOW_PRIORITY];
+        $this->feePerKBAge = time();
 
         return $result;
     }
 
-    public function updateOptimalFeePerKB() {
-        $result = $this->sdk->feePerKB();
-
-        $this->optimalFeePerKB = $result[self::FEE_STRATEGY_OPTIMAL];
+    public function getOptimalFeePerKB() {
+        if (!$this->optimalFeePerKB || $this->feePerKBAge < time() - 60) {
+            $this->updateFeePerKB();
+        }
 
         return $this->optimalFeePerKB;
     }
 
-    public function getOptimalFeePerKB() {
-        if (!$this->optimalFeePerKB || $this->optimalFeePerKBAge < time() - 60) {
-            $this->updateOptimalFeePerKB();
+    public function getLowPriorityFeePerKB() {
+        if (!$this->lowPriorityFeePerKB || $this->feePerKBAge < time() - 60) {
+            $this->updateFeePerKB();
         }
 
-        return $this->optimalFeePerKB;
+        return $this->lowPriorityFeePerKB;
+    }
+
+    public function updateFeePerKB() {
+        $result = $this->sdk->feePerKB();
+
+        $this->optimalFeePerKB = $result[self::FEE_STRATEGY_OPTIMAL];
+        $this->lowPriorityFeePerKB = $result[self::FEE_STRATEGY_LOW_PRIORITY];
+
+        $this->feePerKBAge = time();
     }
 
     /**

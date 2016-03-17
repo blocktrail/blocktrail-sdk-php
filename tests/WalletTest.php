@@ -279,6 +279,27 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         //*/
 
         /*
+         * do another TX but with a LOW_PRIORITY_FEE
+         */
+        $value = BlocktrailSDK::toSatoshi(0.0001);
+        $txHash = $wallet->pay([$address => $value,], null, false, true, Wallet::FEE_STRATEGY_LOW_PRIORITY);
+
+        $this->assertTrue(!!$txHash);
+
+        sleep(1); // sleep to wait for the TX to be processed
+
+        try {
+            $tx = $client->transaction($txHash);
+        } catch (ObjectNotFound $e) {
+            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        }
+
+        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
+        $this->assertEquals($txHash, $tx['hash']);
+        $this->assertTrue(count($tx['outputs']) <= 2);
+        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
+
+        /*
          * do another TX but with a custom - high - fee
          */
         $value = BlocktrailSDK::toSatoshi(0.0001);
