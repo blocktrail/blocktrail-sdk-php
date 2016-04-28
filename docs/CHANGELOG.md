@@ -1,6 +1,10 @@
 BlockTrail PHP SDK Changelog
 ============================
 
+v1.3.2
+------
+ - set `DUST` to 2730 satoshis, to reflect a 0.00005 BTC/kb relay fee, which many people still use to avoid spam.
+
 v1.3.1
 ------
  - add `Wallet::FEE_STRATEGY_LOW_PRIORITY` which should give a 75% chance to get into the next 3 blocks.
