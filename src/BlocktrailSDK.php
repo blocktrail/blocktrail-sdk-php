@@ -923,6 +923,37 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         return self::jsonDecode($response->body(), true);
     }
+
+    /**
+     *
+     * @param string   $identifier the identifier of the wallet
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee
+     * @param int      $outputCnt
+     * @return array
+     * @throws \Exception
+     */
+    public function walletMaxSpendable($identifier, $allowZeroConf = false, $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL, $forceFee = null, $outputCnt = 1) {
+        $args = [
+            'zeroconf' => (int)!!$allowZeroConf,
+            'fee_strategy' => $feeStrategy,
+            'outputs' => $outputCnt,
+        ];
+
+        if ($forceFee !== null) {
+            $args['forcefee'] = (int)$forceFee;
+        }
+
+        $response = $this->client->get(
+            "wallet/{$identifier}/max-spendable",
+            $args,
+            RestClient::AUTH_HTTP_SIG
+        );
+
+        return self::jsonDecode($response->body(), true);
+    }
+
     /**
      * @return array        ['optimal_fee' => 10000, 'low_priority_fee' => 5000]
      */

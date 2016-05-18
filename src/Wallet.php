@@ -531,6 +531,20 @@ class Wallet implements WalletInterface {
     }
 
     /**
+     * determine max spendable from wallet after fees
+     *
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee set a fixed fee instead of automatically calculating the correct fee, not recommended!
+     * @param int      $outputCnt
+     * @return string
+     * @throws BlocktrailSDKException
+     */
+    public function getMaxSpendable($allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null, $outputCnt = 1) {
+        return $this->sdk->walletMaxSpendable($this->identifier, $allowZeroConf, $feeStrategy, $forceFee, $outputCnt);
+    }
+
+    /**
      * parse outputs into normalized struct
      *
      * @param array $outputs    [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ]

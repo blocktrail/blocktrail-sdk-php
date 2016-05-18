@@ -495,6 +495,18 @@ interface BlocktrailSDKInterface {
     public function walletUTXOs($identifier, $page = 1, $limit = 20, $sortDir = 'asc');
 
     /**
+     *
+     * @param string   $identifier the identifier of the wallet
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee
+     * @param int      $outputCnt
+     * @return array
+     * @throws \Exception
+     */
+    public function walletMaxSpendable($identifier, $allowZeroConf = false, $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL, $forceFee = null, $outputCnt = 1);
+
+    /**
      * get a paginated list of all wallets associated with the api user
      *
      * @param  integer          $page    pagination: page number

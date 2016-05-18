@@ -4,6 +4,7 @@ namespace Blocktrail\SDK;
 
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 /**
  * Interface Wallet
@@ -202,6 +203,18 @@ interface WalletInterface {
      * @return TransactionBuilder
      */
     public function coinSelectionForTxBuilder(TransactionBuilder $txBuilder, $lockUTXOs = true, $allowZeroConf = false, $forceFee = null);
+
+    /**
+     * determine max spendable from wallet after fees
+     *
+     * @param bool     $allowZeroConf
+     * @param string   $feeStrategy
+     * @param null|int $forceFee set a fixed fee instead of automatically calculating the correct fee, not recommended!
+     * @param int      $outputCnt
+     * @return string
+     * @throws BlocktrailSDKException
+     */
+    public function getMaxSpendable($allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null, $outputCnt = 1);
 
     /**
      * delete the wallet
