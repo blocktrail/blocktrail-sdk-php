@@ -90,6 +90,17 @@ Too often the suggested solution is to disable ssl cert verification in cURL, bu
   curl.cainfo = C:\php\certs\cacert.pem
   ```
 
+(Optional) Use `libsecp256k1`
+-----------------------------
+The underlying `bitcoin-php` library that is used to sign transactions can use `libsecp256k1` for (A LOT) faster signing of transactions.
+If the `secp256k1-php` PHP extension is installed it will be automatically used and will greatly improve performance!
+
+The installation is a bit cumbersome though and because `libsecp256k1` still changes a lot building might not always work!
+If you can get it to install; AWESOME, if not, have patience while we're working on figuring out how to provide installers for them.
+
+https://github.com/Bit-Wasp/secp256k1-php#to-install
+
+**MAKE SURE TO RUN THE TESTSUITE OF `secp256k1-php` AFTER THE INSTALL BEFORE ENABLING THE EXTENSION!!**
 
 Usage
 -----
