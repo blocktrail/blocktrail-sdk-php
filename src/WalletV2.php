@@ -2,10 +2,10 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-
-
-use BitWasp\BitcoinLib\BIP39\BIP39;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
+use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -26,9 +26,9 @@ class WalletV2 extends Wallet {
      * @param string                 $identifier identifier of the wallet
      * @param string                 $encryptedPrimarySeed
      * @param                        $encryptedSecret
-     * @param                        $primaryPublicKeys
-     * @param                        $backupPublicKey
-     * @param array                  $blocktrailPublicKeys
+     * @param BIP32Key[]             $primaryPublicKeys
+     * @param BIP32Key               $backupPublicKey
+     * @param BIP32Key[]             $blocktrailPublicKeys
      * @param int                    $keyIndex
      * @param string                 $network
      * @param bool                   $testnet
@@ -72,8 +72,8 @@ class WalletV2 extends Wallet {
         }
 
         if ($primaryPrivateKey) {
-            if (is_string($primaryPrivateKey)) {
-                $primaryPrivateKey = [$primaryPrivateKey, "m"];
+            if (!($primaryPrivateKey instanceof HierarchicalKey) && !($primaryPrivateKey instanceof BIP32Key)) {
+                $primaryPrivateKey = HierarchicalKeyFactory::fromExtended($primaryPrivateKey);
             }
         } else {
             if (!($this->secret = CryptoJSAES::decrypt($encryptedSecret, $password))) {
@@ -85,14 +85,16 @@ class WalletV2 extends Wallet {
                 throw new WalletDecryptException("Failed to decrypt primary seed with secret");
             }
 
+            $seedBuffer = new Buffer(base64_decode($this->primarySeed));
+
             // create BIP32 private key from the seed
-            $primaryPrivateKey = BIP32::master_key(bin2hex(base64_decode($this->primarySeed)), $this->network, $this->testnet);
+            $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($seedBuffer);
         }
 
-        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
+        $this->primaryPrivateKey = $primaryPrivateKey instanceof BIP32Key ? $primaryPrivateKey : BIP32Key::create($primaryPrivateKey, "m");
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
+        $checksum = $this->primaryPrivateKey->publicKey()->getAddress()->getAddress();
         if ($checksum != $this->checksum) {
             throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
         }
@@ -145,7 +147,7 @@ class WalletV2 extends Wallet {
         $this->encryptedSecret = $encryptedSecret;
 
         return [
-            'encrypted_secret' => BIP39::entropyToMnemonic(bin2hex(base64_decode($this->encryptedSecret))),
+            'encrypted_secret' => MnemonicFactory::bip39()->entropyToMnemonic(new Buffer(base64_decode($this->encryptedSecret))),
         ];
     }
 }

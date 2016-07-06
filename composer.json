@@ -19,7 +19,7 @@
     },
     "license": "MIT",
     "require": {
-        "php": ">=5.4.0",
+        "php": ">=5.5.0",
 
         "ext-intl": "*",
         "ext-gmp": "*",
@@ -28,11 +28,11 @@
         "ext-gd": "*",
         "ext-dom": "*",
 
-        "blocktrail/bitcoin-lib": "1.0.20",
+        "bitwasp/bitcoin": "dev-master#f02c0d5f143be7d5140e2d2348e859112ef59d3d",
+        "mdanter/ecc": "v0.4.0",
 
         "guzzlehttp/guzzle": "5.2.*",
         "99designs/http-signatures-guzzlehttp": "1.2.*",
-        "mdanter/ecc": "0.2.0",
         "rych/hash_pbkdf2-compat": "~1.0",
         "ramsey/array_column": "~1.1",
         "dompdf/dompdf" : "0.6.*",

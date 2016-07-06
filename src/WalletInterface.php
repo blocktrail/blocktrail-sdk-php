@@ -147,7 +147,7 @@ interface WalletInterface {
      * build inputs and outputs lists for TransactionBuilder
      *
      * @param TransactionBuilder $txBuilder
-     * @return array
+     * @return [Transaction, array[]]
      * @throws \Exception
      */
     public function buildTx(TransactionBuilder $txBuilder);

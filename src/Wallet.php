@@ -2,9 +2,19 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
+use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Bitcoin;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\MessageSigner\MessageSigner;
+use BitWasp\Bitcoin\Script\P2shScript;
+use BitWasp\Bitcoin\Script\ScriptFactory;
+use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Transaction\Factory\Signer;
+use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
+use BitWasp\Bitcoin\Transaction\OutPoint;
+use BitWasp\Bitcoin\Transaction\Transaction;
+use BitWasp\Bitcoin\Transaction\TransactionOutput;
+use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -122,26 +132,22 @@ abstract class Wallet implements WalletInterface {
     /**
      * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
      * @param string                        $identifier                 identifier of the wallet
-     * @param array[string, string]         $primaryPublicKeys
-     * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
-     * @param array[array[string, string]]  $blocktrailPublicKeys
+     * @param BIP32Key[]                    $primaryPublicKeys
+     * @param BIP32Key                      $backupPublicKey            should be BIP32 master public key M/
+     * @param BIP32Key[]                    $blocktrailPublicKeys
      * @param int                           $keyIndex
      * @param string                        $network
      * @param bool                          $testnet
      * @param string                        $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
 
-        $this->backupPublicKey = BIP32Key::create($backupPublicKey);
-        $this->primaryPublicKeys = array_map(function ($key) {
-            return BIP32Key::create($key);
-        }, $primaryPublicKeys);
-        $this->blocktrailPublicKeys = array_map(function ($key) {
-            return BIP32Key::create($key);
-        }, $blocktrailPublicKeys);
+        $this->backupPublicKey = BlocktrailSDK::normalizeBIP32Key($backupPublicKey);
+        $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);
+        $this->blocktrailPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($blocktrailPublicKeys);
 
         $this->network = $network;
         $this->testnet = $testnet;
@@ -195,10 +201,12 @@ abstract class Wallet implements WalletInterface {
         $walletPath = WalletPath::create($keyIndex);
 
         // do the upgrade to the new 'key_index'
-        $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($this->primaryPrivateKey->tuple(), (string)$walletPath->keyIndexPath()));
-        $result = $this->sdk->upgradeKeyIndex($this->identifier, $keyIndex, $primaryPublicKey);
+        $primaryPublicKey = $this->primaryPrivateKey->buildKey((string)$walletPath->keyIndexPath()->publicPath());
 
-        $this->primaryPublicKeys[$keyIndex] = BIP32Key::create($primaryPublicKey);
+        // $primaryPublicKey = BIP32::extended_private_to_public(BIP32::build_key($this->primaryPrivateKey->tuple(), (string)$walletPath->keyIndexPath()));
+        $result = $this->sdk->upgradeKeyIndex($this->identifier, $keyIndex, $primaryPublicKey->tuple());
+
+        $this->primaryPublicKeys[$keyIndex] = $primaryPublicKey;
 
         $this->keyIndex = $keyIndex;
         $this->walletPath = $walletPath;
@@ -206,7 +214,9 @@ abstract class Wallet implements WalletInterface {
         // update the blocktrail public keys
         foreach ($result['blocktrail_public_keys'] as $keyIndex => $pubKey) {
             if (!isset($this->blocktrailPublicKeys[$keyIndex])) {
-                $this->blocktrailPublicKeys[$keyIndex] = BIP32Key::create($pubKey);
+                $path = $pubKey[1];
+                $pubKey = $pubKey[0];
+                $this->blocktrailPublicKeys[$keyIndex] = BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKey), $path);
             }
         }
 
@@ -230,14 +240,15 @@ abstract class Wallet implements WalletInterface {
             $address = $new['address'];
             $redeemScript = $new['redeem_script'];
 
+            /** @var ScriptInterface $checkRedeemScript */
             list($checkAddress, $checkRedeemScript) = $this->getRedeemScriptByPath($path);
 
             if ($checkAddress != $address) {
                 throw new \Exception("Failed to verify that address from API [{$address}] matches address locally [{$checkAddress}]");
             }
 
-            if ($checkRedeemScript != $redeemScript) {
-                throw new \Exception("Failed to verify that redeemScript from API [{$redeemScript}] matches address locally [{$checkRedeemScript}]");
+            if ($checkRedeemScript->getHex() != $redeemScript) {
+                throw new \Exception("Failed to verify that redeemScript from API [{$redeemScript}] matches address locally [{$checkRedeemScript->getHex()}]");
             }
         } else {
             $path = $this->sdk->getNewDerivation($this->identifier, (string)$path);
@@ -293,10 +304,15 @@ abstract class Wallet implements WalletInterface {
      * get address and redeemScript for specified path
      *
      * @param string    $path
-     * @return array[string, string]     [address, redeemScript]
+     * @return array[string, ScriptInterface]     [address, redeemScript]
      */
     public function getRedeemScriptByPath($path) {
         $path = BIP32Path::path($path);
+
+//        var_dump(__METHOD__);
+//        var_dump((string)$path);
+//        var_dump($this->getParentPublicKey($path)->publicKeyHex());
+//        throw new \Exception();
 
         // optimization to avoid doing BitcoinLib::private_key_to_public_key too much
         if ($pubKey = $this->getParentPublicKey($path)) {
@@ -320,24 +336,34 @@ abstract class Wallet implements WalletInterface {
     /**
      * @param BIP32Key          $key
      * @param string|BIP32Path  $path
-     * @return string[]                 [address, redeemScript]
+     * @return array[string, ScriptInterface]                 [address, redeemScript]
      * @throws \Exception
      */
     protected function getRedeemScriptFromKey(BIP32Key $key, $path) {
         $path = BIP32Path::path($path)->publicPath();
 
+//        var_dump(__METHOD__);
+//        var_dump((string)$path);
+//        var_dump($key->publicKeyHex());
+
         $blocktrailPublicKey = $this->getBlocktrailPublicKey($path);
 
-        $multiSig = RawTransaction::create_multisig(
-            2,
-            BlocktrailSDK::sortMultisigKeys([
-                $key->buildKey($path)->publicKey(),
-                $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKey(),
-                $blocktrailPublicKey->buildKey($path)->publicKey()
-            ])
-        );
+        $redeemScript = ScriptFactory::scriptPubKey()->multisig(2, BlocktrailSDK::sortMultisigKeys([
+            $key->buildKey($path)->publicKey(),
+            $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKey(),
+            $blocktrailPublicKey->buildKey($path)->publicKey()
+        ]), false);
 
-        return [$multiSig['address'], $multiSig['redeemScript']];
+//        var_dump('redeemScript', $redeemScript->getHex());
+//        var_dump([
+//            $key->buildKey($path)->publicKeyHex(),
+//            $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKeyHex(),
+//            $blocktrailPublicKey->buildKey($path)->publicKeyHex()
+//        ]);
+
+//        throw new \Exception();
+
+        return [(new P2shScript($redeemScript))->getAddress()->getAddress(), $redeemScript];
     }
 
     /**
@@ -506,7 +532,7 @@ abstract class Wallet implements WalletInterface {
      */
     public function coinSelectionForTxBuilder(TransactionBuilder $txBuilder, $lockUTXOs = true, $allowZeroConf = false, $forceFee = null) {
         // get the data we should use for this transaction
-        $coinSelection = $this->coinSelection($txBuilder->getOutputs(), $lockUTXOs, $allowZeroConf, $txBuilder->getFeeStrategy(), $forceFee);
+        $coinSelection = $this->coinSelection($txBuilder->getOutputs(/* $json = */true), $lockUTXOs, $allowZeroConf, $txBuilder->getFeeStrategy(), $forceFee);
         $utxos = $coinSelection['utxos'];
         $fee = $coinSelection['fee'];
         $change = $coinSelection['change'];
@@ -518,7 +544,10 @@ abstract class Wallet implements WalletInterface {
         }
 
         foreach ($utxos as $utxo) {
-            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'], $utxo['scriptpubkey_hex'], $utxo['path'], $utxo['redeem_script']);
+            $scriptPubKey = ScriptFactory::fromHex($utxo['scriptpubkey_hex']);
+            $redeemScript = ScriptFactory::fromHex($utxo['redeem_script']);
+            $address = AddressFactory::fromString($utxo['address']);
+            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $address, $scriptPubKey, $utxo['path'], $redeemScript);
         }
 
         return $txBuilder;
@@ -528,16 +557,18 @@ abstract class Wallet implements WalletInterface {
      * build inputs and outputs lists for TransactionBuilder
      *
      * @param TransactionBuilder $txBuilder
-     * @return array
+     * @return [TransactionInterface, SignInfo[]]
      * @throws \Exception
      */
     public function buildTx(TransactionBuilder $txBuilder) {
         $send = $txBuilder->getOutputs();
-
         $utxos = $txBuilder->getUtxos();
+        $signInfo = [];
+
+        $txb = new TxBuilder();
 
         foreach ($utxos as $utxo) {
-            if (!$utxo->address || !$utxo->value || !$utxo->scriptPubKeyHex) {
+            if (!$utxo->address || !$utxo->value || !$utxo->scriptPubKey) {
                 $tx = $this->sdk->transaction($utxo->hash);
 
                 if (!$tx || !isset($tx['outputs'][$utxo->index])) {
@@ -547,29 +578,26 @@ abstract class Wallet implements WalletInterface {
                 $output = $tx['outputs'][$utxo->index];
 
                 if (!$utxo->address) {
-                    $utxo->address = $output['address'];
+                    $utxo->address = AddressFactory::fromString($output['address']);
                 }
                 if (!$utxo->value) {
                     $utxo->value = $output['value'];
                 }
-                if (!$utxo->scriptPubKeyHex) {
-                    $utxo->scriptPubKeyHex = $output['script_hex'];
+                if (!$utxo->scriptPubKey) {
+                    $utxo->scriptPubKey = ScriptFactory::fromHex($output['script_hex']);
                 }
             }
 
             if (!$utxo->path) {
-                $address = $utxo->address;
-                if (!BitcoinLib::validate_address($address)) {
-                    throw new \Exception("Invalid address [{$address}]");
-                }
-
-                $utxo->path = $this->getPathForAddress($address);
+                $utxo->path = $this->getPathForAddress($utxo->address->getAddress());
             }
 
             if (!$utxo->redeemScript) {
                 list(, $redeemScript) = $this->getRedeemScriptByPath($utxo->path);
                 $utxo->redeemScript = $redeemScript;
             }
+
+            $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey));
         }
 
         if (array_sum(array_map(function (UTXO $utxo) { return $utxo->value; }, $utxos)) < array_sum(array_column($send, 'value'))) {
@@ -591,26 +619,28 @@ abstract class Wallet implements WalletInterface {
             ];
         }
 
-        // create raw transaction
-        $inputs = array_map(function (UTXO $utxo) {
-            return [
-                'txid' => $utxo->hash,
-                'vout' => (int)$utxo->index,
-                'address' => $utxo->address,
-                'scriptPubKey' => $utxo->scriptPubKeyHex,
-                'value' => $utxo->value,
-                'path' => $utxo->path,
-                'redeemScript' => $utxo->redeemScript
-            ];
-        }, $utxos);
-
+        foreach ($utxos as $utxo) {
+            $txb->spendOutPoint(new OutPoint(Buffer::hex($utxo->hash), $utxo->index), $utxo->scriptPubKey);
+        }
 
         // outputs should be randomized to make the change harder to detect
         if ($txBuilder->shouldRandomizeChangeOuput()) {
             shuffle($send);
         }
 
-        return [$inputs, $send];
+        foreach ($send as $out) {
+            assert(isset($out['value']));
+
+            if (isset($out['scriptPubKey'])) {
+                $txb->output($out['value'], $out['scriptPubKey']);
+            } else if (isset($out['address'])) {
+                $txb->payToAddress($out['value'], AddressFactory::fromString($out['address']));
+            } else {
+                throw new \Exception();
+            }
+        }
+
+        return [$txb->get(), $signInfo];
     }
 
     public function determineFeeAndChange(TransactionBuilder $txBuilder, $optimalFeePerKB, $lowPriorityFeePerKB) {
@@ -679,43 +709,34 @@ abstract class Wallet implements WalletInterface {
      * @throws \Exception
      */
     public function sendTx(TransactionBuilder $txBuilder, $apiCheckFee = true) {
-        list($inputs, $outputs) = $this->buildTx($txBuilder);
+        list($tx, $signInfo) = $this->buildTx($txBuilder);
 
-        return $this->_sendTx($inputs, $outputs, $apiCheckFee);
+        return $this->_sendTx($tx, $signInfo, $apiCheckFee);
     }
 
     /**
      * !! INTERNAL METHOD, public for testing purposes !!
      * create, sign and send transction based on inputs and outputs
      *
-     * @param      $inputs
-     * @param      $outputs
+     * @param Transaction $tx
+     * @param SignInfo[]  $signInfo
      * @param bool $apiCheckFee     let the API check if the fee is correct
      * @return string
      * @throws \Exception
      * @internal
      */
-    public function _sendTx($inputs, $outputs, $apiCheckFee = true) {
+    public function _sendTx(Transaction $tx, array $signInfo, $apiCheckFee = true) {
         if ($this->locked) {
             throw new \Exception("Wallet needs to be unlocked to pay");
         }
 
-        // create raw unsigned TX
-        $raw_transaction = RawTransaction::create($inputs, $outputs);
-
-        if (!$raw_transaction) {
-            throw new \Exception("Failed to create raw transaction");
-        }
+        assert(Util::all(function($signInfo) { return $signInfo instanceof SignInfo; }, $signInfo), '$signInfo should be SignInfo[]');
 
         // sign the transaction with our keys
-        $signed = $this->signTransaction($raw_transaction, $inputs);
-
-        if (!$signed['sign_count']) {
-            throw new \Exception("Failed to partially sign transaction");
-        }
+        $signed = $this->signTransaction($tx, $signInfo);
 
         // send the transaction
-        $finished = $this->sendTransaction($signed['hex'], array_column($inputs, 'path'), $apiCheckFee);
+        $finished = $this->sendTransaction($signed->getHex(), array_map(function(SignInfo $r) { return $r->path; }, $signInfo), $apiCheckFee);
 
         return $finished;
     }
@@ -821,7 +842,11 @@ abstract class Wallet implements WalletInterface {
         $outputSize = 0;
         foreach ($outputs as $output) {
             if (isset($output['scriptPubKey'])) {
-                $outputSize += strlen($output['scriptPubKey']) / 2; // asume HEX
+                if ($output['scriptPubKey'] instanceof ScriptInterface) {
+                    $outputSize += $output['scriptPubKey']->getBuffer()->getSize();
+                } else {
+                    $outputSize += strlen($output['scriptPubKey']) / 2; // asume HEX
+                }
             } else {
                 $outputSize += 34;
             }
@@ -864,45 +889,27 @@ abstract class Wallet implements WalletInterface {
     /**
      * sign a raw transaction with the private keys that we have
      *
-     * @param string    $raw_transaction
-     * @param array[]   $inputs
-     * @return array                        response from RawTransaction::sign
+     * @param Transaction $tx
+     * @param SignInfo[]  $signInfo
+     * @return Transaction
      * @throws \Exception
      */
-    protected function signTransaction($raw_transaction, array $inputs) {
-        $wallet = [];
-        $keys = [];
-        $redeemScripts = [];
+    protected function signTransaction(Transaction $tx, array $signInfo) {
+        $signer = new Signer($tx);
 
-        foreach ($inputs as $input) {
-            $redeemScript = null;
-            $key = null;
+        assert(Util::all(function($signInfo) { return $signInfo instanceof SignInfo; }, $signInfo), '$signInfo should be SignInfo[]');
 
-            if (isset($input['redeemScript'], $input['path'])) {
-                $redeemScript = $input['redeemScript'];
-                $path = BIP32Path::path($input['path'])->privatePath();
-                $key = $this->primaryPrivateKey->buildKey($path);
-                $address = $this->getAddressFromKey($key, $path);
+        foreach ($signInfo as $idx => $info) {
+            $path = BIP32Path::path($info->path)->privatePath();
+            $redeemScript = $info->redeemScript;
+            $output = $info->output;
 
-                if ($address != $input['address']) {
-                    throw new \Exception("Generated address does not match expected address!");
-                }
-            } else {
-                throw new \Exception("No redeemScript/path for input");
-            }
+            $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
 
-            if ($redeemScript && $key) {
-                $keys[] = $key;
-                $redeemScripts[] = $redeemScript;
-            }
+            $signer->sign($idx, $key, $output, $redeemScript);
         }
 
-        BIP32::bip32_keys_to_wallet($wallet, array_map(function (BIP32Key $key) {
-            return $key->tuple();
-        }, $keys));
-        RawTransaction::redeem_scripts_to_wallet($wallet, $redeemScripts);
-
-        return RawTransaction::sign($wallet, $raw_transaction, json_encode($inputs));
+        return $signer->get();
     }
 
     /**
@@ -985,12 +992,15 @@ abstract class Wallet implements WalletInterface {
      * @return string[]     [address, signature]
      */
     protected function createChecksumVerificationSignature() {
-        $import = BIP32::import($this->primaryPrivateKey->key());
+        $privKey = $this->primaryPrivateKey->key();
 
-        $public = $this->primaryPrivateKey->publicKey();
-        $address = BitcoinLib::public_key_to_address($public, $import['version']);
+        $pubKey = $this->primaryPrivateKey->publicKey();
+        $address = $pubKey->getAddress()->getAddress();
 
-        return [$address, BitcoinLib::signMessage($address, $import)];
+        $signer = new MessageSigner(Bitcoin::getEcAdapter());
+        $signed = $signer->sign($address, $privKey->getPrivateKey());
+
+        return [$address, base64_encode($signed->getCompactSignature()->getBuffer()->getBinary())];
     }
 
     /**
