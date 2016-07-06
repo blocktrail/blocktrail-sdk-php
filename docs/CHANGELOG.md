@@ -1,6 +1,10 @@
 BlockTrail PHP SDK Changelog
 ============================
 
+v2.1.0
+------
+ - Replaced `bitcoin-lib-php` with `bitcoin-php`.
+
 v2.0.0
 ------
  - New [Default] Wallet Version 2

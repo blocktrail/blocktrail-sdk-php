@@ -2,11 +2,25 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
+use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Bitcoin;
+use BitWasp\Bitcoin\Crypto\EcAdapter\EcSerializer;
+use BitWasp\Bitcoin\Crypto\EcAdapter\Key\PublicKeyInterface;
+use BitWasp\Bitcoin\Crypto\EcAdapter\Serializer\Signature\CompactSignatureSerializerInterface;
+use BitWasp\Bitcoin\Crypto\Random\Random;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\MessageSigner\MessageSigner;
+use BitWasp\Bitcoin\MessageSigner\SignedMessage;
+use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
+use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
+use BitWasp\Bitcoin\Network\NetworkFactory;
+use BitWasp\Bitcoin\Serializer\MessageSigner\SignedMessageSerializer;
+use BitWasp\Bitcoin\Transaction\Transaction;
+use BitWasp\Bitcoin\Transaction\TransactionFactory;
+use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
+use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
 
 /**
@@ -93,7 +107,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param $testnet
      */
     protected function setBitcoinLibMagicBytes($network, $testnet) {
-        BitcoinLib::setMagicByteDefaults($network . ($testnet ? '-testnet' : ''));
+        assert($network == "bitcoin");
+        Bitcoin::setNetwork($testnet ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin());
     }
 
     /**
@@ -557,6 +572,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 throw new \InvalidArgumentException("Can't generate Primary Mnemonic without a passphrase");
             } else {
                 // create new primary seed
+                /** @var HierarchicalKey $primaryPrivateKey */
                 list($primaryMnemonic, $primarySeed, $primaryPrivateKey) = $this->newPrimarySeed($options['passphrase']);
                 if ($storePrimaryMnemonic !== false) {
                     $storePrimaryMnemonic = true;
@@ -577,7 +593,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 $primaryPrivateKey = [$primaryPrivateKey, "m"];
             }
         } else {
-            $primaryPrivateKey = BIP32::master_key(BIP39::mnemonicToSeedHex($primaryMnemonic, $options['passphrase']), 'bitcoin', $this->testnet);
+            $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed($primaryMnemonic, $options['passphrase']));
         }
 
         if (!$storePrimaryMnemonic) {
@@ -585,7 +601,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // create primary public key from the created private key
-        $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
+        $path = (string)$walletPath->keyIndexPath()->publicPath();
+        $primaryPublicKey = BIP32Key::create($primaryPrivateKey->derivePath($path), $path);
 
         if (isset($options['backup_mnemonic']) && $options['backup_public_key']) {
             throw new \InvalidArgumentException("Can't specify Backup Mnemonic and Backup PublicKey");
@@ -594,6 +611,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $backupMnemonic = null;
         $backupPublicKey = null;
         if (!isset($options['backup_mnemonic']) && !isset($options['backup_public_key'])) {
+            /** @var HierarchicalKey $backupPrivateKey */
             list($backupMnemonic, $backupSeed, $backupPrivateKey) = $this->newBackupSeed();
         } else if (isset($options['backup_mnemonic'])) {
             $backupMnemonic = $options['backup_mnemonic'];
@@ -606,17 +624,21 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 $backupPublicKey = [$backupPublicKey, "m"];
             }
         } else {
-            $backupPublicKey = BIP32::extended_private_to_public(BIP32::master_key(BIP39::mnemonicToSeedHex($backupMnemonic, ""), 'bitcoin', $this->testnet));
+            $backupPrivateKey = HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed($backupMnemonic, ""));
+            $backupPublicKey = BIP32Key::create($backupPrivateKey->toPublic(), "M");
         }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
-        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
+        $checksum = $primaryPrivateKey->getPublicKey()->getAddress()->getAddress();
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
-        $data = $this->storeNewWalletV1($options['identifier'], $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $options['key_index']);
+        $data = $this->storeNewWalletV1($options['identifier'], $primaryPublicKey->tuple(), $backupPublicKey->tuple(), $primaryMnemonic, $checksum, $options['key_index']);
+
         // received the blocktrail public keys
-        $blocktrailPublicKeys = $data['blocktrail_public_keys'];
+        $blocktrailPublicKeys = Util::array_map_with_index(
+            function($keyIndex, $pubKeyTuple) { return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])]; },
+            $data['blocktrail_public_keys']);
 
         $wallet = new WalletV1(
             $this,
@@ -703,25 +725,27 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $backupSeed = isset($options['backup_seed']) ? $options['backup_seed'] : self::randomBits(256);
         }
 
-        if (!isset($options['primary_private_key'])) {
-            $options['primary_private_key'] = BIP32::master_key(bin2hex($primarySeed), 'bitcoin', $this->testnet);
+        if (isset($options['primary_private_key'])) {
+            $options['primary_private_key'] = BlocktrailSDK::normalizeBIP32Key($options['primary_private_key']);
+        } else {
+            $options['primary_private_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy(new Buffer($primarySeed)), "m");
         }
 
         // create primary public key from the created private key
-        $options['primary_public_key'] = BIP32::build_key($options['primary_private_key'], (string)$walletPath->keyIndexPath()->publicPath());
+        $options['primary_public_key'] = $options['primary_private_key']->buildKey($walletPath->keyIndexPath()->publicPath());
 
         if (!isset($options['backup_public_key'])) {
-            $options['backup_public_key'] = BIP32::extended_private_to_public(BIP32::master_key(bin2hex($backupSeed), 'bitcoin', $this->testnet));
+            $options['backup_public_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy(new Buffer($backupSeed)), "m")->buildKey("M");
         }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
-        $checksum = BIP32::key_to_address($options['primary_private_key'][0]);
+        $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress();
 
         // send the public keys and encrypted data to server
         $data = $this->storeNewWalletV2(
             $options['identifier'],
-            $options['primary_public_key'],
-            $options['backup_public_key'],
+            $options['primary_public_key']->tuple(),
+            $options['backup_public_key']->tuple(),
             $storeDataOnServer ? $encryptedPrimarySeed : false,
             $storeDataOnServer ? $encryptedSecret : false,
             $storeDataOnServer ? $recoverySecret : false,
@@ -730,7 +754,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         );
 
         // received the blocktrail public keys
-        $blocktrailPublicKeys = $data['blocktrail_public_keys'];
+        $blocktrailPublicKeys = Util::array_map_with_index(
+            function($keyIndex, $pubKeyTuple) { return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])]; },
+            $data['blocktrail_public_keys']);
 
         $wallet = new WalletV2(
             $this,
@@ -757,11 +783,13 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         return [
             $wallet,
             [
-                'encrypted_primary_seed' => $encryptedPrimarySeed ? BIP39::entropyToMnemonic(bin2hex(base64_decode($encryptedPrimarySeed))) : null,
-                'backup_seed' => $backupSeed ? BIP39::entropyToMnemonic(bin2hex($backupSeed)) : null,
-                'recovery_encrypted_secret' => $recoveryEncryptedSecret ? BIP39::entropyToMnemonic(bin2hex(base64_decode($recoveryEncryptedSecret))) : null,
-                'encrypted_secret' => $encryptedSecret ? BIP39::entropyToMnemonic(bin2hex(base64_decode($encryptedSecret))) : null,
-                'blocktrail_public_keys' => $blocktrailPublicKeys,
+                'encrypted_primary_seed' => $encryptedPrimarySeed ? MnemonicFactory::bip39()->entropyToMnemonic(new Buffer(base64_decode($encryptedPrimarySeed))) : null,
+                'backup_seed' => $backupSeed ? MnemonicFactory::bip39()->entropyToMnemonic(new Buffer($backupSeed)) : null,
+                'recovery_encrypted_secret' => $recoveryEncryptedSecret ? MnemonicFactory::bip39()->entropyToMnemonic(new Buffer(base64_decode($recoveryEncryptedSecret))) : null,
+                'encrypted_secret' => $encryptedSecret ? MnemonicFactory::bip39()->entropyToMnemonic(new Buffer(base64_decode($encryptedSecret))) : null,
+                'blocktrail_public_keys' => Util::array_map_with_index(
+                    function($keyIndex, BIP32Key $pubKey) { return [$keyIndex, $pubKey->tuple()]; },
+                    $blocktrailPublicKeys),
             ],
         ];
     }
@@ -1004,9 +1032,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         do {
             $mnemonic = $this->generateNewMnemonic($forceEntropy);
 
-            $seed = BIP39::mnemonicToSeedHex($mnemonic, $passphrase);
+            $seed = (new Bip39SeedGenerator)->getSeed($mnemonic, $passphrase);
 
-            $key = BIP32::master_key($seed, $this->network, $this->testnet);
+            $key = null;
+            try {
+                $key = HierarchicalKeyFactory::fromEntropy($seed);
+            } catch (\Exception $e) {}
         } while (!$key);
 
         return [$mnemonic, $seed, $key];
@@ -1021,12 +1052,13 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      */
     protected function generateNewMnemonic($forceEntropy = null) {
         if ($forceEntropy === null) {
-            $entropy = BIP39::generateEntropy(512);
+            $random = new Random();
+            $entropy = $random->bytes(512 / 8);
         } else {
             $entropy = $forceEntropy;
         }
 
-        return BIP39::entropyToMnemonic($entropy);
+        return MnemonicFactory::bip39()->entropyToMnemonic($entropy);
     }
 
     /**
@@ -1122,7 +1154,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // create TX hash from the raw signed hex
-        return RawTransaction::txid_from_raw($signed['hex']);
+        return TransactionFactory::fromHex($signed['hex'])->getTxId()->getHex();
     }
 
     /**
@@ -1377,11 +1409,15 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         // we could also use the API instead of the using BitcoinLib to verify
         // $this->client->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature])['result'];
 
-        try {
-            return BitcoinLib::verifyMessage($address, $signature, $message);
-        } catch (\Exception $e) {
-            return false;
-        }
+
+        $addr = AddressFactory::fromString($address);
+
+        /** @var CompactSignatureSerializerInterface $csSerializer */
+        $csSerializer = EcSerializer::getSerializer(Bitcoin::getEcAdapter(), CompactSignatureSerializerInterface::class);
+        $signedMessage = new SignedMessage($message, $csSerializer->parse(new Buffer(base64_decode($signature))));
+
+        $signer = new MessageSigner(Bitcoin::getEcAdapter());
+        return $signer->verify($signedMessage, $addr);
     }
 
     /**
@@ -1449,15 +1485,18 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * sort public keys for multisig script
      *
-     * @param string[] $pubKeys
-     * @return string[]
+     * @param PublicKeyInterface[] $pubKeys
+     * @return PublicKeyInterface[]
      */
     public static function sortMultisigKeys(array $pubKeys) {
-        $sortedKeys = $pubKeys;
+        $result = array_values($pubKeys);
+        usort($result, function (PublicKeyInterface $a, PublicKeyInterface $b) {
+                $av = $a->getHex();
+                $bv = $b->getHex();
+                return $av == $bv ? 0 : $av > $bv ? 1 : -1;
+            });
 
-        sort($sortedKeys);
-
-        return $sortedKeys;
+        return $result;
     }
 
     /**
@@ -1473,6 +1512,31 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             return self::jsonDecode($data, !$returnObject);
         } else {
             return null;
+        }
+    }
+
+    public static function normalizeBIP32KeyArray($keys) {
+        return Util::array_map_with_index(function($idx, $key) {
+            return [$idx, self::normalizeBIP32Key($key)];
+        }, $keys);
+    }
+
+    public static function normalizeBIP32Key($key) {
+        if ($key instanceof BIP32Key) {
+            return $key;
+        }
+
+        if (is_array($key)) {
+            $path = $key[1];
+            $key = $key[0];
+
+            if (!($key instanceof HierarchicalKey)) {
+                $key = HierarchicalKeyFactory::fromExtended($key);
+            }
+
+            return BIP32Key::create($key, $path);
+        } else {
+            throw new \Exception("Bad Input");
         }
     }
 }

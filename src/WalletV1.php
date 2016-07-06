@@ -2,8 +2,9 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\NotImplementedException;
 
@@ -20,15 +21,15 @@ class WalletV1 extends Wallet {
      * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
      * @param string                        $identifier                 identifier of the wallet
      * @param string                        $primaryMnemonic
-     * @param array[string, string]         $primaryPublicKeys
-     * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
-     * @param array[array[string, string]]  $blocktrailPublicKeys
+     * @param BIP32Key[]                    $primaryPublicKeys
+     * @param BIP32Key                      $backupPublicKey            should be BIP32 master public key M/
+     * @param BIP32Key[]                    $blocktrailPublicKeys
      * @param int                           $keyIndex
      * @param string                        $network
      * @param bool                          $testnet
      * @param string                        $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
         $this->primaryMnemonic = $primaryMnemonic;
 
         parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum);
@@ -61,20 +62,20 @@ class WalletV1 extends Wallet {
         }
 
         if ($primaryPrivateKey) {
-            if (is_string($primaryPrivateKey)) {
-                $primaryPrivateKey = [$primaryPrivateKey, "m"];
+            if (!($primaryPrivateKey instanceof HierarchicalKey)) {
+                $primaryPrivateKey = HierarchicalKeyFactory::fromExtended($primaryPrivateKey);
             }
         } else {
             // convert the mnemonic to a seed using BIP39 standard
-            $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
+            $primarySeed = (new Bip39SeedGenerator())->getSeed($primaryMnemonic, $password);
             // create BIP32 private key from the seed
-            $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
+            $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($primarySeed);
         }
 
-        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);
+        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey, "m");
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
+        $checksum = $this->primaryPrivateKey->key()->getPublicKey()->getAddress()->getAddress();
         if ($checksum != $this->checksum) {
             throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
         }
