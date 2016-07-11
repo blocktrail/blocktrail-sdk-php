@@ -8,16 +8,13 @@ use Blocktrail\SDK\WalletInterface;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
-$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet */, 'v1');
-// $client->setVerboseErrors();
-// $client->setCurlDebugging();
+$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet */, "v1");
 
 /**
- * @var $wallet             \Blocktrail\SDK\WalletInterface
+ * @var $wallet             Wallet
  * @var $backupMnemonic     string
  */
 try {
-    /** @var Wallet $wallet */
     $wallet = $client->initWallet([
         "identifier" => "example-wallet",
         "passphrase" => "example-strong-password"
@@ -31,15 +28,44 @@ try {
     $wallet->doDiscovery();
 }
 
-// var_dump($wallet->deleteWebhook());
-// var_dump($wallet->setupWebhook("http://www.example.com/wallet/webhook/example-wallet"));
+/*
+ * custom created TX using the TransactionBuilder class,
+ *  in this example we substract the fee required from the amount send
+ *  and the change is then automatically properly updated as well
+ */
 
-$utxos = $wallet->utxos()['data'];
-$utxo = $utxos[array_rand($utxos)];
+$amount = BlocktrailSDK::toSatoshi(0.001);
+$paymentAddress = $wallet->getNewAddress();
+
+$optimalFeePerKB = $wallet->getOptimalFeePerKB();
+$lowPriorityFeePerKB = $wallet->getLowPriorityFeePerKB();
 
 $txBuilder = new TransactionBuilder();
-var_dump($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'], $utxo['scriptpubkey_hex'], $utxo['path'], $utxo['redeem_script']);
-$txBuilder->spendOutput($utxo['hash'], $utxo['idx']);
-$txBuilder->addRecipient($wallet->getNewAddress(), $utxo['value'] / 2);
+$txBuilder->addRecipient($paymentAddress, $amount);
 
-var_dump($wallet->sendTx($txBuilder));
+// get coinselection for the payment we want to make
+$txBuilder = $wallet->coinSelectionForTxBuilder($txBuilder);
+
+// debug info
+echo "--------------------------------------------\n";
+var_dump("utxos", $txBuilder->getUtxos());
+
+echo "--------------------------------------------\n";
+var_dump("outputs", $txBuilder->getOutputs());
+list($fee, $change) = $wallet->determineFeeAndChange($txBuilder, $optimalFeePerKB, $lowPriorityFeePerKB);
+var_dump("fee", $fee);
+var_dump("change", $change);
+
+// set the fee and update the output value
+$txBuilder->setFee($fee);
+$txBuilder->updateOutputValue(0, $amount - $fee);
+
+// more debug info
+echo "--------------------------------------------\n";
+var_dump("outputs", $txBuilder->getOutputs());
+list($fee, $change) = $wallet->determineFeeAndChange($txBuilder, $optimalFeePerKB, $lowPriorityFeePerKB);
+var_dump("fee", $fee);
+var_dump("change", $change);
+
+// send TX
+var_dump($wallet->sendTx($txBuilder, false));

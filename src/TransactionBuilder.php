@@ -94,9 +94,48 @@ class TransactionBuilder {
      *
      * @param array $output     [value => int, address => string]
      *                          or [value => int, scriptPubKey => string] (scriptPubKey should be hex)
+     * @return $this
      */
     public function addOutput($output) {
         $this->outputs[] = $output;
+
+        return $this;
+    }
+
+    /**
+     * @param $idx
+     * @param $output
+     * @return $this
+     */
+    public function replaceOutput($idx, $output) {
+        $this->outputs[$idx] = $output;
+
+        return $this;
+    }
+
+    /**
+     * @param $idx
+     * @param $value
+     * @return $this
+     * @throws \Exception
+     */
+    public function updateOutputValue($idx, $value) {
+        // using this 'dirty' way of checking for a float since there's no other reliable way in PHP
+        if (!is_int($value)) {
+            throw new \Exception("Values should be in Satoshis (int)");
+        }
+
+        if ($value <= Blocktrail::DUST) {
+            throw new \Exception("Values should be more than dust (" . Blocktrail::DUST . ")");
+        }
+
+        if (!isset($this->outputs[$idx])) {
+            throw new \Exception("No output for index [{$idx}]");
+        }
+
+        $this->outputs[$idx]['value'] = $value;
+
+        return $this;
     }
 
     /**
@@ -105,7 +144,8 @@ class TransactionBuilder {
      * $data will be bin2hex and will be prefixed with a proper OP_PUSHDATA
      *
      * @param string $data
-     * @param bool   $allowNonStandard  when TRUE will allow scriptPubKey > 40 bytes (so $data > 39 bytes)
+     * @param bool   $allowNonStandard when TRUE will allow scriptPubKey > 40 bytes (so $data > 39 bytes)
+     * @return $this
      * @throws BlocktrailSDKException
      */
     public function addOpReturn($data, $allowNonStandard = false) {
@@ -119,6 +159,8 @@ class TransactionBuilder {
             'scriptPubKey' => self::OP_RETURN . RawTransaction::pushdata(bin2hex($data)),
             'value' => 0
         ]);
+
+        return $this;
     }
 
     /**
