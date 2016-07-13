@@ -62,6 +62,18 @@ class TransactionBuilder {
     }
 
     /**
+     * replace the currently set UTXOs with a new set
+     *
+     * @param UTXO[] $utxos
+     * @return $this
+     */
+    public function setUtxos(array $utxos) {
+       $this->utxos = $utxos;
+
+        return $this;
+    }
+
+    /**
      * @param string $address
      * @param int    $value
      * @return $this
