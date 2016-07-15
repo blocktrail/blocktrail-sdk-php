@@ -5,7 +5,7 @@ namespace Blocktrail\SDK\Connection;
 use GuzzleHttp\Client as Guzzle;
 use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\ResponseInterface;
-use GuzzleHttp\Post\PostBodyInterface;
+
 use GuzzleHttp\Query;
 use GuzzleHttp\Stream\Stream;
 use HttpSignatures\Context;

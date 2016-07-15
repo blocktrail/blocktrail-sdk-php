@@ -16,32 +16,11 @@ interface WalletInterface {
     const FEE_STRATEGY_LOW_PRIORITY = 'low_priority';
 
     /**
-     * @param BlocktrailSDKInterface        $sdk                        SDK instance used to do requests
-     * @param string                        $identifier                 identifier of the wallet
-     * @param string                        $primaryMnemonic
-     * @param array[string, string]         $primaryPublicKeys
-     * @param array[string, string]         $backupPublicKey            should be BIP32 master public key M/
-     * @param array[array[string, string]]  $blocktrailPublicKeys
-     * @param int                           $keyIndex
-     * @param string                        $network
-     * @param bool                          $testnet
-     * @param string                        $checksum
-     */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, $primaryPublicKey, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum);
-
-    /**
      * return the wallet identifier
      *
      * @return string
      */
     public function getIdentifier();
-
-    /**
-     * return the wallet primary mnemonic (for backup purposes)
-     *
-     * @return string
-     */
-    public function getPrimaryMnemonic();
 
     /**
      * return list of Blocktrail co-sign extended public keys
@@ -72,6 +51,14 @@ interface WalletInterface {
      * @return bool
      */
     public function isLocked();
+
+    /**
+     * change password that is used to store data encrypted on server
+     *
+     * @param $newPassword
+     * @return array        backupInfo
+     */
+    public function passwordChange($newPassword);
 
     /**
      * upgrade wallet to different blocktrail cosign key
