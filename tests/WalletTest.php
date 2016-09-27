@@ -2,6 +2,8 @@
 
 namespace Blocktrail\SDK\Tests;
 
+\error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+
 use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
 use BitWasp\BitcoinLib\BitcoinLib;

@@ -2,6 +2,8 @@
 
 namespace Blocktrail\SDK\Tests;
 
+\error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Services\BlocktrailBitcoinService;
