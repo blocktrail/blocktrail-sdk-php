@@ -1,6 +1,16 @@
 BlockTrail PHP SDK Changelog
 ============================
 
+v1.3.7
+------
+ - updated Guzzle to `v5.3.1` to fix a php7.1 bug.
+
+v1.3.6
+------
+ - Updated TransactionBuilder to be more customizable
+ - add $wallet->getMaxSpendable
+ - add fee strategies
+
 v1.3.2
 ------
  - set `DUST` to 2730 satoshis, to reflect a 0.00005 BTC/kb relay fee, which many people still use to avoid spam.
