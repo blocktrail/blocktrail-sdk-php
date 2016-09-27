@@ -68,7 +68,7 @@ class TransactionBuilder {
      * @return $this
      */
     public function setUtxos(array $utxos) {
-       $this->utxos = $utxos;
+        $this->utxos = $utxos;
 
         return $this;
     }
