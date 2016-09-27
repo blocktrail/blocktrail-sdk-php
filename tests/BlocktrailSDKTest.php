@@ -424,8 +424,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
     public function testPrice() {
         $price = $this->setupBlocktrailSDK()->price();
 
-        $this->assertTrue(is_float($price['USD']));
-        $this->assertTrue($price['USD'] > 0);
+        $this->assertTrue(is_float($price['USD']) || is_int($price['USD']), "is float or int [{$price['USD']}]");
+        $this->assertTrue($price['USD'] > 0, "is above 0 [{$price['USD']}]");
     }
 
     public function testVerifyMessage() {
