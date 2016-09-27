@@ -671,7 +671,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     public static function randomBytes($bytes) {
-        return mcrypt_create_iv($bytes, \MCRYPT_DEV_URANDOM);
+        return (new Random())->bytes($bytes)->getBinary();
     }
 
     protected function createNewWalletV2($options) {

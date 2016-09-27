@@ -41,10 +41,10 @@ A bit more about this can be found [in our documentation](https://www.blocktrail
 
 Requirements
 ------------
-The SDK requires PHP 5.6+ and the Intl, GMP, BCMath and MCrypt PHP extensions.  
+The SDK requires PHP 5.6+ and the Intl, GMP and BCMath PHP extensions.  
 To install these on Ubuntu use:
 ```
-sudo apt-get install php5-bcmath php5-intl php5-gmp php5-mcrypt
+sudo apt-get install php5-bcmath php5-intl php5-gmp
 sudo php5enmod mcrypt
 ```
 *BCMath should already be part of the default php5 package*
