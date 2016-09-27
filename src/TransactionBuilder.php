@@ -195,7 +195,7 @@ class TransactionBuilder {
      * @return array
      */
     public function getOutputs($json = false) {
-        return array_map(function($output) use($json) {
+        return array_map(function ($output) use ($json) {
             $result = $output;
 
             if ($json) {

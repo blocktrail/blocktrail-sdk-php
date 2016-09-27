@@ -731,13 +731,17 @@ abstract class Wallet implements WalletInterface {
             throw new \Exception("Wallet needs to be unlocked to pay");
         }
 
-        assert(Util::all(function($signInfo) { return $signInfo instanceof SignInfo; }, $signInfo), '$signInfo should be SignInfo[]');
+        assert(Util::all(function ($signInfo) {
+            return $signInfo instanceof SignInfo;
+        }, $signInfo), '$signInfo should be SignInfo[]');
 
         // sign the transaction with our keys
         $signed = $this->signTransaction($tx, $signInfo);
 
         // send the transaction
-        $finished = $this->sendTransaction($signed->getHex(), array_map(function(SignInfo $r) { return $r->path; }, $signInfo), $apiCheckFee);
+        $finished = $this->sendTransaction($signed->getHex(), array_map(function (SignInfo $r) {
+            return $r->path;
+        }, $signInfo), $apiCheckFee);
 
         return $finished;
     }
@@ -898,7 +902,9 @@ abstract class Wallet implements WalletInterface {
     protected function signTransaction(Transaction $tx, array $signInfo) {
         $signer = new Signer($tx, Bitcoin::getEcAdapter());
 
-        assert(Util::all(function($signInfo) { return $signInfo instanceof SignInfo; }, $signInfo), '$signInfo should be SignInfo[]');
+        assert(Util::all(function ($signInfo) {
+            return $signInfo instanceof SignInfo;
+        }, $signInfo), '$signInfo should be SignInfo[]');
 
         foreach ($signInfo as $idx => $info) {
             $path = BIP32Path::path($info->path)->privatePath();
