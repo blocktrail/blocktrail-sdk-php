@@ -30,7 +30,6 @@
         "ext-intl": "*",
         "ext-gmp": "*",
         "ext-bcmath": "*",
-        "ext-mcrypt": "*",
         "ext-gd": "*",
         "ext-dom": "*",
 
