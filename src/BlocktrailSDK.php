@@ -636,9 +636,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $data = $this->storeNewWalletV1($options['identifier'], $primaryPublicKey->tuple(), $backupPublicKey->tuple(), $primaryMnemonic, $checksum, $options['key_index']);
 
         // received the blocktrail public keys
-        $blocktrailPublicKeys = Util::array_map_with_index(
-            function($keyIndex, $pubKeyTuple) { return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])]; },
-            $data['blocktrail_public_keys']);
+        $blocktrailPublicKeys = Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) {
+            return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])];
+        }, $data['blocktrail_public_keys']);
 
         $wallet = new WalletV1(
             $this,
@@ -754,9 +754,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         );
 
         // received the blocktrail public keys
-        $blocktrailPublicKeys = Util::array_map_with_index(
-            function($keyIndex, $pubKeyTuple) { return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])]; },
-            $data['blocktrail_public_keys']);
+        $blocktrailPublicKeys = Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) {
+            return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])];
+        }, $data['blocktrail_public_keys']);
 
         $wallet = new WalletV2(
             $this,
@@ -787,9 +787,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 'backup_seed' => $backupSeed ? MnemonicFactory::bip39()->entropyToMnemonic(new Buffer($backupSeed)) : null,
                 'recovery_encrypted_secret' => $recoveryEncryptedSecret ? MnemonicFactory::bip39()->entropyToMnemonic(new Buffer(base64_decode($recoveryEncryptedSecret))) : null,
                 'encrypted_secret' => $encryptedSecret ? MnemonicFactory::bip39()->entropyToMnemonic(new Buffer(base64_decode($encryptedSecret))) : null,
-                'blocktrail_public_keys' => Util::array_map_with_index(
-                    function($keyIndex, BIP32Key $pubKey) { return [$keyIndex, $pubKey->tuple()]; },
-                    $blocktrailPublicKeys),
+                'blocktrail_public_keys' => Util::arrayMapWithIndex(function ($keyIndex, BIP32Key $pubKey) {
+                    return [$keyIndex, $pubKey->tuple()];
+                }, $blocktrailPublicKeys),
             ],
         ];
     }
@@ -1037,7 +1037,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $key = null;
             try {
                 $key = HierarchicalKeyFactory::fromEntropy($seed);
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                // try again
+            }
         } while (!$key);
 
         return [$mnemonic, $seed, $key];
@@ -1502,10 +1504,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     public static function sortMultisigKeys(array $pubKeys) {
         $result = array_values($pubKeys);
         usort($result, function (PublicKeyInterface $a, PublicKeyInterface $b) {
-                $av = $a->getHex();
-                $bv = $b->getHex();
-                return $av == $bv ? 0 : $av > $bv ? 1 : -1;
-            });
+            $av = $a->getHex();
+            $bv = $b->getHex();
+            return $av == $bv ? 0 : $av > $bv ? 1 : -1;
+        });
 
         return $result;
     }
@@ -1527,7 +1529,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     public static function normalizeBIP32KeyArray($keys) {
-        return Util::array_map_with_index(function($idx, $key) {
+        return Util::arrayMapWithIndex(function ($idx, $key) {
             return [$idx, self::normalizeBIP32Key($key)];
         }, $keys);
     }

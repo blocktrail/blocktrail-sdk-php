@@ -8,7 +8,7 @@ abstract class Util {
         return count(array_unique($allvalues)) === 1 && end($allvalues) === true;
     }
 
-    public static function array_map_with_index(callable $fn, $arr) {
+    public static function arrayMapWithIndex(callable $fn, $arr) {
         $result = [];
         $assoc = null;
         foreach ($arr as $idx => $value) {
