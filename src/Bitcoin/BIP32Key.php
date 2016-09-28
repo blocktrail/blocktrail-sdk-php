@@ -2,7 +2,9 @@
 
 namespace Blocktrail\SDK\Bitcoin;
 
-use BitWasp\BitcoinLib\BIP32;
+use BitWasp\Bitcoin\Crypto\EcAdapter\Impl\PhpEcc\Key\PublicKey;
+use BitWasp\Bitcoin\Crypto\EcAdapter\Key\PublicKeyInterface;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
 
 /**
  * Class BIP32Key
@@ -11,7 +13,7 @@ use BitWasp\BitcoinLib\BIP32;
  */
 class BIP32Key {
     /**
-     * @var string
+     * @var HierarchicalKey
      */
     private $key;
 
@@ -23,7 +25,7 @@ class BIP32Key {
     /**
      * @var string|null
      */
-    private $publicKey = null;
+    private $publicKeyHex = null;
 
     /**
      * @var BIP32Key[]
@@ -31,11 +33,16 @@ class BIP32Key {
     private $derivations = [];
 
     /**
-     * @param string|array  $key        if it's an array then it will be split into $key and $path
-     * @param string|null   $path
+     * @param HierarchicalKey $key
+     * @param string|null     $path
      * @throws \Exception
      */
-    public function __construct($key, $path = null) {
+    public function __construct(HierarchicalKey $key, $path = null) {
+        $this->key = $key;
+        $this->path = BIP32Path::path($path);
+
+        return;
+
         if (is_array($key) && count($key) == 2) {
             $this->key = $key[0];
             $this->path = BIP32Path::path($key[1]);
@@ -50,19 +57,45 @@ class BIP32Key {
     /**
      * static method to initialize class
      *
-     * @param string|array  $key
-     * @param string|null   $path
+     * @param HierarchicalKey $key
+     * @param string|null     $path
      * @return BIP32Key
      */
-    public static function create($key, $path = null) {
+    public static function create(HierarchicalKey $key, $path = null) {
         return new BIP32Key($key, $path);
     }
 
     /**
-     * @return string
+     * @return HierarchicalKey
      */
     public function key() {
         return $this->key;
+    }
+
+    /**
+     * @return PublicKeyInterface
+     */
+    public function publicKey() {
+        return $this->key->getPublicKey();
+    }
+
+    /**
+     * get the HEX of the plain public key for the current BIP32 key
+     *
+     * @return string
+     */
+    public function publicKeyHex() {
+        // if this is a BIP32 Private key then we first build the public key
+        //  that way it will be cached nicely
+        if (!$this->path->isPublicPath()) {
+            return $this->buildKey($this->path->publicPath())->publicKey()->getHex();
+        } else {
+            if (is_null($this->publicKeyHex)) {
+                $this->publicKeyHex = $this->key->getPublicKey()->getHex();
+            }
+
+            return $this->publicKeyHex;
+        }
     }
 
     /**
@@ -73,19 +106,14 @@ class BIP32Key {
     }
 
     /**
-     * get tuple of the key and path, the way BitcoinLib likes it
-     *
-     * @return array        [key, path]
-     */
-    public function tuple() {
-        return [$this->key, (string)$this->path];
-    }
-
-    /**
      * @return BIP32Path
      */
     public function bip32Path() {
         return BIP32Path::path($this->path);
+    }
+
+    public function tuple() {
+        return [$this->key->toExtendedKey(), (string)$this->path];
     }
 
     /**
@@ -96,30 +124,36 @@ class BIP32Key {
      * @throws \Exception
      */
     public function buildKey($path) {
-        if (!isset($this->derivations[(string)$path])) {
-            $key = BIP32::build_key($this->tuple(), (string)$path);
-            $this->derivations[(string)$path] = $key;
-        }
+        $path = BIP32Path::path($path);
+        $originalPath = (string)$path;
 
-        return new BIP32Key($this->derivations[(string)$path]);
-    }
+        if (!isset($this->derivations[$originalPath])) {
+            $key = $this->key;
 
-    /**
-     * get the plain public key for the current BIP32 key
-     *
-     * @return string
-     */
-    public function publicKey() {
-        // if this is a BIP32 Private key then we first build the public key
-        //  that way it will be cached nicely
-        if (!$this->path->isPublicPath()) {
-            return $this->buildKey($this->path->publicPath())->publicKey();
-        } else {
-            if (is_null($this->publicKey)) {
-                $this->publicKey = BIP32::extract_public_key($this->tuple());
+            $toPublic = $path[0] === "M" && $this->path[0] === "m";
+            if ($toPublic) {
+                $path = $path->privatePath();
             }
 
-            return $this->publicKey;
+            assert(strpos(strtolower((string)$path), strtolower((string)$this->path)) === 0);
+
+            $path = substr((string)$path, strlen((string)$this->path));
+
+            if (substr($path, 0, 1) == "/") {
+                $path = substr($path, 1);
+            }
+
+            if (strlen($path)) {
+                $key = $key->derivePath($path);
+            }
+
+            if ($toPublic) {
+                $key = $key->toPublic();
+            }
+
+            $this->derivations[$originalPath] = BIP32Key::create($key, $originalPath);
         }
+
+        return $this->derivations[$originalPath];
     }
 }

@@ -4,16 +4,27 @@ namespace Blocktrail\SDK\Tests;
 
 \error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
-use BitWasp\BitcoinLib\BitcoinLib;
+use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
+use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
+use BitWasp\Bitcoin\Transaction\Transaction;
+use BitWasp\Bitcoin\Transaction\TransactionInput;
+use BitWasp\Bitcoin\Transaction\TransactionOutput;
+use BitWasp\Buffertools\Buffer;
+
+use Blocktrail\CryptoJSAES\CryptoJSAES;
+use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
+use Blocktrail\SDK\SignInfo;
 use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\Wallet;
 use Blocktrail\SDK\WalletPath;
+use Blocktrail\SDK\WalletV1;
+use Blocktrail\SDK\WalletV2;
 
 /**
  * Class WalletTest
@@ -56,6 +67,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         throw $e;
     }
 
+    protected function setUp() {
+        $this->setupBlocktrailSDK();
+    }
+
     protected function cleanUp() {
         foreach ($this->wallets as $wallet) {
             try {
@@ -82,7 +97,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
      * initial setup to create the wallets that we use
      */
     public function testSetup() {
-        $client = $this->setupBlocktrailSDK();
+        // $client = $this->setupBlocktrailSDK();
 
         // wallet used for testing sending a transaction
         //  - we reuse this wallet because doing discovery everytime is a pain
@@ -129,44 +144,68 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     protected function _createTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic, $readOnly = false) {
         $walletPath = WalletPath::create(9999);
 
-        $seed = BIP39::mnemonicToSeedHex($primaryMnemonic, $passphrase);
-        $primaryPrivateKey = BIP32::master_key($seed, 'bitcoin', true);
-        $primaryPublicKey = BIP32::build_key($primaryPrivateKey, (string)$walletPath->keyIndexPath()->publicPath());
+        $secret = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        $encryptedSecret = CryptoJSAES::encrypt($secret, $passphrase);
 
-        $seed = BIP39::mnemonicToSeedHex($backupMnemonic, "");
-        $backupPrivateKey = BIP32::master_key($seed, 'bitcoin', true);
-        $backupPublicKey = BIP32::build_key($backupPrivateKey, (string)"M");
+        // still using BIP39 to get seedhex to keep all fixtures the same
+        $seed = (new Bip39SeedGenerator())->getSeed($primaryMnemonic, $passphrase);
+        $primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($seed), "m");
+
+        $primaryPublicKey = $primaryPrivateKey->buildKey((string)$walletPath->keyIndexPath()->publicPath());
+        $encryptedPrimarySeed = CryptoJSAES::encrypt(base64_encode($seed->getBinary()), $secret);
+
+        // still using BIP39 to get seedhex to keep all fixtures the same
+        $backupPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed($backupMnemonic, "")), "m");
+        $backupPublicKey = $backupPrivateKey->buildKey("M");
 
         $testnet = true;
 
-        $checksum = BIP32::key_to_address($primaryPrivateKey[0]);
+        $checksum = $primaryPrivateKey->publicKey()->getAddress()->getAddress();
 
-        $result = $client->_createNewWallet($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, 9999);
+        $result = $client->storeNewWalletV2(
+            $identifier,
+            $primaryPublicKey->tuple(),
+            $backupPublicKey->tuple(),
+            $encryptedPrimarySeed,
+            $encryptedSecret,
+            false,
+            $checksum,
+            9999
+        );
 
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
         $keyIndex = $result['key_index'];
 
-        $wallet = new Wallet($client, $identifier, $primaryMnemonic, [$keyIndex => $primaryPublicKey], $backupPublicKey, $blocktrailPublicKeys, $keyIndex, 'bitcoin', $testnet, $checksum);
+        $wallet = new WalletV2(
+            $client,
+            $identifier,
+            $encryptedPrimarySeed,
+            $encryptedSecret,
+            [$keyIndex => $primaryPublicKey],
+            $backupPublicKey,
+            $blocktrailPublicKeys,
+            $keyIndex,
+            'bitcoin',
+            $testnet,
+            $checksum
+        );
 
         if (!$readOnly) {
             $wallet->unlock(['password' => $passphrase]);
         }
 
-
         return $wallet;
     }
 
     public function testBIP32() {
-        $masterkey = "tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ";
+        $masterkey = HierarchicalKeyFactory::fromExtended("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ");
 
-        $import = BIP32::import($masterkey);
+        $this->assertEquals("022f6b9339309e89efb41ecabae60e1d40b7809596c68c03b05deb5a694e33cd26", $masterkey->getPublicKey()->getHex());
+        $this->assertEquals("tpubDAtJthHcm9MJwmHp4r2UwSTmiDYZWHbQUMqySJ1koGxQpRNSaJdyL2Ab8wwtMm5DsMMk3v68299LQE6KhT8XPQWzxPLK5TbTHKtnrmjV8Gg", $masterkey->derivePath("0")->toExtendedKey());
+        $this->assertEquals("tpubDDfqpEKGqEVa5FbdLtwezc6Xgn81teTFFVA69ZfJBHp4UYmUmhqVZMmqXeJBDahvySZrPjpwMy4gKfNfrxuFHmzo1r6srB4MrsDKWbwEw3d", $masterkey->derivePath("0/0")->toExtendedKey());
 
-        $this->assertEquals("022f6b9339309e89efb41ecabae60e1d40b7809596c68c03b05deb5a694e33cd26", $import['key']);
-
-        $this->assertEquals("tpubDAtJthHcm9MJwmHp4r2UwSTmiDYZWHbQUMqySJ1koGxQpRNSaJdyL2Ab8wwtMm5DsMMk3v68299LQE6KhT8XPQWzxPLK5TbTHKtnrmjV8Gg", BIP32::build_key($masterkey, "0")[0]);
-        $this->assertEquals("tpubDDfqpEKGqEVa5FbdLtwezc6Xgn81teTFFVA69ZfJBHp4UYmUmhqVZMmqXeJBDahvySZrPjpwMy4gKfNfrxuFHmzo1r6srB4MrsDKWbwEw3d", BIP32::build_key($masterkey, "0/0")[0]);
-
-        $this->assertEquals("tpubDHNy3kAG39ThyiwwsgoKY4iRenXDRtce8qdCFJZXPMCJg5dsCUHayp84raLTpvyiNA9sXPob5rgqkKvkN8S7MMyXbnEhGJMW64Cf4vFAoaF", BIP32::build_key(BIP32::master_key("000102030405060708090a0b0c0d0e0f", "bitcoin", true), "M/0'/1/2'/2/1000000000")[0]);
+        $this->assertEquals("tpubDHNy3kAG39ThyiwwsgoKY4iRenXDRtce8qdCFJZXPMCJg5dsCUHayp84raLTpvyiNA9sXPob5rgqkKvkN8S7MMyXbnEhGJMW64Cf4vFAoaF",
+            HierarchicalKeyFactory::fromEntropy(Buffer::hex("000102030405060708090a0b0c0d0e0f"))->derivePath("M/0'/1/2'/2/1000000000")->toExtendedPublicKey());
     }
 
     public function testCreateWallet() {
@@ -179,12 +218,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $wallets = $client->allWallets();
         $this->assertTrue(count($wallets) > 0);
 
-        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key()->toExtendedKey());
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
@@ -208,7 +246,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
-        $this->assertTrue(BitcoinLib::validate_address($address, false, null));
+        $this->assertEquals($address, AddressFactory::fromString($address)->getAddress());
     }
 
     public function testNormalizeOutputStruct() {
@@ -244,12 +282,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             "passphrase" => "password"
         ]);
 
-        $this->assertEquals("give pause forget seed dance crawl situate hole keen", $wallet->getPrimaryMnemonic());
         $this->assertEquals("unittest-transaction", $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key()->toExtendedKey());
 
         list($confirmed, $unconfirmed) = $wallet->getBalance();
         $this->assertGreaterThan(0, $confirmed + $unconfirmed, "positive unconfirmed balance");
@@ -257,7 +294,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
-        $this->assertTrue(BitcoinLib::validate_address($address, false, null));
+        $this->assertTrue(AddressFactory::fromString($address)->getAddress() == $address);
 
         ///*
         $value = BlocktrailSDK::toSatoshi(0.0002);
@@ -265,15 +302,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue(!!$txHash);
 
-        sleep(1); // sleep to wait for the TX to be processed
+        $tx = $this->getTx($client, $txHash);
 
-        try {
-            $tx = $client->transaction($txHash);
-        } catch (ObjectNotFound $e) {
-            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
-        }
-
-        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
         $this->assertEquals($txHash, $tx['hash']);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $tx['total_fee']);
         $this->assertTrue(count($tx['outputs']) <= 2);
@@ -310,15 +340,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue(!!$txHash);
 
-        sleep(1); // sleep to wait for the TX to be processed
+        $tx = $this->getTx($client, $txHash);
 
-        try {
-            $tx = $client->transaction($txHash);
-        } catch (ObjectNotFound $e) {
-            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
-        }
-
-        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
         $this->assertEquals($txHash, $tx['hash']);
         $this->assertEquals($forceFee, $tx['total_fee']);
         $this->assertTrue(count($tx['outputs']) <= 2);
@@ -340,13 +363,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue(!!$txHash);
 
-        sleep(1); // sleep to wait for the TX to be processed
-
-        try {
-            $tx = $client->transaction($txHash);
-        } catch (ObjectNotFound $e) {
-            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
-        }
+        $tx = $this->getTx($client, $txHash);
 
         $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
         $this->assertEquals($txHash, $tx['hash']);
@@ -367,7 +384,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     public function testWalletTransactionWithoutMnemonics() {
         $client = $this->setupBlocktrailSDK();
 
-        $primaryPrivateKey = BIP32::master_key(BIP39::mnemonicToSeedHex("give pause forget seed dance crawl situate hole keen", "password"), 'bitcoin', true);
+        $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed("give pause forget seed dance crawl situate hole keen", "password"));
 
         $wallet = $client->initWallet([
             "identifier" => "unittest-transaction",
@@ -378,8 +395,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("unittest-transaction", $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key()->toExtendedKey());
 
         list($confirmed, $unconfirmed) = $wallet->getBalance();
         $this->assertGreaterThan(0, $confirmed + $unconfirmed, "positive unconfirmed balance");
@@ -387,7 +404,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
-        $this->assertTrue(BitcoinLib::validate_address($address, false, null));
+        $this->assertTrue(AddressFactory::fromString($address)->getAddress() == $address);
 
         $value = BlocktrailSDK::toSatoshi(0.0002);
         $txHash = $wallet->pay([
@@ -396,15 +413,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue(!!$txHash);
 
-        sleep(1); // sleep to wait for the TX to be processed
+        $tx = $this->getTx($client, $txHash);
 
-        try {
-            $tx = $client->transaction($txHash);
-        } catch (ObjectNotFound $e) {
-            $this->fail("404 for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
-        }
-
-        $this->assertTrue(!!$tx, "check for tx[{$txHash}] [" . gmdate('Y-m-d H:i:s') . "]");
         $this->assertEquals($txHash, $tx['hash']);
         $this->assertTrue(count($tx['outputs']) <= 2);
         $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
@@ -417,12 +427,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $wallet = $this->createDiscoveryTestWallet($client, $identifier);
         $this->wallets[] = $wallet; // store for cleanup
 
-        $this->assertEquals("give pause forget seed dance crawl situate hole kingdom", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key()->toExtendedKey());
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
@@ -439,7 +448,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $wallet->upgradeKeyIndex(10000);
 
-        $this->assertEquals("tpubD9m9hziKhYQExWgzMUNXdYMNUtourv96sjTUS9jJKdo3EDJAnCBJooMPm6vGSmkNTNAmVt988dzNfNY12YYzk9E6PkA7JbxYeZBFy4XAaCp", $wallet->getBlocktrailPublicKey("m/10000")->key());
+        $this->assertEquals("tpubD9m9hziKhYQExWgzMUNXdYMNUtourv96sjTUS9jJKdo3EDJAnCBJooMPm6vGSmkNTNAmVt988dzNfNY12YYzk9E6PkA7JbxYeZBFy4XAaCp", $wallet->getBlocktrailPublicKey("m/10000")->key()->toExtendedKey());
 
         $this->assertEquals("2N9ZLKXgs12JQKXvLkngn7u9tsYaQ5kXJmk", $wallet->getAddressByPath("M/10000'/0/0"));
 
@@ -482,12 +491,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $wallet = $this->createDiscoveryTestWallet($client, $identifier, "badpassword");
         $this->wallets[] = $wallet; // store for cleanup
 
-        $this->assertEquals("give pause forget seed dance crawl situate hole kingdom", $wallet->getPrimaryMnemonic());
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key());
-        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
+        $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("M/9999'")->key()->toExtendedKey());
 
         // get a new pair
         list($path, $address) = $wallet->getNewAddressPair();
@@ -503,7 +511,61 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(0, $confirmed + $unconfirmed);
     }
 
-    public function testNewBlankWallet() {
+    /**
+     * default wallet creation (v2)
+     *
+     * @throws \Exception
+     */
+    public function testNewBlankWalletV2() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+
+        /**
+         * @var $wallet \Blocktrail\SDK\Wallet
+         */
+        $e = null;
+        $wallet = null;
+        try {
+            $wallet = $client->initWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password"
+            ]);
+        } catch (ObjectNotFound $e) {
+            list($wallet, $backupInfo) = $client->createNewWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password",
+                "key_index" => 9999
+            ]);
+        }
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
+        $this->assertTrue($wallet instanceof WalletV2);
+
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password"
+        ]);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertTrue($wallet instanceof WalletV2);
+
+        $this->_testNewBlankWallet($wallet);
+
+        /*
+         * test password change
+         */
+        $wallet->unlock(['passphrase' => "password"]);
+        $wallet->passwordChange("password2");
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password2"
+        ]);
+
+        $this->assertTrue($wallet instanceof WalletV2);
+        $this->assertTrue(!$wallet->isLocked());
+    }
+
+    public function testNewBlankWalletV1() {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
@@ -518,19 +580,126 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 "passphrase" => "password"
             ]);
         } catch (ObjectNotFound $e) {
-            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+            list($wallet, $backupInfo) = $client->createNewWallet([
                 "identifier" => $identifier,
                 "passphrase" => "password",
-                "key_index" => 9999
+                "key_index" => 9999,
+                "wallet_version" => Wallet::WALLET_VERSION_V1
             ]);
         }
         $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
+        $this->assertTrue($wallet instanceof WalletV1);
 
         $wallet = $client->initWallet([
             "identifier" => $identifier,
             "passphrase" => "password"
         ]);
         $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertTrue($wallet instanceof WalletV1);
+
+        $this->_testNewBlankWallet($wallet);
+    }
+
+    public function testNewBlankWithoutMnemonicsWallet() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+        $primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::generateMasterKey(), 'm');
+        $backupPublicKey = BIP32Key::create(HierarchicalKeyFactory::generateMasterKey()->toPublic(), 'M');
+
+        /**
+         * @var $wallet \Blocktrail\SDK\Wallet
+         */
+        $e = null;
+        try {
+            $wallet = $client->initWallet([
+                "identifier" => $identifier
+            ]);
+        } catch (ObjectNotFound $e) {
+            list($wallet, $backupInfo) = $client->createNewWallet([
+                "identifier" => $identifier,
+                "primary_private_key" => $primaryPrivateKey,
+                "backup_public_key" => $backupPublicKey,
+                "key_index" => 9999
+            ]);
+        }
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
+        $this->assertTrue($wallet instanceof WalletV2);
+
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "primary_private_key" => $primaryPrivateKey
+        ]);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertTrue($wallet instanceof WalletV2);
+        $this->assertEquals(0, $wallet->getBalance()[0]);
+
+        $e = null;
+        try {
+            $wallet->pay([
+                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+            ]);
+        } catch (\Exception $e) {
+        }
+        $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
+    }
+
+    public function testNewBlankWalletOldSyntax() {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+
+        /**
+         * @var $wallet \Blocktrail\SDK\Wallet
+         */
+        $e = null;
+        try {
+            $wallet = $client->initWallet($identifier, "password");
+        } catch (ObjectNotFound $e) {
+            list($wallet, $backupInfo) = $client->createNewWallet($identifier, "password", 9999);
+        }
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
+        $this->assertTrue($wallet instanceof WalletV2);
+
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password"
+        ]);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertTrue($wallet instanceof WalletV2);
+
+        $this->assertEquals(0, $wallet->getBalance()[0]);
+
+        $e = null;
+        try {
+            $wallet->pay([
+                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
+            ]);
+        } catch (\Exception $e) {
+        }
+        $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
+
+        /*
+         * init same wallet by with bad password
+         */
+        $e = null;
+        try {
+            $wallet = $client->initWallet($identifier, "password2");
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "Wallet with bad pass initialized");
+    }
+
+    /**
+     * helper to test blank wallet
+     *
+     * @param Wallet $wallet
+     * @throws \Exception
+     */
+    protected function _testNewBlankWallet(Wallet $wallet) {
+        $client = $this->setupBlocktrailSDK();
 
         $this->assertFalse($wallet->isLocked());
         $wallet->lock();
@@ -558,7 +727,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         // repeat above but starting with readonly = true
         $wallet = $client->initWallet([
-            "identifier" => $identifier,
+            "identifier" => $wallet->getIdentifier(),
             "readonly" => true
         ]);
 
@@ -604,95 +773,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $e = null;
         try {
             $wallet = $client->initWallet([
-                "identifier" => $identifier,
+                "identifier" => $wallet->getIdentifier(),
                 "passphrase" => "password2",
             ]);
-        } catch (\Exception $e) {}
-        $this->assertTrue(!!$e, "Wallet with bad pass initialized");
-    }
-
-    public function testNewBlankWithoutMnemonicsWallet() {
-        $client = $this->setupBlocktrailSDK();
-
-        $identifier = $this->getRandomTestIdentifier();
-        $primaryPrivateKey = BIP32::master_key(BIP39::mnemonicToSeedHex(BIP39::entropyToMnemonic(BIP39::generateEntropy(512)), "password"), 'bitcoin', true);
-        $backupPublicKey = BIP32::extended_private_to_public(BIP32::master_key(BIP39::mnemonicToSeedHex(BIP39::entropyToMnemonic(BIP39::generateEntropy(512)), "password"), 'bitcoin', true));
-
-        /**
-         * @var $wallet \Blocktrail\SDK\Wallet
-         */
-        $e = null;
-        try {
-            $wallet = $client->initWallet([
-                "identifier" => $identifier
-            ]);
-        } catch (ObjectNotFound $e) {
-            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
-                "identifier" => $identifier,
-                "primary_private_key" => $primaryPrivateKey,
-                "backup_public_key" => $backupPublicKey,
-                "key_index" => 9999
-            ]);
-        }
-        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
-
-        $wallet = $client->initWallet([
-            "identifier" => $identifier,
-            "primary_private_key" => $primaryPrivateKey
-        ]);
-        $this->wallets[] = $wallet; // store for cleanup
-
-        $this->assertEquals(0, $wallet->getBalance()[0]);
-
-        $e = null;
-        try {
-            $wallet->pay([
-                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
-            ]);
-        } catch (\Exception $e) {
-        }
-        $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
-    }
-
-    public function testNewBlankWalletOldSyntax() {
-        $client = $this->setupBlocktrailSDK();
-
-        $identifier = $this->getRandomTestIdentifier();
-
-        /**
-         * @var $wallet \Blocktrail\SDK\Wallet
-         */
-        $e = null;
-        try {
-            $wallet = $client->initWallet($identifier, "password");
-        } catch (ObjectNotFound $e) {
-            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet($identifier, "password", 9999);
-        }
-        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
-
-        $wallet = $client->initWallet([
-            "identifier" => $identifier,
-            "passphrase" => "password"
-        ]);
-        $this->wallets[] = $wallet; // store for cleanup
-
-        $this->assertEquals(0, $wallet->getBalance()[0]);
-
-        $e = null;
-        try {
-            $wallet->pay([
-                "2N6Fg6T74Fcv1JQ8FkPJMs8mYmbm9kitTxy" => BlocktrailSDK::toSatoshi(0.001)
-            ]);
-        } catch (\Exception $e) {
-        }
-        $this->assertTrue(!!$e, "Wallet without balance is able to pay...");
-
-        /*
-         * init same wallet by with bad password
-         */
-        $e = null;
-        try {
-            $wallet = $client->initWallet($identifier, "password2");
         } catch (\Exception $e) {}
         $this->assertTrue(!!$e, "Wallet with bad pass initialized");
     }
@@ -712,7 +795,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 "passphrase" => "password"
             ]);
         } catch (ObjectNotFound $e) {
-            list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+            list($wallet, $backupInfo) = $client->createNewWallet([
                 "identifier" => $identifier,
                 "passphrase" => "password",
                 "key_index" => 9999
@@ -807,7 +890,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /*
          * test simple (real world TX) scenario
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.0001)
+        ];
+        /** @var Transaction $tx */
+        /** @var SignInfo[] $signInfo */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -815,8 +903,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -825,26 +914,31 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0), $fee);
 
         // assert the input(s)
-        $this->assertEquals(1, count($inputs));
-        $this->assertEquals("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", $inputs[0]['txid']);
-        $this->assertEquals(0, $inputs[0]['vout']);
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $inputs[0]['address']);
-        $this->assertEquals("a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", $inputs[0]['scriptPubKey']);
-        $this->assertEquals(10000, $inputs[0]['value']);
-        $this->assertEquals("M/9999'/0/1537", $inputs[0]['path']);
-        $this->assertEquals("5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae", $inputs[0]['redeemScript']);
+        $this->assertEquals(1, count($tx->getInputs()->all()));
+        $this->assertEquals("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
+        $this->assertEquals(0, $tx->getInput(0)->getOutPoint()->getVout());
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
+        $this->assertEquals("a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", $signInfo[0]->output->getScript()->getHex());
+        $this->assertEquals(10000, $signInfo[0]->output->getValue());
+        $this->assertEquals("M/9999'/0/1537", $signInfo[0]->path);
+        $this->assertEquals("5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae",
+            $signInfo[0]->redeemScript->getHex());
 
         // assert the output(s)
-        $this->assertEquals(1, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[0]['address']);
-        $this->assertEquals(10000, $outputs[0]['value']);
+        $this->assertEquals(1, count($tx->getOutputs()->all()));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals(10000, $tx->getOutput(0)->getValue());
 
         /*
          * test trying to spend too much
          */
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.0001)
+        ];
         $e = null;
         try {
-            list($inputs, $outputs) = $wallet->buildTx(
+            /** @var Transaction $tx */
+            list($tx, $signInfo) = $wallet->buildTx(
                 (new TransactionBuilder())
                     ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
                         "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -855,12 +949,17 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         }
         $this->assertTrue(!!$e);
+        $this->assertEquals("Atempting to spend more than sum of UTXOs", $e->getMessage());
 
 
         /*
          * test change
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(1)
+        ];
+        /** @var Transaction $tx */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -882,17 +981,18 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
-        $this->assertEquals(14, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[13]['address']);
-        $this->assertEquals(99860000, $outputs[13]['value']);
+        $this->assertEquals(14, count($tx->getOutputs()->all()));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(13)->getScript())->getAddress());
+        $this->assertEquals(99860000, $tx->getOutput(13)->getValue());
 
         /*
          * 1 input (1 * 294b) = 294b
@@ -906,7 +1006,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          * 1 - (19 * 0.0001) = 0.9981
          * change = 0.9980
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(1)
+        ];
+        /** @var Transaction $tx */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -934,17 +1038,18 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
-        $this->assertEquals(20, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[19]['address']);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $outputs[19]['value']);
+        $this->assertEquals(20, count($tx->getOutputs()->all()));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(19)->getScript())->getAddress());
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $tx->getOutput(19)->getValue());
 
         /*
          * test change output bumps size over 1kb, fee += 0.0001
@@ -960,7 +1065,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          * 1.0000 - (20 * 0.0001) = 0.9980
          * change = 0.9978
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(1)
+        ];
+        /** @var Transaction $tx */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -989,17 +1098,18 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9998), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0002), $fee);
-        $this->assertEquals(21, count($outputs));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outputs[20]['address']);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9978), $outputs[20]['value']);
+        $this->assertEquals(21, count($tx->getOutputs()->all()));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(20)->getScript())->getAddress());
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9978), $tx->getOutput(20)->getValue());
 
         /*
          * test change
@@ -1014,7 +1124,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          * input = 0.0021
          * 0.0021 - (20 * 0.0001) = 0.0001
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.0021)
+        ];
+        /** @var Transaction $tx */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0021),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -1043,15 +1157,16 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0021), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
-        $this->assertEquals(20, count($outputs));
+        $this->assertEquals(20, count($tx->getOutputs()->all()));
 
         /*
          * test change output bumps size over 1kb, fee += 0.0001
@@ -1070,7 +1185,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
          * fee = 0.0002
          * 0.00219 - (20 * 0.0001) = 0.00019
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.00219)
+        ];
+        /** @var Transaction $tx */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.00219),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -1099,20 +1218,25 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.00219), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.00019), $fee);
-        $this->assertEquals(20, count($outputs));
+        $this->assertEquals(20, count($tx->getOutputs()->all()));
 
         /*
          * custom fee
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.002001)
+        ];
+        /** @var Transaction $tx */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.002001),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -1121,8 +1245,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -1133,7 +1258,11 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /*
          * multiple outputs same address
          */
-        list($inputs, $outputs) = $wallet->buildTx(
+        $utxos = [
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.002)
+        ];
+        /** @var Transaction $tx */
+        list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.002),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
@@ -1144,8 +1273,9 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_column($inputs, 'value'));
-        $outputTotal = array_sum(array_column($outputs, 'value'));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
@@ -1153,7 +1283,22 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0019), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
 
-        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $outputs[0]['address']);
-        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $outputs[1]['address']);
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", AddressFactory::fromOutputScript($tx->getOutput(1)->getScript())->getAddress());
+    }
+
+    protected function getTx(BlocktrailSDK $client, $txId, $retries = 3) {
+        sleep(1);
+        
+        for ($i = 0; $i < $retries; $i++) {
+            try {
+                $tx = $client->transaction($txId);
+                return $tx;
+            } catch (ObjectNotFound $e) {
+                sleep(1); // sleep to wait for the TX to be processed
+            }
+        }
+
+        $this->fail("404 for tx[{$txId}] [" . gmdate('Y-m-d H:i:s') . "]");
     }
 }

@@ -2,8 +2,12 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
+use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Address\AddressInterface;
+use BitWasp\Bitcoin\Script\Script;
+use BitWasp\Bitcoin\Script\ScriptFactory;
+use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 /**
@@ -42,13 +46,17 @@ class TransactionBuilder {
      * @param string $txId                   transactionId (hash)
      * @param int    $index                  index of the output being spent
      * @param string $value                  when NULL we'll use the data API to fetch the value
-     * @param string $address                when NULL we'll use the data API to fetch the address
-     * @param string $scriptPubKey           as HEX, when NULL we'll use the data API to fetch the scriptpubkey
+     * @param AddressInterface|string $address                when NULL we'll use the data API to fetch the address
+     * @param ScriptInterface|string $scriptPubKey           as HEX, when NULL we'll use the data API to fetch the scriptpubkey
      * @param string $path                   when NULL we'll use the API to determine the path for the specified address
-     * @param string $redeemScript           when NULL we'll use the path to determine the redeemscript
+     * @param ScriptInterface|string $redeemScript           when NULL we'll use the path to determine the redeemscript
      * @return $this
      */
     public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null) {
+        $address = $address instanceof AddressInterface ? $address : AddressFactory::fromString($address);
+        $scriptPubKey = $scriptPubKey instanceof ScriptInterface ? $scriptPubKey : new Script(Buffer::hex($scriptPubKey));
+        $redeemScript = $redeemScript instanceof ScriptInterface ? $redeemScript : new Script(Buffer::hex($redeemScript));
+
         $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript);
 
         return $this;
@@ -80,7 +88,7 @@ class TransactionBuilder {
      * @throws \Exception
      */
     public function addRecipient($address, $value) {
-        if (!BitcoinLib::validate_address($address)) {
+        if (AddressFactory::fromString($address)->getAddress() != $address) {
             throw new \Exception("Invalid address [{$address}]");
         }
 
@@ -156,19 +164,23 @@ class TransactionBuilder {
      * $data will be bin2hex and will be prefixed with a proper OP_PUSHDATA
      *
      * @param string $data
-     * @param bool   $allowNonStandard when TRUE will allow scriptPubKey > 40 bytes (so $data > 39 bytes)
+     * @param bool   $allowNonStandard  when TRUE will allow scriptPubKey > 80 bytes (so $data > 80 bytes)
      * @return $this
      * @throws BlocktrailSDKException
      */
     public function addOpReturn($data, $allowNonStandard = false) {
-        $pushdata = RawTransaction::pushdata(bin2hex($data));
-
-        if (!$allowNonStandard && strlen($pushdata) / 2 > 40) {
-            throw new BlocktrailSDKException("OP_RETURN data should be <= 39 bytes to remain standard!");
+        if (!$allowNonStandard && strlen($data) / 2 > 79) {
+            throw new BlocktrailSDKException("OP_RETURN data should be <= 79 bytes to remain standard!");
         }
 
+        $script = ScriptFactory::create()
+            ->op('OP_RETURN')
+            ->push(new Buffer($data))
+            ->getScript()
+        ;
+
         $this->addOutput([
-            'scriptPubKey' => self::OP_RETURN . RawTransaction::pushdata(bin2hex($data)),
+            'scriptPubKey' => $script,
             'value' => 0
         ]);
 
@@ -176,10 +188,24 @@ class TransactionBuilder {
     }
 
     /**
+     * @param bool $json return data for JSON return (so objects -> string)
      * @return array
      */
-    public function getOutputs() {
-        return $this->outputs;
+    public function getOutputs($json = false) {
+        return array_map(function ($output) use ($json) {
+            $result = $output;
+
+            if ($json) {
+                if (isset($result['scriptPubKey']) && $result['scriptPubKey'] instanceof ScriptInterface) {
+                    $result['scriptPubKey'] = $result['scriptPubKey']->getHex();
+                }
+                if (isset($result['address']) && $result['address'] instanceof AddressInterface) {
+                    $result['address'] = $result['address']->getAddress();
+                }
+            }
+
+            return $result;
+        }, $this->outputs);
     }
 
     /**
