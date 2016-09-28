@@ -24,7 +24,7 @@ file_put_contents("my-wallet-backup.pdf", $pdfStream);
 
 //or output the pdf to the browser
 // header("Content-type:application/pdf");
-// echo $pdfStream; // nocommit
+// echo $pdfStream;
 
 
 //html and img documents can also be generated for saving/returning to the browser

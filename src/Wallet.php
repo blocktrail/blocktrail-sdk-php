@@ -310,11 +310,6 @@ abstract class Wallet implements WalletInterface {
     public function getRedeemScriptByPath($path) {
         $path = BIP32Path::path($path);
 
-//        var_dump(__METHOD__);
-//        var_dump((string)$path);
-//        var_dump($this->getParentPublicKey($path)->publicKeyHex());
-//        throw new \Exception();
-
         // optimization to avoid doing BitcoinLib::private_key_to_public_key too much
         if ($pubKey = $this->getParentPublicKey($path)) {
             $key = $pubKey->buildKey($path->publicPath());
@@ -343,10 +338,6 @@ abstract class Wallet implements WalletInterface {
     protected function getRedeemScriptFromKey(BIP32Key $key, $path) {
         $path = BIP32Path::path($path)->publicPath();
 
-//        var_dump(__METHOD__);
-//        var_dump((string)$path);
-//        var_dump($key->publicKeyHex());
-
         $blocktrailPublicKey = $this->getBlocktrailPublicKey($path);
 
         $redeemScript = ScriptFactory::scriptPubKey()->multisig(2, BlocktrailSDK::sortMultisigKeys([
@@ -354,15 +345,6 @@ abstract class Wallet implements WalletInterface {
             $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKey(),
             $blocktrailPublicKey->buildKey($path)->publicKey()
         ]), false);
-
-//        var_dump('redeemScript', $redeemScript->getHex());
-//        var_dump([
-//            $key->buildKey($path)->publicKeyHex(),
-//            $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKeyHex(),
-//            $blocktrailPublicKey->buildKey($path)->publicKeyHex()
-//        ]);
-
-//        throw new \Exception();
 
         return [(new P2shScript($redeemScript))->getAddress()->getAddress(), $redeemScript];
     }
