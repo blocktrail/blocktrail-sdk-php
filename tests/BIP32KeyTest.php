@@ -3,7 +3,6 @@
 namespace Blocktrail\SDK\Tests;
 
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
-use BitWasp\BitcoinLib\BIP32;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 
