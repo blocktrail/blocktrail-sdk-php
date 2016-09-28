@@ -128,12 +128,6 @@ class BIP32Key {
         $originalPath = (string)$path;
 
         if (!isset($this->derivations[$originalPath])) {
-//            var_dump('-----------------------------------');
-//            var_dump('-----------------------------------');
-//            var_dump((string)$this->path);
-//            var_dump((string)$path);
-
-
             $key = $this->key;
 
             $toPublic = $path[0] === "M" && $this->path[0] === "m";
@@ -144,12 +138,10 @@ class BIP32Key {
             assert(strpos(strtolower((string)$path), strtolower((string)$this->path)) === 0);
 
             $path = substr((string)$path, strlen((string)$this->path));
-//            var_dump($path);
 
             if (substr($path, 0, 1) == "/") {
                 $path = substr($path, 1);
             }
-//            var_dump($path);
 
             if (strlen($path)) {
                 $key = $key->derivePath($path);
