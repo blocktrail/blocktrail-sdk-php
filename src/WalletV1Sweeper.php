@@ -2,7 +2,7 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP39\BIP39;
+use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
 
 class WalletV1Sweeper extends WalletSweeper {
 
@@ -21,8 +21,8 @@ class WalletV1Sweeper extends WalletSweeper {
         $backupMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($backupMnemonic))));
 
         // convert the primary and backup mnemonics to seeds (using BIP39), then create private keys (using BIP32)
-        $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $primaryPassphrase);
-        $backupSeed = BIP39::mnemonicToSeedHex($backupMnemonic, "");
+        $primarySeed = (new Bip39SeedGenerator())->getSeed($primaryMnemonic, $primaryPassphrase);
+        $backupSeed = (new Bip39SeedGenerator())->getSeed($backupMnemonic, "");
 
         parent::__construct($primarySeed, $backupSeed, $blocktrailPublicKeys, $unspentOutputFinder, $network, $testnet);
     }

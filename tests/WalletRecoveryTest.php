@@ -4,11 +4,16 @@ namespace Blocktrail\SDK\Tests;
 
 \error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
+use BitWasp\Bitcoin\Script\Interpreter\Interpreter;
+use BitWasp\Bitcoin\Script\ScriptFactory;
+use BitWasp\Bitcoin\Transaction\TransactionFactory;
+use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Services\BlocktrailBatchUnspentOutputFinder;
 use Blocktrail\SDK\Services\InsightUnspentOutputFinder;
 use Blocktrail\SDK\UnspentOutputFinder;
+use Blocktrail\SDK\Util;
 use Blocktrail\SDK\WalletSweeper;
 use Blocktrail\SDK\WalletV1Sweeper;
 
@@ -174,10 +179,17 @@ class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
 
         //do fund sweeping - will carry out fund discovery if needed (already completed above) and then create and sign a transaction
         $destination = '2NA7zpiq5PcYUx6oraEwz8zPzn6HefSvdLA';
-        $results = $walletSweeper->sweepWallet($destination, $increment);
-        $this->assertArrayHasKey('hex', $results);
-        $this->assertEquals('true', $results['complete']);
-        $this->assertEquals(8, $results['req_sigs']);
-        $this->assertEquals(8, $results['sign_count']);
+        $result = $walletSweeper->sweepWallet($destination, $increment);
+
+        $tx = TransactionFactory::fromHex($result);
+
+        $utxos = [];
+        foreach ($results['utxos'] as $address => $data) {
+            foreach ($data['utxos'] as $utxo) {
+                $utxos[] = new TransactionOutput($utxo['value'], ScriptFactory::fromHex($utxo['script_hex']));
+            }
+        }
+
+        $this->assertTrue($tx->validator()->checkSignatures(ScriptFactory::consensus(), Interpreter::VERIFY_P2SH, $utxos));
     }
 }

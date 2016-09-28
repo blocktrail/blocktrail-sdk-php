@@ -2,9 +2,18 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
+use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Bitcoin;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\Network\NetworkFactory;
+use BitWasp\Bitcoin\Script\P2shScript;
+use BitWasp\Bitcoin\Script\ScriptFactory;
+use BitWasp\Bitcoin\Transaction\Factory\Signer;
+use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
+use BitWasp\Bitcoin\Transaction\OutPoint;
+use BitWasp\Bitcoin\Transaction\TransactionInterface;
+use BitWasp\Bitcoin\Transaction\TransactionOutput;
+use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -60,28 +69,30 @@ abstract class WalletSweeper {
     protected $debug = false;
 
     /**
-     * @param string              $primarySeed          hex string
-     * @param string              $backupSeed           hex string
+     * @param Buffer              $primarySeed
+     * @param Buffer              $backupSeed
      * @param array               $blocktrailPublicKeys =
      * @param UnspentOutputFinder $utxoFinder
      * @param string              $network
      * @param bool                $testnet
      * @throws \Exception
      */
-    public function __construct($primarySeed, $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
+    public function __construct(Buffer $primarySeed, Buffer $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
-        BitcoinLib::setMagicByteDefaults($this->network . ($this->testnet ? '-testnet' : ''));
+
+        assert($this->network == "bitcoin");
+        Bitcoin::setNetwork($this->testnet ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin());
 
         //create BIP32 keys for the Blocktrail public keys
         foreach ($blocktrailPublicKeys as $blocktrailKey) {
-            $this->blocktrailPublicKeys[$blocktrailKey['keyIndex']] = BIP32Key::create($blocktrailKey['pubkey'], $blocktrailKey['path']);
+            $this->blocktrailPublicKeys[$blocktrailKey['keyIndex']] = BlocktrailSDK::normalizeBIP32Key([$blocktrailKey['pubkey'], $blocktrailKey['path']]);
         }
 
         $this->utxoFinder = $utxoFinder;
 
-        $this->primaryPrivateKey = BIP32Key::create(BIP32::master_key($primarySeed, $this->network, $this->testnet));
-        $this->backupPrivateKey = BIP32Key::create(BIP32::master_key($backupSeed, $this->network, $this->testnet));
+        $this->primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($primarySeed), "m");
+        $this->backupPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($backupSeed), "m");
     }
 
     /**
@@ -135,25 +146,20 @@ abstract class WalletSweeper {
     /**
      * generate multisig address for given path
      *
-     * @param $path
-     * @return array
+     * @param string|BIP32Path $path
+     * @return array[string, ScriptInterface]                 [address, redeemScript]
      * @throws \Exception
      */
     protected function createAddress($path) {
-        $path = BIP32Path::path($path);
+        $path = BIP32Path::path($path)->publicPath();
 
-        //build public keys for this path
-        $primaryPubKey = $this->primaryPrivateKey->buildKey($path)->publicKey();
-        $backupPubKey = $this->backupPrivateKey->buildKey($path->unhardenedPath())->publicKey();
-        $blocktrailPubKey = $this->getBlocktrailPublicKey($path)->buildKey($path)->publicKey();
+        $redeemScript = ScriptFactory::scriptPubKey()->multisig(2, BlocktrailSDK::sortMultisigKeys([
+            $this->primaryPrivateKey->buildKey($path)->publicKey(),
+            $this->backupPrivateKey->buildKey($path->unhardenedPath())->publicKey(),
+            $this->getBlocktrailPublicKey($path)->buildKey($path)->publicKey()
+        ]), false);
 
-        //sort the keys
-        $multisigKeys = BlocktrailSDK::sortMultisigKeys([$primaryPubKey, $backupPubKey, $blocktrailPubKey]);
-
-        //create the multisig address
-        $multiSig = RawTransaction::create_multisig(2, $multisigKeys);
-
-        return [$multiSig['address'], $multiSig['redeemScript']];
+        return [(new P2shScript($redeemScript))->getAddress()->getAddress(), $redeemScript];
     }
 
     /**
@@ -208,8 +214,9 @@ abstract class WalletSweeper {
     /**
      * discover funds in the wallet
      *
-     * @param int $increment    how many addresses to scan at a time
+     * @param int $increment how many addresses to scan at a time
      * @return array
+     * @throws BlocktrailSDKException
      */
     public function discoverWalletFunds($increment = 200) {
         $totalBalance = 0;
@@ -279,7 +286,7 @@ abstract class WalletSweeper {
      *
      * @param string    $destinationAddress     address to receive found funds
      * @param int       $sweepBatchSize         number of addresses to search at a time
-     * @return array                            returns signed transaction for sending, success status, and signature count
+     * @return string                           HEX string of signed transaction
      * @throws \Exception
      */
     public function sweepWallet($destinationAddress, $sweepBatchSize = 200) {
@@ -301,89 +308,80 @@ abstract class WalletSweeper {
         $transaction = $this->createTransaction($destinationAddress);
 
         //return or send the transaction
-        return $transaction;
+        return $transaction->getHex();
     }
 
     /**
-     * create a signed transaction sending all the found outputs to the given address
-     *
      * @param $destinationAddress
-     * @return array
-     * @throws \Exception
+     * @return TransactionInterface
      */
     protected function createTransaction($destinationAddress) {
-        if ($this->debug) {
-            echo "\nCreating transaction to address $destinationAddress";
-        }
+        $txb = new TxBuilder();
 
-        // create raw transaction
-        $inputs = [];
+        $signInfo = [];
+        $utxos = [];
         foreach ($this->sweepData['utxos'] as $address => $data) {
-            $inputs = array_merge(
-                $inputs,
-                array_map(function ($utxo) use ($address, $data) {
-                    return [
-                        'txid' => $utxo['hash'],
-                        'vout' => $utxo['index'],
-                        'scriptPubKey' => $utxo['script_hex'],
-                        'value' => $utxo['value'],
-                        'address' => $address,
-                        'path' => $data['path'],
-                        'redeemScript' => $data['redeem']
-                    ];
-                }, $data['utxos'])
-            );
+            foreach ($data['utxos'] as $utxo) {
+                $utxo = new UTXO(
+                    $utxo['hash'],
+                    $utxo['index'],
+                    $utxo['value'],
+                    AddressFactory::fromString($address),
+                    ScriptFactory::fromHex($utxo['script_hex']),
+                    $data['path'],
+                    $data['redeem']
+                );
+
+                $utxos[] = $utxo;
+                $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey));
+            }
         }
 
-        $outputs = [];
+        foreach ($utxos as $utxo) {
+            $txb->spendOutPoint(new OutPoint(Buffer::hex($utxo->hash), $utxo->index), $utxo->scriptPubKey);
+        }
+
         $fee = Wallet::estimateFee($this->sweepData['count'], 1);
-        $outputs[$destinationAddress] = $this->sweepData['balance'] - $fee;
 
-        //create the raw transaction
-        $rawTransaction = RawTransaction::create($inputs, $outputs);
-        if (!$rawTransaction) {
-            throw new \Exception("Failed to create raw transaction");
-        }
+        $txb->payToAddress($this->sweepData['balance'] - $fee, AddressFactory::fromString($destinationAddress));
+
 
         if ($this->debug) {
             echo "\nSigning transaction";
         }
 
-        //sign the raw transaction
-        $transaction = $this->signTransaction($rawTransaction, $inputs);
-        if (!$transaction['sign_count']) {
-            throw new \Exception("Failed to sign transaction");
-        }
+        $tx = $this->signTransaction($txb->get(), $signInfo);
 
-        return $transaction;
+        return $tx;
     }
 
     /**
-     * signs a raw transaction
+     * sign a raw transaction with the private keys that we have
      *
-     * @param $rawTransaction
-     * @param $inputs
-     * @return array
+     * @param TransactionInterface $tx
+     * @param SignInfo[]  $signInfo
+     * @return TransactionInterface
+     * @throws \Exception
      */
-    protected function signTransaction($rawTransaction, $inputs) {
-        $wallet = [];
-        $keys = [];
-        $redeemScripts = [];
+    protected function signTransaction(TransactionInterface $tx, array $signInfo) {
+        $signer = new Signer($tx, Bitcoin::getEcAdapter());
 
-        foreach ($inputs as $input) {
-            //create private keys for signing
-            $path = BIP32Path::path($input['path'])->privatePath();
-            $keys[] = $this->primaryPrivateKey->buildKey($path);
-            $keys[] = $this->backupPrivateKey->buildKey($path->unhardenedPath());
-            $redeemScripts[] = $input['redeemScript'];
+        assert(Util::all(function ($signInfo) {
+            return $signInfo instanceof SignInfo;
+        }, $signInfo), '$signInfo should be SignInfo[]');
+
+        foreach ($signInfo as $idx => $info) {
+            $path = BIP32Path::path($info->path)->privatePath();
+            $redeemScript = $info->redeemScript;
+            $output = $info->output;
+
+            $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
+            $backupKey = $this->backupPrivateKey->buildKey($path->unhardenedPath())->key()->getPrivateKey();
+
+            $signer->sign($idx, $key, $output, $redeemScript);
+            $signer->sign($idx, $backupKey, $output, $redeemScript);
         }
 
-        //add the keys and redeem scripts to a wallet to sign the transaction with
-        BIP32::bip32_keys_to_wallet($wallet, array_map(function (BIP32Key $key) {
-            return $key->tuple();
-        }, $keys));
-        RawTransaction::redeem_scripts_to_wallet($wallet, $redeemScripts);
-
-        return RawTransaction::sign($wallet, $rawTransaction, json_encode($inputs));
+        return $signer->get();
     }
 }

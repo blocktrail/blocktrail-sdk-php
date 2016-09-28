@@ -4,12 +4,9 @@ namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
-use BitWasp\Bitcoin\Script\Factory\OutputScriptFactory;
 use BitWasp\Bitcoin\Script\Script;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
