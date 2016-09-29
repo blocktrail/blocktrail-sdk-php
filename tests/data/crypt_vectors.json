@@ -1,0 +1,81 @@
+{
+  "keyderivation": [
+    {
+      "password": "74657374",
+      "salt": "e73dc3b0ad0a8fba2128b3c991f7fb6961f085810e33c528103be38b7b193e38",
+      "iterations": 1024,
+      "output": "8e1c0afacd403594d0dd74a50e848d3f2d0011d22418365b3e784fce67873049"
+    },
+    {
+      "password": "6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6f6e67657270617373776f7264",
+      "salt": "41",
+      "iterations": 10000,
+      "output": "31f539aff29a11d9a0c1dedb47cb4199bf2bb737b3f55b4b297ff27c410b30a4"
+    },
+    {
+      "password": "753c9bbd798dfd02277b2f86f67385708b415d973212795e5bf7bd898bb84d5a",
+      "salt": "41",
+      "iterations": 20000,
+      "output": "5e3f3da505d210482d96d8e1f5f853fc111c66e0bcab6d86c911393ebb741ef8"
+    }
+
+  ],
+  "decryptonly":
+  [
+    {
+      "password": "a6063df52c8b29560e42d2ca4615da1b7b84d4d748acadaed1e8bffd12462667",
+      "primaryEncryptedSeed": "light army dragon place believe carry kitten jungle come license scale access match gorilla stone fetch goddess level try crime clap indoor parent dizzy fancy avoid wink foil argue thumb minute vapor parrot element strategy dial explain develop drastic news badge version lunch banner purse skull brother pupil roast cube finish bike crane season embark sick gasp ranch skin echo",
+      "encryptedSecret": "light army dragon harbor embark fruit uniform purpose alcohol license scale accuse outside reflect draw age fork door defense vocal youth oblige early lake tennis can slab illness media blush group fine federal unfair under pink tenant luxury skin cement panel pioneer direct alley extra client always water together clown asset merge scrub found room canal oak brown panel stock",
+      "checksum": "14i5BhBjUc1S9hCfyFqzFdMp4rsCp2Dgpb"
+    }
+  ],
+  "encryption": [
+    {
+      "password": "70617373776f7264",
+      "iterations": 1000,
+      "salt": "ab024dfabcfd418ab7c8d626",
+      "key": "3f0a1ca90e77ce86d2dbfe4409d5558b2a6cc58a46c30ada04b8d3ed19dfd7c6",
+      "iv": "049ee189c5b6adec921b6f83d6a6fef7",
+      "pt": "507a5a1fb5df2de870d3d4192f88a9c15d200489146643f02ba6b16178e90975",
+      "ct": "ca8f0bb9fabeb3a8108d7b2ffd63185868105d7eed42fe1c40c98e2cbc782eac",
+      "tag": "5b5c3677fcc59bf0019dfaf52560d5f7",
+      "full": "0cab024dfabcfd418ab7c8d626e8030000049ee189c5b6adec921b6f83d6a6fef7ca8f0bb9fabeb3a8108d7b2ffd63185868105d7eed42fe1c40c98e2cbc782eac5b5c3677fcc59bf0019dfaf52560d5f7"
+    },
+    {
+      "password": "6a616a686b676a79726b65706f73776e6778756b74746c6d70666a64776e62647668786b776d67766a6b73776e77",
+      "iterations": 1000,
+      "salt": "ab024dfabcfd418ab7c8d626",
+      "key": "defd10480883de261452053f56d84fb6783dcdeea60467592d1ca6cd58441067",
+      "iv": "d01ebf03383ea99d186b089665ad8d9b",
+      "pt": "0491d2a2a7227636220f568462628b9cabc54c42fbc934c4215c47fb2008db4b",
+      "ct": "01c1658d38376bb9c805233de022377896e78d6eaf38d577ecbb800310780143",
+      "tag": "2424883f639fb424ec8f49852234758f",
+      "full": "0cab024dfabcfd418ab7c8d626e8030000d01ebf03383ea99d186b089665ad8d9b01c1658d38376bb9c805233de022377896e78d6eaf38d577ecbb8003107801432424883f639fb424ec8f49852234758f"
+    }
+
+  ],
+  "mnemonic":
+  [
+    {
+      "data": "de",
+      "mnemonic": "light army jeans"
+    },
+    {
+      "data": "d7c6",
+      "mnemonic": "light attitude various"
+    },
+    {
+      "data": "63f38e",
+      "mnemonic": "lift buzz toe"
+    },
+    {
+      "data": "1b6fe934",
+      "mnemonic": "light army gate cycle write olympic"
+    },
+    {
+      "data": "9090909090909090909090909090909090909090909090909090909090909090",
+      "mnemonic": "light army gather cancel animal embark drastic bamboo mountain loyal category cancel animal embark drastic bamboo mountain loyal category cancel animal embark drastic bamboo mountain loyal canvas"
+    }
+  ]
+
+}
