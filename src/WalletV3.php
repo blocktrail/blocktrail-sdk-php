@@ -4,28 +4,42 @@ namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
-use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\Buffer;
-use Blocktrail\CryptoJSAES\CryptoJSAES;
+use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
+use Blocktrail\SDK\V3Crypt\Encryption;
+use Blocktrail\SDK\V3Crypt\Mnemonic;
 
-class WalletV2 extends Wallet {
+class WalletV3 extends Wallet
+{
 
+    /**
+     * @var BufferInterface
+     */
     protected $encryptedPrimarySeed;
 
+    /**
+     * @var BufferInterface
+     */
     protected $encryptedSecret;
 
+    /**
+     * @var BufferInterface
+     */
     protected $secret = null;
 
+    /**
+     * @var BufferInterface
+     */
     protected $primarySeed = null;
 
     /**
      * @param BlocktrailSDKInterface $sdk        SDK instance used to do requests
      * @param string                 $identifier identifier of the wallet
-     * @param string                 $encryptedPrimarySeed
-     * @param                        $encryptedSecret
+     * @param BufferInterface        $encryptedPrimarySeed
+     * @param BufferInterface        $encryptedSecret
      * @param BIP32Key[]             $primaryPublicKeys
      * @param BIP32Key               $backupPublicKey
      * @param BIP32Key[]             $blocktrailPublicKeys
@@ -34,7 +48,7 @@ class WalletV2 extends Wallet {
      * @param bool                   $testnet
      * @param string                 $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, BufferInterface $encryptedPrimarySeed, BufferInterface $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
@@ -52,14 +66,21 @@ class WalletV2 extends Wallet {
     public function unlock($options, callable $fn = null) {
         // explode the wallet data
         $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
+
         $encryptedPrimarySeed = $this->encryptedPrimarySeed;
         $encryptedSecret = $this->encryptedSecret;
         $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
 
         if (isset($options['secret'])) {
+            if (!$options['secret'] instanceof BufferInterface) {
+                throw new \RuntimeException('Secret must be a BufferInterface');
+            }
             $this->secret = $options['secret'];
         }
         if (isset($options['primary_seed'])) {
+            if (!$options['primary_seed'] instanceof BufferInterface) {
+                throw new \RuntimeException('Primary Seed must be a BufferInterface');
+            }
             $this->primarySeed = $options['primary_seed'];
         }
 
@@ -69,6 +90,10 @@ class WalletV2 extends Wallet {
             } elseif (!$encryptedSecret) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a encrypted secret");
             }
+
+            if (!$password instanceof Buffer) {
+                $password = new Buffer($password);
+            }
         }
 
         if ($primaryPrivateKey) {
@@ -76,19 +101,16 @@ class WalletV2 extends Wallet {
                 $primaryPrivateKey = HierarchicalKeyFactory::fromExtended($primaryPrivateKey);
             }
         } else {
-            if (!($this->secret = CryptoJSAES::decrypt($encryptedSecret, $password))) {
+            if (!($this->secret = Encryption::decrypt($encryptedSecret, $password))) {
                 throw new WalletDecryptException("Failed to decrypt secret with password");
             }
 
-            // convert the mnemonic to a seed using BIP39 standard
-            if (!($this->primarySeed = CryptoJSAES::decrypt($encryptedPrimarySeed, $this->secret))) {
+            if (!($this->primarySeed = Encryption::decrypt($encryptedPrimarySeed, $this->secret))) {
                 throw new WalletDecryptException("Failed to decrypt primary seed with secret");
             }
 
-            $seedBuffer = new Buffer(base64_decode($this->primarySeed));
-
             // create BIP32 private key from the seed
-            $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($seedBuffer);
+            $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($this->primarySeed);
         }
 
         $this->primaryPrivateKey = $primaryPrivateKey instanceof BIP32Key ? $primaryPrivateKey : BIP32Key::create($primaryPrivateKey, "m");
@@ -110,6 +132,8 @@ class WalletV2 extends Wallet {
             $fn($this);
             $this->lock();
         }
+
+        return true;
     }
 
     /**
@@ -132,6 +156,10 @@ class WalletV2 extends Wallet {
      * @throws BlocktrailSDKException
      */
     public function passwordChange($newPassword) {
+        if (!$newPassword instanceof BufferInterface) {
+            throw new \RuntimeException('Password must be provided as a BufferInterface');
+        }
+
         if ($this->locked) {
             throw new BlocktrailSDKException("Wallet needs to be unlocked to change password");
         }
@@ -140,14 +168,14 @@ class WalletV2 extends Wallet {
             throw new BlocktrailSDKException("No secret");
         }
 
-        $encryptedSecret = CryptoJSAES::encrypt($this->secret, $newPassword);
+        $encryptedSecret = Encryption::encrypt($this->secret, $newPassword);
 
-        $this->sdk->updateWallet($this->identifier, ['encrypted_secret' => $encryptedSecret]);
+        $this->sdk->updateWallet($this->identifier, ['encrypted_secret' => base64_encode($encryptedSecret->getBinary())]);
 
         $this->encryptedSecret = $encryptedSecret;
 
         return [
-            'encrypted_secret' => MnemonicFactory::bip39()->entropyToMnemonic(new Buffer(base64_decode($this->encryptedSecret))),
+            'encrypted_secret' => Mnemonic::encode($encryptedSecret),
         ];
     }
 }

@@ -72,7 +72,6 @@ class BlocktrailUnspentOutputFinder extends UnspentOutputFinder {
                 $utxos = array_merge($utxos, $results['data']);
                 $page++;
             } while (count($results['data']) > 0);
-
         } catch (\Exception $e) {
             //if rate limit hit, sleep for a short while and try again
             if ($this->retries < $this->retryLimit) {

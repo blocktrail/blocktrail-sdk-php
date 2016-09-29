@@ -70,7 +70,6 @@ class InsightUnspentOutputFinder extends UnspentOutputFinder {
                 $utxos = $json;
 
                 $more = false;
-
             } catch (\Exception $e) {
                 //if rate limit hit, sleep for a short while and try again
                 if ($retries < $this->retryLimit) {

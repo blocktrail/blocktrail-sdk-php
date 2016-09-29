@@ -11,6 +11,7 @@
     <testsuites>
         <testsuite name="Tests">
             <directory>./tests/</directory>
+            <directory>./tests/V3Crypt/</directory>
             <exclude>./tests/WalletRecoveryTest.php</exclude>
         </testsuite>
     </testsuites>
