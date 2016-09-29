@@ -1420,13 +1420,14 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     public function verifyMessage($message, $address, $signature) {
         // we could also use the API instead of the using BitcoinLib to verify
         // $this->client->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature])['result'];
+
+        $adapter = Bitcoin::getEcAdapter();
         $addr = AddressFactory::fromString($address);
         if (!$addr instanceof PayToPubKeyHashAddress) {
             throw new \RuntimeException('Can only verify a message with a pay-to-pubkey-hash address');
         }
 
         /** @var CompactSignatureSerializerInterface $csSerializer */
-        $adapter = Bitcoin::getEcAdapter();
         $csSerializer = EcSerializer::getSerializer(CompactSignatureSerializerInterface::class, $adapter);
         $signedMessage = new SignedMessage($message, $csSerializer->parse(new Buffer(base64_decode($signature))));
 
