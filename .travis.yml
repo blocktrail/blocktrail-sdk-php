@@ -3,17 +3,50 @@ php:
   - 5.6
   - 7.1
   - hhvm
+
+# only build master branch (and PRs)
+branches:
+  only:
+    - "master"
+
+before_install:
+  # disable XDEBUG unless specified to be used
+  - sh -c 'if [ "${WITH_XDEBUG}" = "false" ]; then phpenv config-rm xdebug.ini && echo "xdebug disabled" || exit 0; fi'
+
 install:
   - composer update
+
 script:
-  - "./vendor/bin/phpunit -c ./phpunit.xml"
-  - "./vendor/bin/phpunit -c ./phpunit-recovery.xml"
-  - "./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/"
+  # run tests when phpcs is not enabled
+  - sh -c 'if [ "${PHPCS}" != "true" ]; then ./vendor/bin/phpunit -c ./phpunit.xml; fi'
+  - sh -c 'if [ "${PHPCS}" != "true" ]; then ./vendor/bin/phpunit -c ./phpunit-recovery.xml; fi';
+
+  # run phpcs when enabled
+  - sh -c 'if [ "${PHPCS}" = "true" ]; then ./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/ && echo "PHPCS OK"; fi'
+
+  # check coverage if report was generated (requires xdebug enabled)
   - sh -c 'if [ -e clover.xml ]; then php coverage-checker.php clover.xml 70; fi'
+
 notifications:
   slack:
     secure: fwLiJFbxPCyY6+REN3XZ06RlffSVua3tW5Ih/p4xwp2KXNdcCldWCmziVhf65JGYaRU20M4HEOOcD+IpOI/IjpNHjF/+6OmtUGfkT9OfDCmuElqyq8UT6ck+xfb7FVtK42zkx0U3xC1qCclbFjY1Rht7vt5VnGN7Q3qJ3ax7mcM=
+
 env:
   global:
     - secure: d4a4n3bdFO/TZGBnEO0zOarL7kTkh4WyH6U+sEQoqe7Wbs1OIN014JXqYZZn2TDQ8kKjxKGi63TiDvh2wvKF+B7dlOo3/WvqNOEA48eVmRI3/LQsAAcmUNIK6YnBN2YgIy0kl8ycDvx0W7hK/A6FFmbnGTJnG6vnQ5NmBe1G3ug=
     - secure: ndOLTmYQgNKnr4qXt9/1TjYUDuGFn7K/v5L4urwIAxwD1jJYLHpntvhjTehQq34VX2uIQeDn0Zd4qyorpJxTI5Pmow51j5ZmtA0lS8TaFTwfWc+GZIG7UT3vcoHC5U0o54KJAlumSSncTMttPPfYsD7+8+8KYEjrOlXg6djq5fI=
+  matrix:
+    - PHPCS=false WITH_XDEBUG=false  # default disable phpcs run and disable xdebug
+
+matrix:
+  exclude:
+    # exclude the php5.6 job without xdebug so we can add one with xdebug
+    - php: 5.6
+      env: PHPCS=false WITH_XDEBUG=false
+  include:
+    # php5.6 run with xdebug for code coverage (slooooow)
+    - php: 5.6
+      env: PHPCS=false WITH_XDEBUG=true
+    # php5.6 run with phpcs (won't run tests, only phpcs)
+    - php: 5.6
+      env: PHPCS=true WITH_XDEBUG=false
