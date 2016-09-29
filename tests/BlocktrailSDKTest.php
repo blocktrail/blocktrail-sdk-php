@@ -28,20 +28,17 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         return $client;
     }
 
-    protected function tearDown()
-    {
+    protected function tearDown() {
         //called after each test
         $this->cleanUp();
     }
-    protected function onNotSuccessfulTest(\Exception $e)
-    {
+    protected function onNotSuccessfulTest(\Exception $e) {
         //called when a test fails
         $this->cleanUp();
         throw $e;
     }
 
-    protected function cleanUp()
-    {
+    protected function cleanUp() {
         //cleanup any records that were created
         $client = $this->setupBlocktrailSDK();
 
@@ -51,7 +48,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
             foreach ($this->cleanupData['webhooks'] as $webhook) {
                 try {
                     $count += (int)$client->deleteWebhook($webhook);
-                } catch (\Exception $e){}
+                } catch (\Exception $e) {
+                }
             }
         }
     }
@@ -153,7 +151,8 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $e = null;
         try {
             $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
-        } catch (InvalidCredentials $e) {}
+        } catch (InvalidCredentials $e) {
+        }
         $this->assertTrue(!!$e, "Bad keys still succeeded");
 
         $client = $this->setupBlocktrailSDK();
@@ -176,21 +175,21 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", $address['address'], "Address in response doesn't match");
 
         //address transactions
-        $response = $client->addressTransactions("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", $page=1, $limit=23);
+        $response = $client->addressTransactions("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", $page = 1, $limit = 23);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");
         $this->assertEquals(23, count($response['data']), "Count of address transactions returned is not equal to 23");
 
         //address unconfirmed transactions
-        $response = $client->addressUnconfirmedTransactions("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", $page=1, $limit=23);
+        $response = $client->addressUnconfirmedTransactions("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", $page = 1, $limit = 23);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");
         // $this->assertGreaterThanOrEqual(count($response['data']), $response['total'], "Total records found on server is less than the count of records returned");
 
         //address unspent outputs
-        $response = $client->addressUnspentOutputs("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", $page=1, $limit=23);
+        $response = $client->addressUnspentOutputs("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", $page = 1, $limit = 23);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");
@@ -218,14 +217,14 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf", $response['hash'], "Block hash returned does not match expected value");
 
         //block transactions
-        $response = $client->blockTransactions("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf", $page=1, $limit=23);
+        $response = $client->blockTransactions("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf", $page = 1, $limit = 23);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");
         $this->assertEquals(23, count($response['data']), "Count of transactions returned is not equal to 23");
 
         //all blocks
-        $response = $client->allBlocks($page=2, $limit=23);
+        $response = $client->allBlocks($page = 2, $limit = 23);
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('total', $response, "'total' key not in response");
         $this->assertArrayHasKey('data', $response, "'data' key not in response");

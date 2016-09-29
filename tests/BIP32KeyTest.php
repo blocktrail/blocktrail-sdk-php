@@ -12,7 +12,8 @@ class BIP32KeyTest extends \PHPUnit_Framework_TestCase {
         $e = null;
         try {
             BIP32Key::create(HierarchicalKeyFactory::fromExtended("xpub1"));
-        } catch(\Exception $e) {}
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "an exception should be thrown");
 
         $k = BIP32Key::create(HierarchicalKeyFactory::fromExtended("xprv9s21ZrQH143K44ed3A1NBn3udjmm6qHRpX4Da47ZpRdhqxpkhCWwMFWNpFbSkxAtkZ2s2345tyX5GdTuDWQYZ9jZPuTbkkBeHx3h6RmzL8J"), "m");

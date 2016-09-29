@@ -46,7 +46,7 @@ class BIP32Key {
         if (is_array($key) && count($key) == 2) {
             $this->key = $key[0];
             $this->path = BIP32Path::path($key[1]);
-        } else if (is_string($key) && is_string($path) && strlen($key) && strlen($path)) {
+        } elseif (is_string($key) && is_string($path) && strlen($key) && strlen($path)) {
             $this->key = $key;
             $this->path = BIP32Path::path($path);
         } else {
