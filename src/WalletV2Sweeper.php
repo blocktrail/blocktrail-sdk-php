@@ -17,7 +17,7 @@ class WalletV2Sweeper extends WalletSweeper {
     /**
      * @param string              $encryptedPrimaryMnemonic
      * @param string              $encryptedSecretMnemonic
-     * @param string              $backupSeed
+     * @param string              $backupMnemonic
      * @param string              $passphrase
      * @param array               $blocktrailPublicKeys
      * @param UnspentOutputFinder $utxoFinder
@@ -25,14 +25,13 @@ class WalletV2Sweeper extends WalletSweeper {
      * @param bool                $testnet
      * @throws BlocktrailSDKException
      */
-    public function __construct($encryptedPrimaryMnemonic, $encryptedSecretMnemonic, $backupSeed, $passphrase, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
+    public function __construct($encryptedPrimaryMnemonic, $encryptedSecretMnemonic, $backupMnemonic, $passphrase, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
         // cleanup copy paste errors from mnemonics
         $encryptedPrimaryMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedPrimaryMnemonic))));
         $encryptedSecretMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedSecretMnemonic))));
-        $backupSeed = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($backupSeed))));
+        $backupMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($backupMnemonic))));
 
         $bip39 = MnemonicFactory::bip39();
-
         if (!($secret = CryptoJSAES::decrypt(base64_encode($bip39->mnemonicToEntropy($encryptedSecretMnemonic)->getBinary()), $passphrase))) {
             throw new BlocktrailSDKException("Failed to decret password encrypted secret");
         }
@@ -41,7 +40,7 @@ class WalletV2Sweeper extends WalletSweeper {
             throw new BlocktrailSDKException("failed to decrypt encrypted primary seed! (weird!)");
         }
 
-        $backupSeed = $bip39->mnemonicToEntropy($backupSeed);
+        $backupSeed = $bip39->mnemonicToEntropy($backupMnemonic);
 
         parent::__construct(new Buffer($primarySeed), $backupSeed, $blocktrailPublicKeys, $utxoFinder, $network, $testnet);
     }
