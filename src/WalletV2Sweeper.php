@@ -15,8 +15,8 @@ use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 class WalletV2Sweeper extends WalletSweeper {
 
     /**
-     * @param string              $encryptedPrimarySeed
-     * @param string              $passwordEncryptedSecret
+     * @param string              $encryptedPrimaryMnemonic
+     * @param string              $encryptedSecretMnemonic
      * @param string              $backupSeed
      * @param string              $passphrase
      * @param array               $blocktrailPublicKeys
@@ -25,19 +25,19 @@ class WalletV2Sweeper extends WalletSweeper {
      * @param bool                $testnet
      * @throws BlocktrailSDKException
      */
-    public function __construct($encryptedPrimarySeed, $passwordEncryptedSecret, $backupSeed, $passphrase, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
+    public function __construct($encryptedPrimaryMnemonic, $encryptedSecretMnemonic, $backupSeed, $passphrase, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
         // cleanup copy paste errors from mnemonics
-        $encryptedPrimarySeed = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedPrimarySeed))));
-        $passwordEncryptedSecret = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($passwordEncryptedSecret))));
+        $encryptedPrimaryMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedPrimaryMnemonic))));
+        $encryptedSecretMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedSecretMnemonic))));
         $backupSeed = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($backupSeed))));
 
         $bip39 = MnemonicFactory::bip39();
 
-        if (!($secret = CryptoJSAES::decrypt(base64_encode($bip39->mnemonicToEntropy($passwordEncryptedSecret)->getBinary()), $passphrase))) {
+        if (!($secret = CryptoJSAES::decrypt(base64_encode($bip39->mnemonicToEntropy($encryptedSecretMnemonic)->getBinary()), $passphrase))) {
             throw new BlocktrailSDKException("Failed to decret password encrypted secret");
         }
 
-        if (!($primarySeed = CryptoJSAES::decrypt(base64_encode($bip39->mnemonicToEntropy($encryptedPrimarySeed)->getBinary()), $secret))) {
+        if (!($primarySeed = CryptoJSAES::decrypt(base64_encode($bip39->mnemonicToEntropy($encryptedPrimaryMnemonic)->getBinary()), $secret))) {
             throw new BlocktrailSDKException("failed to decrypt encrypted primary seed! (weird!)");
         }
 
