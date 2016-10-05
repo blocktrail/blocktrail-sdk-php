@@ -29,7 +29,7 @@ use Blocktrail\SDK\WalletV2;
 /**
  * Class WalletTest
  *
- * ! IMPORTANT NODE !
+ * ! IMPORTANT NOTE !
  * throughout the test cases we use key_index=9999 to force an insecure development key on the API side
  *  this insecure key is used instead of the normal one so that we can reproduce the result on our staging environment
  *  without our private keys having to leaving our safe production environment

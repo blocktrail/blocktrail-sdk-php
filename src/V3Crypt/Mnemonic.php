@@ -8,8 +8,18 @@ use BitWasp\Buffertools\BufferInterface;
 
 class Mnemonic
 {
-    const PADDING_BLOCK_SIZE = 4;
+    const CHUNK_SIZE = 4;
     const PADDING_DUMMY = "\x81";
+
+    /**
+     * @param string $data
+     * @return string
+     */
+    private static function derivePadding($data)
+    {
+        $padLen = self::CHUNK_SIZE - (strlen($data) % self::CHUNK_SIZE);
+        return str_pad('', $padLen, self::PADDING_DUMMY);
+    }
 
     /**
      * @param BufferInterface $data
@@ -17,12 +27,14 @@ class Mnemonic
      */
     public static function encode(BufferInterface $data)
     {
-        $padLen = self::PADDING_BLOCK_SIZE - $data->getSize() % self::PADDING_BLOCK_SIZE;
-        $data = new Buffer(str_pad('', $padLen, self::PADDING_DUMMY) . $data->getBinary());
-
         $bip39 = MnemonicFactory::bip39();
-        $mnemonic = $bip39->entropyToMnemonic($data);
-        $bip39->mnemonicToEntropy($mnemonic);
+        $mnemonic = $bip39->entropyToMnemonic(new Buffer(self::derivePadding($data->getBinary()) . $data->getBinary()));
+
+        try {
+            $bip39->mnemonicToEntropy($mnemonic);
+        } catch (\Exception $e) {
+            throw new \RuntimeException('BIP39 produced an invalid mnemonic');
+        }
 
         return $mnemonic;
     }
@@ -34,16 +46,17 @@ class Mnemonic
     public static function decode($mnemonic)
     {
         $bip39 = MnemonicFactory::bip39();
-        $str = $bip39->mnemonicToEntropy($mnemonic)->getBinary();
+        $decoded = $bip39->mnemonicToEntropy($mnemonic)->getBinary();
         $padFinish = 0;
-        $length = strlen($str);
-
-        for ($i = 0; $padFinish == 0 && $i < $length; $i+=1) {
-            if ($str[$i] !== self::PADDING_DUMMY) {
-                $padFinish = $i;
-            }
+        while ($decoded[$padFinish] === self::PADDING_DUMMY) {
+            $padFinish++;
         }
 
-        return new Buffer(substr($str, $padFinish));
+        $data = substr($decoded, $padFinish);
+        if (self::derivePadding($data) !== substr($decoded, 0, $padFinish)) {
+            throw new \RuntimeException('The data was incorrectly padded');
+        }
+
+        return new Buffer($data);
     }
 }
