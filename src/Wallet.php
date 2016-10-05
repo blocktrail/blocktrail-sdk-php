@@ -27,6 +27,7 @@ abstract class Wallet implements WalletInterface {
 
     const WALLET_VERSION_V1 = 'v1';
     const WALLET_VERSION_V2 = 'v2';
+    const WALLET_VERSION_V3 = 'v3';
 
     const BASE_FEE = 10000;
 
