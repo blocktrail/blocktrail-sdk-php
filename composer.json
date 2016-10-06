@@ -33,7 +33,7 @@
         "ext-gd": "*",
         "ext-dom": "*",
 
-        "bitwasp/bitcoin": "v0.0.29.1",
+        "bitwasp/bitcoin": "v0.0.30.1",
         "mdanter/ecc": "v0.4.0",
 
         "guzzlehttp/guzzle": "6.*",
