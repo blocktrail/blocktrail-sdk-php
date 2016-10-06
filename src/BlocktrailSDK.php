@@ -16,13 +16,14 @@ use BitWasp\Bitcoin\MessageSigner\SignedMessage;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Bitcoin\Network\NetworkFactory;
-use BitWasp\Bitcoin\Serializer\MessageSigner\SignedMessageSerializer;
-use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
+use Blocktrail\SDK\V3Crypt\Encryption;
+use Blocktrail\SDK\V3Crypt\Mnemonic;
+
 
 /**
  * Class BlocktrailSDK
@@ -552,6 +553,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             case Wallet::WALLET_VERSION_V2:
                 return $this->createNewWalletV2($options);
 
+            case Wallet::WALLET_VERSION_V3:
+                return $this->createNewWalletV3($options);
+
             default:
                 throw new \InvalidArgumentException("Invalid wallet version");
         }
@@ -795,6 +799,138 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         ];
     }
 
+    protected function createNewWalletV3($options) {
+        $walletPath = WalletPath::create($options['key_index']);
+
+        if (isset($options['store_primary_mnemonic'])) {
+            $options['store_data_on_server'] = $options['store_primary_mnemonic'];
+        }
+
+        if (!isset($options['store_data_on_server'])) {
+            if (isset($options['primary_private_key'])) {
+                $options['store_data_on_server'] = false;
+            } else {
+                $options['store_data_on_server'] = true;
+            }
+        }
+
+        $storeDataOnServer = $options['store_data_on_server'];
+
+        $secret = null;
+        $encryptedSecret = null;
+        $primarySeed = null;
+        $encryptedPrimarySeed = null;
+        $recoverySecret = null;
+        $recoveryEncryptedSecret = null;
+        $backupSeed = null;
+
+        if (!isset($options['primary_private_key'])) {
+            $primarySeed = isset($options['primary_seed']) ? $options['primary_seed'] : self::randomBits(256);
+            $primarySeed = new Buffer($primarySeed);
+        }
+
+        if ($storeDataOnServer) {
+            if (!isset($options['secret'])) {
+                if (!$options['passphrase']) {
+                    throw new \InvalidArgumentException("Can't encrypt data without a passphrase");
+                }
+
+                $secret = new Buffer(self::randomBits(256));
+                $encryptedSecret = Encryption::encrypt($secret, new Buffer($options['passphrase']));
+            } else {
+                if (!$options['secret'] instanceof Buffer) {
+                    throw new \RuntimeException('Secret must be provided as a Buffer');
+                }
+
+                $secret = $options['secret'];
+            }
+
+            $encryptedPrimarySeed = Encryption::encrypt($primarySeed, $secret);
+            $recoverySecret = new Buffer(self::randomBits(256));
+
+            $recoveryEncryptedSecret = Encryption::encrypt($secret, $recoverySecret);
+        }
+
+        if (!isset($options['backup_public_key'])) {
+            if (isset($options['backup_seed'])) {
+                if (!$options['backup_seed'] instanceof Buffer) {
+                    throw new \RuntimeException('Backup seed must be an instance of Buffer');
+                }
+                $backupSeed = $options['backup_seed'];
+            } else {
+                $backupSeed = new Buffer(self::randomBits(256));
+            }
+        }
+
+        if (isset($options['primary_private_key'])) {
+            $options['primary_private_key'] = BlocktrailSDK::normalizeBIP32Key($options['primary_private_key']);
+        } else {
+            $options['primary_private_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy(new Buffer($primarySeed)), "m");
+        }
+
+        // create primary public key from the created private key
+        $options['primary_public_key'] = $options['primary_private_key']->buildKey($walletPath->keyIndexPath()->publicPath());
+
+        if (!isset($options['backup_public_key'])) {
+            $options['backup_public_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($backupSeed), "m")->buildKey("M");
+        }
+
+        // create a checksum of our private key which we'll later use to verify we used the right password
+        $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress();
+
+        // send the public keys and encrypted data to server
+        $data = $this->storeNewWalletV3(
+            $options['identifier'],
+            $options['primary_public_key']->tuple(),
+            $options['backup_public_key']->tuple(),
+            $storeDataOnServer ? base64_encode($encryptedPrimarySeed->getBinary()) : false,
+            $storeDataOnServer ? base64_encode($encryptedSecret->getBinary()) : false,
+            $storeDataOnServer ? $recoverySecret->getHex() : false,
+            $checksum,
+            $options['key_index']
+        );
+
+        // received the blocktrail public keys
+        $blocktrailPublicKeys = Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) {
+            return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])];
+        }, $data['blocktrail_public_keys']);
+
+        $wallet = new WalletV3(
+            $this,
+            $options['identifier'],
+            $encryptedPrimarySeed,
+            $encryptedSecret,
+            [$options['key_index'] => $options['primary_public_key']],
+            $options['backup_public_key'],
+            $blocktrailPublicKeys,
+            $options['key_index'],
+            $this->network,
+            $this->testnet,
+            $checksum
+        );
+
+        $wallet->unlock([
+            'passphrase' => isset($options['passphrase']) ? $options['passphrase'] : null,
+            'primary_private_key' => $options['primary_private_key'],
+            'primary_seed' => $primarySeed,
+            'secret' => $secret,
+        ]);
+
+        // return wallet and mnemonics for backup sheet
+        return [
+            $wallet,
+            [
+                'encrypted_primary_seed'    => $encryptedPrimarySeed ? Mnemonic::encode($encryptedPrimarySeed) : null,
+                'backup_seed'               => $backupSeed ? MnemonicFactory::bip39()->entropyToMnemonic($backupSeed) : null,
+                'recovery_encrypted_secret' => $recoveryEncryptedSecret ? Mnemonic::encode($recoveryEncryptedSecret) : null,
+                'encrypted_secret'          => $encryptedSecret ? Mnemonic::encode($encryptedSecret) : null,
+                'blocktrail_public_keys'    => Util::arrayMapWithIndex(function ($keyIndex, BIP32Key $pubKey) {
+                    return [$keyIndex, $pubKey->tuple()];
+                }, $blocktrailPublicKeys),
+            ]
+        ];
+    }
+
     /**
      * create wallet using the API
      *
@@ -838,6 +974,37 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $data = [
             'identifier' => $identifier,
             'wallet_version' => Wallet::WALLET_VERSION_V2,
+            'primary_public_key' => $primaryPublicKey,
+            'backup_public_key' => $backupPublicKey,
+            'encrypted_primary_seed' => $encryptedPrimarySeed,
+            'encrypted_secret' => $encryptedSecret,
+            'recovery_secret' => $recoverySecret,
+            'checksum' => $checksum,
+            'key_index' => $keyIndex
+        ];
+
+        $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
+     * create wallet using the API
+     *
+     * @param string $identifier       the wallet identifier to create
+     * @param array  $primaryPublicKey BIP32 extended public key - [key, path]
+     * @param string $backupPublicKey  plain public key
+     * @param        $encryptedPrimarySeed
+     * @param        $encryptedSecret
+     * @param        $recoverySecret
+     * @param string $checksum         checksum to store
+     * @param int    $keyIndex         account that we expect to use
+     * @return mixed
+     * @throws \Exception
+     */
+    public function storeNewWalletV3($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex) {
+        $data = [
+            'identifier' => $identifier,
+            'wallet_version' => Wallet::WALLET_VERSION_V3,
             'primary_public_key' => $primaryPublicKey,
             'backup_public_key' => $backupPublicKey,
             'encrypted_primary_seed' => $encryptedPrimarySeed,
@@ -926,6 +1093,40 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $identifier,
                     isset($options['encrypted_primary_seed']) ? $options['encrypted_primary_seed'] : $data['encrypted_primary_seed'],
                     isset($options['encrypted_secret']) ? $options['encrypted_secret'] : $data['encrypted_secret'],
+                    $data['primary_public_keys'],
+                    $data['backup_public_key'],
+                    $data['blocktrail_public_keys'],
+                    isset($options['key_index']) ? $options['key_index'] : $data['key_index'],
+                    $this->network,
+                    $this->testnet,
+                    $data['checksum']
+                );
+                break;
+            case Wallet::WALLET_VERSION_V3:
+                if ($options['encrypted_primary_seed']) {
+                    if (!$options['encrypted_primary_seed'] instanceof Buffer) {
+                        throw new \InvalidArgumentException('Encrypted PrimarySeed must be provided as a Buffer');
+                    }
+                    $encryptedPrimarySeed = $data['encrypted_primary_seed'];
+                } else {
+                    $encryptedPrimarySeed = new Buffer(base64_decode($data['encrypted_primary_seed']));
+                }
+
+                if ($options['encrypted_secret']) {
+                    if (!$options['encrypted_secret'] instanceof Buffer) {
+                        throw new \InvalidArgumentException('Encrypted secret must be provided as a Buffer');
+                    }
+
+                    $encryptedSecret = $data['encrypted_secret'];
+                } else {
+                    $encryptedSecret = new Buffer(base64_decode($data['encrypted_secret']));
+                }
+
+                $wallet = new WalletV3(
+                    $this,
+                    $identifier,
+                    $encryptedPrimarySeed,
+                    $encryptedSecret,
                     $data['primary_public_keys'],
                     $data['backup_public_key'],
                     $data['blocktrail_public_keys'],
