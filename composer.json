@@ -30,20 +30,20 @@
         "ext-intl": "*",
         "ext-gmp": "*",
         "ext-bcmath": "*",
-        "ext-mcrypt": "*",
         "ext-gd": "*",
         "ext-dom": "*",
 
-        "blocktrail/bitcoin-lib": "1.0.20",
+        "bitwasp/bitcoin": "v0.0.30.1",
+        "mdanter/ecc": "v0.4.0",
 
         "guzzlehttp/guzzle": "6.*",
         "99designs/http-signatures-guzzlehttp": "dev-guzzle-v6",
 
-        "mdanter/ecc": "0.2.0",
         "rych/hash_pbkdf2-compat": "~1.0",
         "ramsey/array_column": "~1.1",
         "dompdf/dompdf" : "0.6.*",
-        "endroid/qrcode": "1.5.*"
+        "endroid/qrcode": "1.5.*",
+        "blocktrail/cryptojs-aes-php": "0.1.*"
     },
     "require-dev": {
         "phpunit/phpunit": "4.3.*",

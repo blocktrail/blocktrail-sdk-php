@@ -2,46 +2,38 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\BitcoinLib\BIP32;
-use BitWasp\BitcoinLib\BIP39\BIP39;
-use BitWasp\BitcoinLib\BitcoinLib;
-use BitWasp\BitcoinLib\RawTransaction;
-use Blocktrail\SDK\Bitcoin\BIP32Key;
-use Blocktrail\SDK\Bitcoin\BIP32Path;
+use BitWasp\Bitcoin\Address\AddressInterface;
+use BitWasp\Bitcoin\Script\ScriptInterface;
 
-class UTXO implements \ArrayAccess {
+class UTXO {
 
     public $hash;
     public $index;
     public $value;
+
+    /**
+     * @var AddressInterface
+     */
     public $address;
-    public $scriptPubKeyHex;
+
+    /**
+     * @var ScriptInterface
+     */
+    public $scriptPubKey;
     public $path;
+
+    /**
+     * @var ScriptInterface
+     */
     public $redeemScript;
 
-    public function __construct($hash, $index, $value = null, $address = null, $scriptPubKeyHex = null, $path = null, $redeemScript = null) {
+    public function __construct($hash, $index, $value = null, AddressInterface $address = null, ScriptInterface $scriptPubKey = null, $path = null, ScriptInterface $redeemScript = null) {
         $this->hash = $hash;
         $this->index = $index;
         $this->value = $value;
         $this->address = $address;
-        $this->scriptPubKeyHex = $scriptPubKeyHex;
+        $this->scriptPubKey = $scriptPubKey;
         $this->path = $path;
         $this->redeemScript = $redeemScript;
-    }
-
-    public function offsetExists($offset) {
-
-    }
-
-    public function offsetGet($offset) {
-
-    }
-
-    public function offsetSet($offset, $value) {
-
-    }
-
-    public function offsetUnset($offset) {
-
     }
 }

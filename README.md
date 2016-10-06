@@ -11,6 +11,10 @@ at https://www.blocktrail.com/api/docs/lang/php
 
 [![Build Status](https://travis-ci.org/blocktrail/blocktrail-sdk-php.svg?branch=master)](https://travis-ci.org/blocktrail/blocktrail-sdk-php)
 
+Upgrading from v1.x to v2.0.0
+-----------------------------
+**IMPORTANT** `v2.0.0` has a few BC breaks, please check [docs/CHANGELOG.md](docs/CHANGELOG.md)!!
+
 Upgrading from v1.2.x to v1.3.0
 -----------------------------
 **IMPORTANT** `v1.3.0` adds the option to choose a fee strategy and **by default chooses DYNAMIC**, please check [docs/CHANGELOG.md](docs/CHANGELOG.md) for the details!!
@@ -37,10 +41,10 @@ A bit more about this can be found [in our documentation](https://www.blocktrail
 
 Requirements
 ------------
-The SDK requires PHP 5.6+ and the Intl, GMP, BCMath and MCrypt PHP extensions.  
+The SDK requires PHP 5.6+ and the Intl, GMP and BCMath PHP extensions.  
 To install these on Ubuntu use:
 ```
-sudo apt-get install php5-bcmath php5-intl php5-gmp php5-mcrypt
+sudo apt-get install php5-bcmath php5-intl php5-gmp
 sudo php5enmod mcrypt
 ```
 *BCMath should already be part of the default php5 package*
@@ -86,6 +90,17 @@ Too often the suggested solution is to disable ssl cert verification in cURL, bu
   curl.cainfo = C:\php\certs\cacert.pem
   ```
 
+(Optional) Use `libsecp256k1`
+-----------------------------
+The underlying `bitcoin-php` library that is used to sign transactions can use `libsecp256k1` for (A LOT) faster signing of transactions.
+If the `secp256k1-php` PHP extension is installed it will be automatically used and will greatly improve performance!
+
+The installation is a bit cumbersome though and because `libsecp256k1` still changes a lot building might not always work!
+If you can get it to install; AWESOME, if not, have patience while we're working on figuring out how to provide installers for them.
+
+https://github.com/Bit-Wasp/secp256k1-php#to-install
+
+**MAKE SURE TO RUN THE TESTSUITE OF `secp256k1-php` AFTER THE INSTALL BEFORE ENABLING THE EXTENSION!!**
 
 Usage
 -----

@@ -2,10 +2,10 @@
 
 namespace Blocktrail\SDK\Services;
 
-use Blocktrail\SDK\BlockchainDataServiceInterface;
 use Blocktrail\SDK\BlocktrailSDK;
+use Blocktrail\SDK\UnspentOutputFinder;
 
-class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
+class BlocktrailUnspentOutputFinder extends UnspentOutputFinder {
 
     protected $client;
     protected $retryLimit;
@@ -37,6 +37,24 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
         $this->paginationLimit = $limit;
     }
 
+    public function getUTXOs(array $addresses) {
+        $results = array();
+
+        foreach ($addresses as $address) {
+            if ($this->debug) {
+                echo "\nchecking $address";
+            }
+            //get the utxos for this address
+            $utxos = $this->getUnspentOutputs($address);
+
+            if (count($utxos) > 0) {
+                $results = array_merge($results, $utxos);
+            }
+        }
+
+        return $results;
+    }
+
     /**
      * gets unspent outputs for an address, returning and array of outputs with hash, index, value, and script pub hex
      *
@@ -44,7 +62,7 @@ class BlocktrailBitcoinService implements BlockchainDataServiceInterface {
      * @return array        2d array of unspent outputs as ['hash' => $hash, 'index' => $index, 'value' => $value, 'script_hex' => $scriptHex]
      * @throws \Exception
      */
-    public function getUnspentOutputs($address) {
+    protected function getUnspentOutputs($address) {
         //get unspent outputs for the address - required data: hash, index, value, and script hex
         $utxos = array();
         try {
