@@ -3,6 +3,7 @@
 namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
 use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Crypto\EcAdapter\EcSerializer;
 use BitWasp\Bitcoin\Crypto\EcAdapter\Key\PublicKeyInterface;
@@ -1411,14 +1412,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         // we could also use the API instead of the using BitcoinLib to verify
         // $this->client->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature])['result'];
 
-
         $addr = AddressFactory::fromString($address);
+        if (!$addr instanceof PayToPubKeyHashAddress) {
+            throw new \RuntimeException('Can only verify against a pay-to-pubkey-hash address');
+        }
 
+        $ecAdapter = Bitcoin::getEcAdapter();
         /** @var CompactSignatureSerializerInterface $csSerializer */
-        $csSerializer = EcSerializer::getSerializer(Bitcoin::getEcAdapter(), CompactSignatureSerializerInterface::class);
+        $csSerializer = EcSerializer::getSerializer(CompactSignatureSerializerInterface::class, $ecAdapter);
         $signedMessage = new SignedMessage($message, $csSerializer->parse(new Buffer(base64_decode($signature))));
 
-        $signer = new MessageSigner(Bitcoin::getEcAdapter());
+        $signer = new MessageSigner($ecAdapter);
         return $signer->verify($signedMessage, $addr);
     }
 

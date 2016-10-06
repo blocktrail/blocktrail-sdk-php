@@ -903,8 +903,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -914,7 +914,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0), $fee);
 
         // assert the input(s)
-        $this->assertEquals(1, count($tx->getInputs()->all()));
+        $this->assertEquals(1, count($tx->getInputs()));
         $this->assertEquals("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
         $this->assertEquals(0, $tx->getInput(0)->getOutPoint()->getVout());
         $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
@@ -925,7 +925,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             $signInfo[0]->redeemScript->getHex());
 
         // assert the output(s)
-        $this->assertEquals(1, count($tx->getOutputs()->all()));
+        $this->assertEquals(1, count($tx->getOutputs()));
         $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
         $this->assertEquals(10000, $tx->getOutput(0)->getValue());
 
@@ -981,8 +981,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -990,7 +990,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
-        $this->assertEquals(14, count($tx->getOutputs()->all()));
+        $this->assertEquals(14, count($tx->getOutputs()));
         $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(13)->getScript())->getAddress());
         $this->assertEquals(99860000, $tx->getOutput(13)->getValue());
 
@@ -1038,8 +1038,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1047,7 +1047,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
-        $this->assertEquals(20, count($tx->getOutputs()->all()));
+        $this->assertEquals(20, count($tx->getOutputs()));
         $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(19)->getScript())->getAddress());
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $tx->getOutput(19)->getValue());
 
@@ -1098,8 +1098,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1107,7 +1107,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9998), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0002), $fee);
-        $this->assertEquals(21, count($tx->getOutputs()->all()));
+        $this->assertEquals(21, count($tx->getOutputs()));
         $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(20)->getScript())->getAddress());
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9978), $tx->getOutput(20)->getValue());
 
@@ -1157,8 +1157,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1166,7 +1166,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0021), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
-        $this->assertEquals(20, count($tx->getOutputs()->all()));
+        $this->assertEquals(20, count($tx->getOutputs()));
 
         /*
          * test change output bumps size over 1kb, fee += 0.0001
@@ -1218,8 +1218,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1227,7 +1227,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.00219), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.00019), $fee);
-        $this->assertEquals(20, count($tx->getOutputs()->all()));
+        $this->assertEquals(20, count($tx->getOutputs()));
 
         /*
          * custom fee
@@ -1245,8 +1245,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1273,8 +1273,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()->all()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()->all()));
+        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 

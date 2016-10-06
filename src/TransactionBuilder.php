@@ -4,6 +4,7 @@ namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
+use BitWasp\Bitcoin\Script\Opcodes;
 use BitWasp\Bitcoin\Script\Script;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
@@ -173,11 +174,7 @@ class TransactionBuilder {
             throw new BlocktrailSDKException("OP_RETURN data should be <= 79 bytes to remain standard!");
         }
 
-        $script = ScriptFactory::create()
-            ->op('OP_RETURN')
-            ->push(new Buffer($data))
-            ->getScript()
-        ;
+        $script = ScriptFactory::sequence([Opcodes::OP_RETURN, new Buffer($data)]);
 
         $this->addOutput([
             'scriptPubKey' => $script,
