@@ -151,15 +151,11 @@ class WalletV3 extends Wallet
     /**
      * change password that is used to store data encrypted on server
      *
-     * @param $newPassword
+     * @param string $newPassword
      * @return array backupInfo
      * @throws BlocktrailSDKException
      */
     public function passwordChange($newPassword) {
-        if (!$newPassword instanceof BufferInterface) {
-            throw new \RuntimeException('Password must be provided as a BufferInterface');
-        }
-
         if ($this->locked) {
             throw new BlocktrailSDKException("Wallet needs to be unlocked to change password");
         }
@@ -168,7 +164,7 @@ class WalletV3 extends Wallet
             throw new BlocktrailSDKException("No secret");
         }
 
-        $encryptedSecret = Encryption::encrypt($this->secret, $newPassword);
+        $encryptedSecret = Encryption::encrypt($this->secret, new Buffer($newPassword));
 
         $this->sdk->updateWallet($this->identifier, ['encrypted_secret' => base64_encode($encryptedSecret->getBinary())]);
 
