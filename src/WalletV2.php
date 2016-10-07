@@ -66,7 +66,7 @@ class WalletV2 extends Wallet {
         if (!$primaryPrivateKey) {
             if (!$password) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a passphrase");
-            } else if (!$encryptedSecret) {
+            } elseif (!$encryptedSecret) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a encrypted secret");
             }
         }

@@ -15,8 +15,7 @@ class Mnemonic
      * @param string $data
      * @return string
      */
-    private static function derivePadding($data)
-    {
+    private static function derivePadding($data) {
         $padLen = self::CHUNK_SIZE - (strlen($data) % self::CHUNK_SIZE);
         return str_pad('', $padLen, self::PADDING_DUMMY);
     }
@@ -25,8 +24,7 @@ class Mnemonic
      * @param BufferInterface $data
      * @return string
      */
-    public static function encode(BufferInterface $data)
-    {
+    public static function encode(BufferInterface $data) {
         $bip39 = MnemonicFactory::bip39();
         $mnemonic = $bip39->entropyToMnemonic(new Buffer(self::derivePadding($data->getBinary()) . $data->getBinary()));
 
@@ -43,8 +41,7 @@ class Mnemonic
      * @param string $mnemonic
      * @return BufferInterface
      */
-    public static function decode($mnemonic)
-    {
+    public static function decode($mnemonic) {
         $bip39 = MnemonicFactory::bip39();
         $decoded = $bip39->mnemonicToEntropy($mnemonic)->getBinary();
         $padFinish = 0;

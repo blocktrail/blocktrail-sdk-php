@@ -48,8 +48,7 @@ class WalletV3 extends Wallet
      * @param bool                   $testnet
      * @param string                 $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, BufferInterface $encryptedPrimarySeed, BufferInterface $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum)
-    {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, BufferInterface $encryptedPrimarySeed, BufferInterface $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
@@ -64,8 +63,7 @@ class WalletV3 extends Wallet
      * @return bool
      * @throws \Exception
      */
-    public function unlock($options, callable $fn = null)
-    {
+    public function unlock($options, callable $fn = null) {
         // explode the wallet data
         $password = isset($options['passphrase']) ? $options['passphrase'] : (isset($options['password']) ? $options['password'] : null);
 
@@ -89,12 +87,12 @@ class WalletV3 extends Wallet
         if (!$primaryPrivateKey) {
             if (!$password) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a passphrase");
-            } else if (!$encryptedSecret) {
+            } elseif (!$encryptedSecret) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a encrypted secret");
             }
 
             if (!$password instanceof Buffer) {
-                throw new \RuntimeException('Password should be provided as a BufferInterface');
+                $password = new Buffer($password);
             }
         }
 
@@ -143,8 +141,7 @@ class WalletV3 extends Wallet
      *
      * @return void
      */
-    public function lock()
-    {
+    public function lock() {
         $this->primaryPrivateKey = null;
         $this->secret = null;
         $this->primarySeed = null;
@@ -158,8 +155,7 @@ class WalletV3 extends Wallet
      * @return array backupInfo
      * @throws BlocktrailSDKException
      */
-    public function passwordChange($newPassword)
-    {
+    public function passwordChange($newPassword) {
         if (!$newPassword instanceof BufferInterface) {
             throw new \RuntimeException('Password must be provided as a BufferInterface');
         }

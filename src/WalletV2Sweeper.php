@@ -2,7 +2,6 @@
 
 namespace Blocktrail\SDK;
 
-
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 
 

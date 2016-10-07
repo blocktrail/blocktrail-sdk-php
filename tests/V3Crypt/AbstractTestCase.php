@@ -15,8 +15,7 @@ abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
      * @param array $data
      * @param string $dataName
      */
-    public function __construct($name = null, array $data = [], $dataName = '')
-    {
+    public function __construct($name = null, array $data = [], $dataName = '') {
         $this->getTestVectors();
         parent::__construct($name, $data, $dataName);
     }
@@ -24,8 +23,7 @@ abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
     /**
      * @return array
      */
-    private function readTestVectorsFile()
-    {
+    private function readTestVectorsFile() {
         $decoded = json_decode(file_get_contents(__DIR__ .'/../data/crypt_vectors.json'), true);
         if (!$decoded || json_last_error() !== JSON_ERROR_NONE) {
             throw new \RuntimeException('failed to read vectors file');
@@ -37,8 +35,7 @@ abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
     /**
      * @return array
      */
-    public function getTestVectors()
-    {
+    public function getTestVectors() {
         if (null === $this->vectors) {
             $this->vectors = $this->readTestVectorsFile();
         }

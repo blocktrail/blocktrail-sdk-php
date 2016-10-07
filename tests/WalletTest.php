@@ -204,8 +204,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("tpubDAtJthHcm9MJwmHp4r2UwSTmiDYZWHbQUMqySJ1koGxQpRNSaJdyL2Ab8wwtMm5DsMMk3v68299LQE6KhT8XPQWzxPLK5TbTHKtnrmjV8Gg", $masterkey->derivePath("0")->toExtendedKey());
         $this->assertEquals("tpubDDfqpEKGqEVa5FbdLtwezc6Xgn81teTFFVA69ZfJBHp4UYmUmhqVZMmqXeJBDahvySZrPjpwMy4gKfNfrxuFHmzo1r6srB4MrsDKWbwEw3d", $masterkey->derivePath("0/0")->toExtendedKey());
 
-        $this->assertEquals("tpubDHNy3kAG39ThyiwwsgoKY4iRenXDRtce8qdCFJZXPMCJg5dsCUHayp84raLTpvyiNA9sXPob5rgqkKvkN8S7MMyXbnEhGJMW64Cf4vFAoaF",
-            HierarchicalKeyFactory::fromEntropy(Buffer::hex("000102030405060708090a0b0c0d0e0f"))->derivePath("M/0'/1/2'/2/1000000000")->toExtendedPublicKey());
+        $this->assertEquals(
+            "tpubDHNy3kAG39ThyiwwsgoKY4iRenXDRtce8qdCFJZXPMCJg5dsCUHayp84raLTpvyiNA9sXPob5rgqkKvkN8S7MMyXbnEhGJMW64Cf4vFAoaF",
+            HierarchicalKeyFactory::fromEntropy(Buffer::hex("000102030405060708090a0b0c0d0e0f"))->derivePath("M/0'/1/2'/2/1000000000")->toExtendedPublicKey()
+        );
     }
 
     public function testCreateWallet() {
@@ -688,7 +690,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $e = null;
         try {
             $wallet = $client->initWallet($identifier, "password2");
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "Wallet with bad pass initialized");
     }
 
@@ -776,7 +779,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 "identifier" => $wallet->getIdentifier(),
                 "passphrase" => "password2",
             ]);
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "Wallet with bad pass initialized");
     }
 
@@ -870,7 +874,8 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $e = null;
         try {
             $this->assertFalse($wallet->deleteWebhook($webhookIdentifier));
-        } catch (ObjectNotFound $e) {}
+        } catch (ObjectNotFound $e) {
+        }
         $this->assertTrue(!!$e, "should throw exception");
     }
 
@@ -897,14 +902,25 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var SignInfo[] $signInfo */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(0.0001),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", BlocktrailSDK::toSatoshi(0.0001))
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -921,8 +937,10 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals("a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", $signInfo[0]->output->getScript()->getHex());
         $this->assertEquals(10000, $signInfo[0]->output->getValue());
         $this->assertEquals("M/9999'/0/1537", $signInfo[0]->path);
-        $this->assertEquals("5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae",
-            $signInfo[0]->redeemScript->getHex());
+        $this->assertEquals(
+            "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae",
+            $signInfo[0]->redeemScript->getHex()
+        );
 
         // assert the output(s)
         $this->assertEquals(1, count($tx->getOutputs()));
@@ -940,13 +958,19 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             /** @var Transaction $tx */
             list($tx, $signInfo) = $wallet->buildTx(
                 (new TransactionBuilder())
-                    ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0001),
-                        "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                    ->spendOutput(
+                        "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                        0,
+                        BlocktrailSDK::toSatoshi(0.0001),
+                        "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                        "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                        "M/9999'/0/1537",
+                        "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                    )
                     ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", BlocktrailSDK::toSatoshi(0.0002))
                     ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
             );
         } catch (\Exception $e) {
-
         }
         $this->assertTrue(!!$e);
         $this->assertEquals("Atempting to spend more than sum of UTXOs", $e->getMessage());
@@ -961,8 +985,15 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(1),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2NE2uSqCktMXfe512kTPrKPhQck7vMNvaGK", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
@@ -981,8 +1012,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1012,8 +1047,15 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(1),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
@@ -1038,8 +1080,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1071,8 +1117,15 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(1),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(1),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
@@ -1098,8 +1151,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1130,8 +1187,15 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.0021),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(0.0021),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
@@ -1157,8 +1221,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1191,8 +1259,15 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.00219),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(0.00219),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2NFK27bVrNfDHSrcykALm29DTi85TLuNm1A", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2N3y477rv4TwAwW1t8rDxGQzrWcSqkzheNr", BlocktrailSDK::toSatoshi(0.0001))
@@ -1218,8 +1293,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1238,15 +1317,26 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.002001),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(0.002001),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.002))
                 ->setFee(BlocktrailSDK::toSatoshi(0.000001))
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 
@@ -1264,8 +1354,15 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
-                ->spendOutput("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", 0, BlocktrailSDK::toSatoshi(0.002),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", "M/9999'/0/1537", "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae")
+                ->spendOutput(
+                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    0,
+                    BlocktrailSDK::toSatoshi(0.002),
+                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
+                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
+                    "M/9999'/0/1537",
+                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                )
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0005))
                 ->addRecipient("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", BlocktrailSDK::toSatoshi(0.0005))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
@@ -1273,8 +1370,12 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
-        $inputTotal = array_sum(array_map(function(TransactionInput $txin) use($utxos) { return $utxos[$txin->getOutPoint()->getTxId()->getHex()]; }, $tx->getInputs()));
-        $outputTotal = array_sum(array_map(function(TransactionOutput $txout) { return $txout->getValue(); }, $tx->getOutputs()));
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
 
         $fee = $inputTotal - $outputTotal;
 

@@ -69,6 +69,5 @@ class BIP32PathTest extends \PHPUnit_Framework_TestCase {
                 $this->assertFalse(BIP32Path::path($p)->isParentOf(BIP32Path::path($c)), "parent[{$p}] child[{$c}]");
             }
         }
-
     }
 }

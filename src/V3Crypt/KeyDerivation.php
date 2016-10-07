@@ -17,8 +17,7 @@ class KeyDerivation
      * @param int $iterations
      * @return BufferInterface
      */
-    public static function compute(BufferInterface $password, BufferInterface $salt, $iterations)
-    {
+    public static function compute(BufferInterface $password, BufferInterface $salt, $iterations) {
         if (!($iterations >= 0 && $iterations < pow(2, 32))) {
             throw new \RuntimeException('Iterations must be a number between 1 and 2^32');
         }

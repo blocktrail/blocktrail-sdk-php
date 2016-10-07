@@ -18,12 +18,12 @@ use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Bitcoin\Network\NetworkFactory;
 use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Buffertools\Buffer;
+use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
 use Blocktrail\SDK\V3Crypt\Encryption;
 use Blocktrail\SDK\V3Crypt\Mnemonic;
-
 
 /**
  * Class BlocktrailSDK
@@ -543,7 +543,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         if (!isset($options['wallet_version'])) {
-            $options['wallet_version'] = Wallet::WALLET_VERSION_V2;
+            $options['wallet_version'] = Wallet::WALLET_VERSION_V3;
         }
 
         switch ($options['wallet_version']) {
@@ -583,9 +583,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $storePrimaryMnemonic = true;
                 }
             }
-        } else if (isset($options['primary_mnemonic'])) {
+        } elseif (isset($options['primary_mnemonic'])) {
             $primaryMnemonic = $options['primary_mnemonic'];
-        } else if (isset($options['primary_private_key'])) {
+        } elseif (isset($options['primary_private_key'])) {
             $primaryPrivateKey = $options['primary_private_key'];
         }
 
@@ -618,9 +618,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         if (!isset($options['backup_mnemonic']) && !isset($options['backup_public_key'])) {
             /** @var HierarchicalKey $backupPrivateKey */
             list($backupMnemonic, $backupSeed, $backupPrivateKey) = $this->newBackupSeed();
-        } else if (isset($options['backup_mnemonic'])) {
+        } elseif (isset($options['backup_mnemonic'])) {
             $backupMnemonic = $options['backup_mnemonic'];
-        } else if (isset($options['backup_public_key'])) {
+        } elseif (isset($options['backup_public_key'])) {
             $backupPublicKey = $options['backup_public_key'];
         }
 
@@ -825,8 +825,14 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $backupSeed = null;
 
         if (!isset($options['primary_private_key'])) {
-            $primarySeed = isset($options['primary_seed']) ? $options['primary_seed'] : self::randomBits(256);
-            $primarySeed = new Buffer($primarySeed);
+            if (isset($options['primary_seed'])) {
+                if (!$options['primary_seed'] instanceof BufferInterface) {
+                    throw new \InvalidArgumentException('Primary Seed should be passed as a Buffer');
+                }
+                $primarySeed = $options['primary_seed'];
+            } else {
+                $primarySeed = new Buffer(self::randomBits(256));
+            }
         }
 
         if ($storeDataOnServer) {
@@ -865,7 +871,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         if (isset($options['primary_private_key'])) {
             $options['primary_private_key'] = BlocktrailSDK::normalizeBIP32Key($options['primary_private_key']);
         } else {
-            $options['primary_private_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy(new Buffer($primarySeed)), "m");
+            $options['primary_private_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($primarySeed), "m");
         }
 
         // create primary public key from the created private key
@@ -1013,7 +1019,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'checksum' => $checksum,
             'key_index' => $keyIndex
         ];
-
+        var_dump($data);
         $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
@@ -1103,7 +1109,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 );
                 break;
             case Wallet::WALLET_VERSION_V3:
-                if ($options['encrypted_primary_seed']) {
+                if (isset($options['encrypted_primary_seed'])) {
                     if (!$options['encrypted_primary_seed'] instanceof Buffer) {
                         throw new \InvalidArgumentException('Encrypted PrimarySeed must be provided as a Buffer');
                     }
@@ -1112,7 +1118,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $encryptedPrimarySeed = new Buffer(base64_decode($data['encrypted_primary_seed']));
                 }
 
-                if ($options['encrypted_secret']) {
+                if (isset($options['encrypted_secret'])) {
                     if (!$options['encrypted_secret'] instanceof Buffer) {
                         throw new \InvalidArgumentException('Encrypted secret must be provided as a Buffer');
                     }

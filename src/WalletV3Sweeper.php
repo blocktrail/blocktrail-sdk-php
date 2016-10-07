@@ -2,7 +2,6 @@
 
 namespace Blocktrail\SDK;
 
-
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -22,8 +21,7 @@ class WalletV3Sweeper extends WalletSweeper
      * @param bool                $testnet
      * @throws BlocktrailSDKException
      */
-    public function __construct($encryptedPrimaryMnemonic, $encryptedSecretMnemonic, $backupMnemonic, BufferInterface $passphrase, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false)
-    {
+    public function __construct($encryptedPrimaryMnemonic, $encryptedSecretMnemonic, $backupMnemonic, BufferInterface $passphrase, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
         // cleanup copy paste errors from mnemonics
         $encryptedPrimaryMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedPrimaryMnemonic))));
         $encryptedSecretMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedSecretMnemonic))));

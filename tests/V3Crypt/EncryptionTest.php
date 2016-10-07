@@ -11,8 +11,7 @@ class EncryptionTest extends AbstractTestCase
     /**
      * @return array
      */
-    public function getEncryptionVectors()
-    {
+    public function getEncryptionVectors() {
         return array_map(function (array $row) {
             return [Buffer::hex($row['password']), Buffer::hex($row['salt']), $row['iterations'], Buffer::hex($row['iv']), Buffer::hex($row['pt']), Buffer::hex($row['ct']), Buffer::hex($row['tag']), Buffer::hex($row['full'])];
         }, $this->getTestVectors()['encryption']);
@@ -29,8 +28,7 @@ class EncryptionTest extends AbstractTestCase
      * @param BufferInterface $tag
      * @param BufferInterface $serialized
      */
-    public function testEncryption(BufferInterface $password, BufferInterface $salt, $iterations, BufferInterface $iv, BufferInterface $plaintext, BufferInterface $ciphertext, BufferInterface $tag, BufferInterface $serialized)
-    {
+    public function testEncryption(BufferInterface $password, BufferInterface $salt, $iterations, BufferInterface $iv, BufferInterface $plaintext, BufferInterface $ciphertext, BufferInterface $tag, BufferInterface $serialized) {
 
         $encrypt = Encryption::encryptWithSaltAndIV($plaintext, $password, $salt, $iv, $iterations);
         $decrypted = Encryption::decrypt($encrypt, $password);

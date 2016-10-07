@@ -18,8 +18,7 @@ class Encryption
      * @param BufferInterface $pw
      * @return BufferInterface
      */
-    public static function encrypt(BufferInterface $pt, BufferInterface $pw)
-    {
+    public static function encrypt(BufferInterface $pt, BufferInterface $pw) {
         $salt = new Buffer(random_bytes(self::DEFAULT_SALTLEN));
         $iv = new Buffer(random_bytes(self::IVLEN_BYTES));
         $iterations = KeyDerivation::DEFAULT_ITERATIONS;
@@ -31,8 +30,7 @@ class Encryption
      * @param BufferInterface $pw
      * @return BufferInterface
      */
-    public static function decrypt(BufferInterface $ct, BufferInterface $pw)
-    {
+    public static function decrypt(BufferInterface $ct, BufferInterface $pw) {
         $parser = new Parser($ct);
 
         $saltLen = (int) $parser->readBytes(1)->getInt();
@@ -55,8 +53,7 @@ class Encryption
      * @param int $iterations
      * @return BufferInterface
      */
-    public static function encryptWithSaltAndIV(BufferInterface $pt, BufferInterface $pw, BufferInterface $salt, BufferInterface $iv, $iterations)
-    {
+    public static function encryptWithSaltAndIV(BufferInterface $pt, BufferInterface $pw, BufferInterface $salt, BufferInterface $iv, $iterations) {
         if ($iv->getSize() !== 16) {
             throw new \RuntimeException('IV must be exactly 16 bytes');
         }

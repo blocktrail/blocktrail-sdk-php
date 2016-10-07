@@ -18,7 +18,6 @@ class BIP32Path implements \ArrayAccess {
         if (strtolower($this->path[0]) != "m") {
             throw new \InvalidArgumentException("BIP32Path can only be used for absolute paths");
         }
-
     }
 
     public function insert($insert, $offset) {
@@ -163,7 +162,6 @@ class BIP32Path implements \ArrayAccess {
         $path = $this->path;
 
         if ($path[0] === "M") {
-
             return new static($path);
         } else {
             $path[0] = "M";
@@ -181,7 +179,6 @@ class BIP32Path implements \ArrayAccess {
         $path = $this->path;
 
         if ($path[0] === "m") {
-
             return new static($path);
         } else {
             $path[0] = "m";

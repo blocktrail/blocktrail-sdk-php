@@ -488,7 +488,7 @@ abstract class Wallet implements WalletInterface {
                 if (isset($v['address']) && isset($v['value'])) {
                     $address = $v['address'];
                     $value = $v['value'];
-                } else if (count($v) == 2 && isset($v[0]) && isset($v[1])) {
+                } elseif (count($v) == 2 && isset($v[0]) && isset($v[1])) {
                     $address = $v[0];
                     $value = $v[1];
                 } else {
@@ -584,7 +584,9 @@ abstract class Wallet implements WalletInterface {
             $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey));
         }
 
-        if (array_sum(array_map(function (UTXO $utxo) { return $utxo->value; }, $utxos)) < array_sum(array_column($send, 'value'))) {
+        if (array_sum(array_map(function (UTXO $utxo) {
+            return $utxo->value;
+        }, $utxos)) < array_sum(array_column($send, 'value'))) {
             throw new \Exception("Atempting to spend more than sum of UTXOs");
         }
 
@@ -617,7 +619,7 @@ abstract class Wallet implements WalletInterface {
 
             if (isset($out['scriptPubKey'])) {
                 $txb->output($out['value'], $out['scriptPubKey']);
-            } else if (isset($out['address'])) {
+            } elseif (isset($out['address'])) {
                 $txb->payToAddress($out['value'], AddressFactory::fromString($out['address']));
             } else {
                 throw new \Exception();

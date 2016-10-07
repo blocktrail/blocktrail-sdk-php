@@ -39,7 +39,6 @@ class TransactionBuilder {
     private $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL;
 
     public function __construct() {
-
     }
 
     /**

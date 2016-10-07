@@ -14,16 +14,14 @@ class FullTest extends AbstractTestCase
      * @param int $len
      * @return BufferInterface
      */
-    public function random($len)
-    {
+    public function random($len) {
         return new Buffer(random_bytes($len));
     }
 
     /**
      * @return array
      */
-    public function getDecryptionOnlyVectors()
-    {
+    public function getDecryptionOnlyVectors() {
         return array_map(function (array $row) {
             return [Buffer::hex($row['password']), $row['primaryEncryptedSeed'], $row['encryptedSecret'], $row['checksum']];
         }, $this->getTestVectors()['decryptonly']);
@@ -36,8 +34,7 @@ class FullTest extends AbstractTestCase
      * @param string $encryptedSecretMnemonic
      * @param string $checksum
      */
-    public function testDecryptionOnly(BufferInterface $password, $encryptedPrimarySeedMnemonic, $encryptedSecretMnemonic, $checksum)
-    {
+    public function testDecryptionOnly(BufferInterface $password, $encryptedPrimarySeedMnemonic, $encryptedSecretMnemonic, $checksum) {
         $decodedSecret = Mnemonic::decode($encryptedSecretMnemonic);
         $decryptedSecret = Encryption::decrypt($decodedSecret, $password);
 
@@ -48,8 +45,7 @@ class FullTest extends AbstractTestCase
         $this->assertEquals($checksum, $hdnode->getPublicKey()->getAddress()->getAddress());
     }
 
-    public function testAllowsPasswordReset()
-    {
+    public function testAllowsPasswordReset() {
         $expectedSecret = Buffer::hex('9d1a50059b9107f430b8526697d371205770986d020c45900867d228fe56feaa');
         $recoverySecret = Buffer::hex('c40f61d7be45d699cc91dd929af01da235cf67abd6d3d8c0290d2b30c4066acf');
         $recoveryEncryptedSecret = 'light army dragon annual army gauge pumpkin swift home license scale accident supply garbage turn atom display comfort frequent suit choice demand strategy wasp enrich occur dash slogan spring express melt edge long budget dwarf exile crystal limb that normal eternal unveil tennis quality cruel hamster whisper parade situate viable sting special kingdom output height supply surround local can fork';
@@ -60,8 +56,7 @@ class FullTest extends AbstractTestCase
         $this->assertEquals($decryptedSecret->getHex(), $expectedSecret->getHex());
     }
 
-    public function testProcedure()
-    {
+    public function testProcedure() {
         $passphrase = new Buffer('FFUgnayLMUDLqpTY2bctzBvx5ckPhFt3n5VadNxyMp8XwpZ8SjVJRZpALTWaUvnE7Fru8j8GqgSzC8zdHeQxV6CM2jzL46ULQeRjPXAsVrbSSYnvW8Axrfgv');
         $primarySeed = $this->random(32);
         $secret = $this->random(32);
