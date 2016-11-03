@@ -57,7 +57,7 @@ class TransactionBuilder {
         $scriptPubKey = ($scriptPubKey instanceof ScriptInterface)
             ? $scriptPubKey
             : (ctype_xdigit($scriptPubKey) ? ScriptFactory::fromHex($scriptPubKey) : null);
-        $redeemScript = ($redeemScript instanceof ScriptInterface) 
+        $redeemScript = ($redeemScript instanceof ScriptInterface)
             ? $redeemScript
             : (ctype_xdigit($redeemScript) ? ScriptFactory::fromHex($redeemScript) : null);
 
