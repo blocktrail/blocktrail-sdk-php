@@ -1019,7 +1019,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'checksum' => $checksum,
             'key_index' => $keyIndex
         ];
-        var_dump($data);
+
         $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }

@@ -25,6 +25,7 @@ use Blocktrail\SDK\Wallet;
 use Blocktrail\SDK\WalletPath;
 use Blocktrail\SDK\WalletV1;
 use Blocktrail\SDK\WalletV2;
+use Blocktrail\SDK\WalletV3;
 
 /**
  * Class WalletTest
@@ -511,6 +512,78 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         list($confirmed, $unconfirmed) = $wallet->doDiscovery(50);
         $this->assertEquals(0, $confirmed + $unconfirmed);
+    }
+
+    public function getVersionedWalletVectors()
+    {
+        $expectedDefault = WalletV3::class;
+        return [
+            [Wallet::WALLET_VERSION_V2, WalletV2::class],
+            [Wallet::WALLET_VERSION_V3, WalletV3::class],
+            [null, $expectedDefault]
+        ];
+    }
+
+    /**
+     * @dataProvider getVersionedWalletVectors
+     * @param $walletVersion
+     * @param $expectedWalletClass
+     */
+    public function testVersionedWallet($walletVersion, $expectedWalletClass)
+    {
+        $client = $this->setupBlocktrailSDK();
+
+        $identifier = $this->getRandomTestIdentifier();
+
+        /**
+         * @var $wallet \Blocktrail\SDK\Wallet
+         */
+        $e = null;
+        $wallet = null;
+        try {
+            // Specify a wallet version if provided
+            $wallet = $client->initWallet([
+                "identifier" => $identifier,
+                "passphrase" => "password"
+            ]);
+        } catch (ObjectNotFound $e) {
+            $new = [
+                "identifier" => $identifier,
+                "passphrase" => "password",
+                "key_index" => 9999
+            ];
+            // Specify the wallet version if provided in the test
+            if ($walletVersion) {
+                $new['wallet_version'] = $walletVersion;
+            }
+
+            list($wallet, $backupInfo) = $client->createNewWallet($new);
+        }
+        $this->assertTrue(!!$e, "New wallet with ID [{$identifier}] already exists...");
+        $this->assertEquals($expectedWalletClass, get_class($wallet));
+
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password"
+        ]);
+        $this->wallets[] = $wallet; // store for cleanup
+
+        $this->assertEquals($expectedWalletClass, get_class($wallet));
+
+        $this->_testNewBlankWallet($wallet);
+
+        /*
+         * test password change
+         */
+        $wallet->unlock(['passphrase' => "password"]);
+        $wallet->passwordChange("password2");
+        $wallet = $client->initWallet([
+            "identifier" => $identifier,
+            "passphrase" => "password2"
+        ]);
+
+        $this->assertEquals($expectedWalletClass, get_class($wallet));
+        $this->assertTrue(!$wallet->isLocked());
     }
 
     /**
@@ -1390,7 +1463,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
     protected function getTx(BlocktrailSDK $client, $txId, $retries = 3) {
         sleep(1);
-        
+
         for ($i = 0; $i < $retries; $i++) {
             try {
                 $tx = $client->transaction($txId);
