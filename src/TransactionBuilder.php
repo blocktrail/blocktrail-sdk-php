@@ -54,8 +54,12 @@ class TransactionBuilder {
      */
     public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null) {
         $address = $address instanceof AddressInterface ? $address : AddressFactory::fromString($address);
-        $scriptPubKey = $scriptPubKey instanceof ScriptInterface ? $scriptPubKey : new Script(Buffer::hex($scriptPubKey));
-        $redeemScript = $redeemScript instanceof ScriptInterface ? $redeemScript : new Script(Buffer::hex($redeemScript));
+        $scriptPubKey = ($scriptPubKey instanceof ScriptInterface)
+            ? $scriptPubKey
+            : (ctype_xdigit($scriptPubKey) ? ScriptFactory::fromHex($scriptPubKey) : null);
+        $redeemScript = ($redeemScript instanceof ScriptInterface) 
+            ? $redeemScript
+            : (ctype_xdigit($redeemScript) ? ScriptFactory::fromHex($redeemScript) : null);
 
         $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript);
 
