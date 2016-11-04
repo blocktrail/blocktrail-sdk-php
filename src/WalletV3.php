@@ -48,7 +48,7 @@ class WalletV3 extends Wallet
      * @param bool                   $testnet
      * @param string                 $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, BufferInterface $encryptedPrimarySeed, BufferInterface $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, BufferInterface $encryptedPrimarySeed = null, BufferInterface $encryptedSecret = null, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
@@ -69,38 +69,24 @@ class WalletV3 extends Wallet
 
         $encryptedPrimarySeed = $this->encryptedPrimarySeed;
         $encryptedSecret = $this->encryptedSecret;
-        $primaryPrivateKey = isset($options['primary_private_key']) ? $options['primary_private_key'] : null;
 
-        if (isset($options['secret'])) {
-            if (!$options['secret'] instanceof BufferInterface) {
-                throw new \RuntimeException('Secret must be a BufferInterface');
-            }
-            $this->secret = $options['secret'];
-        }
         if (isset($options['primary_seed'])) {
             if (!$options['primary_seed'] instanceof BufferInterface) {
                 throw new \RuntimeException('Primary Seed must be a BufferInterface');
             }
             $this->primarySeed = $options['primary_seed'];
-        }
-
-        if (!$primaryPrivateKey) {
+        } else {
             if (!$password) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a passphrase");
             } elseif (!$encryptedSecret) {
                 throw new \InvalidArgumentException("Can't init wallet with Primary Seed without a encrypted secret");
+            } elseif (!$encryptedPrimarySeed) {
+                throw new \InvalidArgumentException("Can't init wallet without an Encrypted Primary Seed");
             }
 
             if (!$password instanceof Buffer) {
                 $password = new Buffer($password);
             }
-        }
-
-        if ($primaryPrivateKey) {
-            if (!($primaryPrivateKey instanceof HierarchicalKey) && !($primaryPrivateKey instanceof BIP32Key)) {
-                $primaryPrivateKey = HierarchicalKeyFactory::fromExtended($primaryPrivateKey);
-            }
-        } else {
             if (!($this->secret = Encryption::decrypt($encryptedSecret, $password))) {
                 throw new WalletDecryptException("Failed to decrypt secret with password");
             }
@@ -108,12 +94,8 @@ class WalletV3 extends Wallet
             if (!($this->primarySeed = Encryption::decrypt($encryptedPrimarySeed, $this->secret))) {
                 throw new WalletDecryptException("Failed to decrypt primary seed with secret");
             }
-
-            // create BIP32 private key from the seed
-            $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($this->primarySeed);
         }
-
-        $this->primaryPrivateKey = $primaryPrivateKey instanceof BIP32Key ? $primaryPrivateKey : BIP32Key::create($primaryPrivateKey, "m");
+        $this->primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($this->primarySeed), "m");
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
         $checksum = $this->primaryPrivateKey->publicKey()->getAddress()->getAddress();
