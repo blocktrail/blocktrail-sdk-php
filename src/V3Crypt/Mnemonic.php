@@ -16,6 +16,10 @@ class Mnemonic
      * @return string
      */
     private static function derivePadding($data) {
+        if (strlen($data) > 0 && ord($data[0]) > 0x80) {
+            throw new \RuntimeException('Sanity check: data for mnemonic is not valid');
+        }
+
         $padLen = self::CHUNK_SIZE - (strlen($data) % self::CHUNK_SIZE);
         return str_pad('', $padLen, self::PADDING_DUMMY);
     }
