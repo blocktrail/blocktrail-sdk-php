@@ -9,7 +9,7 @@ use BitWasp\Buffertools\Parser;
 
 class Encryption
 {
-    const DEFAULT_SALTLEN = 32;
+    const DEFAULT_SALTLEN = 10;
     const TAGLEN_BITS = 128;
     const IVLEN_BYTES = 16;
 
@@ -60,6 +60,13 @@ class Encryption
 
         list ($ct, $tag) = AESGCM::encrypt(KeyDerivation::compute($pw, $salt, $iterations)->getBinary(), $iv->getBinary(), $pt->getBinary(), $salt->getBinary());
 
-        return new Buffer(pack("c", $salt->getSize()) . $salt->getBinary() .Buffer::int($iterations, 4)->flip()->getBinary(). $iv->getBinary() . $ct . $tag);
+        return new Buffer(
+            pack("c", $salt->getSize()) .
+            $salt->getBinary() .
+            Buffer::int($iterations, 4)->flip()->getBinary() .
+            $iv->getBinary() .
+            $ct .
+            $tag
+        );
     }
 }
