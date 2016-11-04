@@ -18,15 +18,14 @@
       "iterations": 20000,
       "output": "5e3f3da505d210482d96d8e1f5f853fc111c66e0bcab6d86c911393ebb741ef8"
     }
-
   ],
   "decryptonly":
   [
     {
-      "password": "a6063df52c8b29560e42d2ca4615da1b7b84d4d748acadaed1e8bffd12462667",
-      "primaryEncryptedSeed": "light army dragon place believe carry kitten jungle come license scale access match gorilla stone fetch goddess level try crime clap indoor parent dizzy fancy avoid wink foil argue thumb minute vapor parrot element strategy dial explain develop drastic news badge version lunch banner purse skull brother pupil roast cube finish bike crane season embark sick gasp ranch skin echo",
-      "encryptedSecret": "light army dragon harbor embark fruit uniform purpose alcohol license scale accuse outside reflect draw age fork door defense vocal youth oblige early lake tennis can slab illness media blush group fine federal unfair under pink tenant luxury skin cement panel pioneer direct alley extra client always water together clown asset merge scrub found room canal oak brown panel stock",
-      "checksum": "14i5BhBjUc1S9hCfyFqzFdMp4rsCp2Dgpb"
+      "password": "1f8b449bc1dc0b910b901399c2154aab8cf9b90014c16b6b3fd49eba74893a90",
+      "primaryEncryptedSeed": "light army elite burst stool crumble jump cereal rival gas crowd bench orchard visa same jelly ready pupil weather elephant canvas tennis glove inhale rally argue purchase avoid abandon joke fortune pulse luxury various exhaust fitness reward gossip busy story ship machine swing fragile library tissue together battle earth asset kick mixed creek upgrade wish bench vast wall quiz quick among verify snack upon crash draft volcano sad spend skull illness dish tone hidden account risk panther scrap",
+      "encryptedSecret": "light army elite when raccoon picnic bronze muscle sport laptop fetch door galaxy ordinary blast eight jaguar risk behind stomach common stick sting tiny equip say purchase avoid abandon cream series knock cycle poem payment museum silk wet oxygen pony page initial moral palm spoon master excuse video jelly catalog wash shoe rib force illness bone current outdoor symbol great tool quarter leaf art casino ostrich cycle indoor pioneer midnight sunny morning catalog seek decide material pear stadium",
+      "checksum": "1BT5SWPBN1Ag97fK26dQmLjifGe9HCGx7W"
     }
   ],
   "encryption": [
@@ -35,34 +34,44 @@
       "iterations": 1000,
       "salt": "ab024dfabcfd418ab7c8d626",
       "key": "3f0a1ca90e77ce86d2dbfe4409d5558b2a6cc58a46c30ada04b8d3ed19dfd7c6",
-      "iv": "049ee189c5b6adec921b6f83d6a6fef7",
-      "pt": "507a5a1fb5df2de870d3d4192f88a9c15d200489146643f02ba6b16178e90975",
-      "ct": "ca8f0bb9fabeb3a8108d7b2ffd63185868105d7eed42fe1c40c98e2cbc782eac",
-      "tag": "5b5c3677fcc59bf0019dfaf52560d5f7",
-      "full": "0cab024dfabcfd418ab7c8d626e8030000049ee189c5b6adec921b6f83d6a6fef7ca8f0bb9fabeb3a8108d7b2ffd63185868105d7eed42fe1c40c98e2cbc782eac5b5c3677fcc59bf0019dfaf52560d5f7"
+      "iv": "1c75f4a8cd4eb8d24dbec9b80a8e7f6a",
+      "pt": "6a1efab8b1f788fba9e5c23d36e9bb96cfe455c14ecfa59c7c887adea934bf38",
+      "ct": "b85d3ee94d2ee5b6596f27880adaff973bcf5aa28d96b62a491c0d74507a4475",
+      "tag": "85ddb35123561894fb0a49a806b43983",
+      "full": "0cab024dfabcfd418ab7c8d626e80300001c75f4a8cd4eb8d24dbec9b80a8e7f6ab85d3ee94d2ee5b6596f27880adaff973bcf5aa28d96b62a491c0d74507a447585ddb35123561894fb0a49a806b43983"
     },
     {
-      "password": "6a616a686b676a79726b65706f73776e6778756b74746c6d70666a64776e62647668786b776d67766a6b73776e77",
+      "password": "37b12e7f487c0bd88a5631c148fcea2d6d7c23b555755a384adde8a1be286117",
       "iterations": 1000,
       "salt": "ab024dfabcfd418ab7c8d626",
-      "key": "defd10480883de261452053f56d84fb6783dcdeea60467592d1ca6cd58441067",
-      "iv": "d01ebf03383ea99d186b089665ad8d9b",
-      "pt": "0491d2a2a7227636220f568462628b9cabc54c42fbc934c4215c47fb2008db4b",
-      "ct": "01c1658d38376bb9c805233de022377896e78d6eaf38d577ecbb800310780143",
-      "tag": "2424883f639fb424ec8f49852234758f",
-      "full": "0cab024dfabcfd418ab7c8d626e8030000d01ebf03383ea99d186b089665ad8d9b01c1658d38376bb9c805233de022377896e78d6eaf38d577ecbb8003107801432424883f639fb424ec8f49852234758f"
+      "key": "e1007a3caab323fa81729e2bee618b77b6e85a30c2e9b6f5c310332696dc250f",
+      "iv": "f2f9a298647d79197288ef13640c3fcc",
+      "pt": "1f2f0010c0d3547cf91cbe2c5af8466d5a591b58611a7abc057331f24ac09bc1",
+      "ct": "a41de9a70339d6fe7a978a5a6c2f3f8fa3ff04d7da0ee2723daeb182afd08a2d",
+      "tag": "a8d54c207557f806844947f7cc03fdd6",
+      "full": "0cab024dfabcfd418ab7c8d626e8030000f2f9a298647d79197288ef13640c3fcca41de9a70339d6fe7a978a5a6c2f3f8fa3ff04d7da0ee2723daeb182afd08a2da8d54c207557f806844947f7cc03fdd6"
     }
-
+  ],
+  "password_reset_case": [
+    {
+      "expectedSecret": "ca2467b6e9233469c34827f77dd498f3c44c6105d2a3063206d05365c3694206",
+      "recoverySecret": "b7bdcfbd0f83f4e8569edb29da946a26a05fe3b472a65aa90ec90c0209c63668",
+      "recoveryEncryptedMnemonic": "light army else physical oppose assume weasel culture fresh intact system street across limit length enroll kit true laugh mention timber three fuel pulp wise economy until avoid abandon drum pink perfect banana inhale flip mountain hood trade into tent east border rain rhythm nurse analyst slam great endorse image whip suspect move crush check stove pepper cool bus jacket page inmate orbit lyrics okay obvious fresh slight arctic reunion rabbit decorate inmate response crucial net truly tackle"
+    }
   ],
   "mnemonic":
   [
     {
-      "data": "63f38e",
-      "mnemonic": "lift buzz toe"
+      "data": "41414141",
+      "mnemonic": "light army gate little beef path"
     },
     {
-      "data": "1b6fe934",
-      "mnemonic": "light army gate cycle write olympic"
+      "data": "41",
+      "mnemonic": "light army expire"
+    },
+    {
+      "data": "47d86f8145d7e7c68f33b7c0b65562ae426a99abb3509ccbe553c340cdb386f0",
+      "mnemonic": "light army gate moral manage scheme blanket woman shoot kangaroo unknown lift grab rally ribbon essence often frown stage define salad prepare artist boost receive daring client"
     }
   ]
 }

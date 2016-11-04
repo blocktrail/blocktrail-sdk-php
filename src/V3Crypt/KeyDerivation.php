@@ -30,6 +30,10 @@ class KeyDerivation
             throw new \RuntimeException('Salt must not be empty');
         }
 
+        if ($salt->getSize() > 0x80) {
+            throw new \RuntimeException('Sanity check: Invalid salt, length can never be greater than 128');
+        }
+
         return new Buffer(hash_pbkdf2(self::HASHER, $password->getBinary(), $salt->getBinary(), $iterations, self::KEYLEN_BITS / 8, true));
     }
 }
