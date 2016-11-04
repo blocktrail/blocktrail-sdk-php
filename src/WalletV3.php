@@ -2,7 +2,6 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
@@ -48,7 +47,13 @@ class WalletV3 extends Wallet
      * @param bool                   $testnet
      * @param string                 $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, BufferInterface $encryptedPrimarySeed = null, BufferInterface $encryptedSecret = null, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+        if ($encryptedPrimarySeed !== null && !($encryptedPrimarySeed instanceof Buffer)) {
+            throw new \InvalidArgumentException('Encrypted Primary Seed must be a Buffer or null');
+        }
+        if ($encryptedSecret !== null && !($encryptedSecret instanceof Buffer)) {
+            throw new \InvalidArgumentException('Encrypted Secret must be a Buffer or null');
+        }
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
