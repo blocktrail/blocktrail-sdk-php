@@ -5,6 +5,7 @@ namespace Blocktrail\SDK\V3Crypt;
 use AESGCM\AESGCM;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
+use BitWasp\Buffertools\Buffertools;
 use BitWasp\Buffertools\Parser;
 
 class Encryption
@@ -32,17 +33,25 @@ class Encryption
      */
     public static function decrypt(BufferInterface $ct, BufferInterface $pw) {
         $parser = new Parser($ct);
+        $sLB = $parser->readBytes(1);
+        $salt = $parser->readBytes($sLB->getInt());
+        $itB = $parser->readBytes(4);
+        $header = new Buffer($sLB->getBinary() . $salt->getBinary() . $itB->getBinary());
 
-        $saltLen = (int) $parser->readBytes(1)->getInt();
-        $salt = $parser->readBytes($saltLen);
-        $iterationsB = $parser->readBytes(4);
-        $iterations = (int) $iterationsB->flip()->getInt();
         $iv = $parser->readBytes(16);
         $act = $parser->readBytes($ct->getSize() - $parser->getPosition());
         $tag = $act->slice(-16);
         $ct = $act->slice(0, -16);
 
-        return new Buffer(AESGCM::decrypt(KeyDerivation::compute($pw, $salt, $iterations)->getBinary(), $iv->getBinary(), $ct->getBinary(), $salt->getBinary(), $tag->getBinary()));
+        return new Buffer(
+            AESGCM::decrypt(
+                KeyDerivation::compute($pw, $salt, unpack('V', $itB->getBinary())[1])->getBinary(),
+                $iv->getBinary(),
+                $ct->getBinary(),
+                $header->getBinary(),
+                $tag->getBinary()
+            )
+        );
     }
 
     /**
@@ -58,15 +67,15 @@ class Encryption
             throw new \RuntimeException('IV must be exactly 16 bytes');
         }
 
-        list ($ct, $tag) = AESGCM::encrypt(KeyDerivation::compute($pw, $salt, $iterations)->getBinary(), $iv->getBinary(), $pt->getBinary(), $salt->getBinary());
+        $header = new Buffer(pack('c', $salt->getSize()) . $salt->getBinary() . pack('V', $iterations));
 
-        return new Buffer(
-            pack("c", $salt->getSize()) .
-            $salt->getBinary() .
-            Buffer::int($iterations, 4)->flip()->getBinary() .
-            $iv->getBinary() .
-            $ct .
-            $tag
+        list ($ct, $tag) = AESGCM::encrypt(
+            KeyDerivation::compute($pw, $salt, $iterations)->getBinary(),
+            $iv->getBinary(),
+            $pt->getBinary(),
+            $header->getBinary()
         );
+
+        return Buffertools::concat($header, new Buffer($iv->getBinary() . $ct . $tag));
     }
 }

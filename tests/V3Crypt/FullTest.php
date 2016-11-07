@@ -28,6 +28,15 @@ class FullTest extends AbstractTestCase
     }
 
     /**
+     * @return array
+     */
+    public function getPasswordResetVectors() {
+        return array_map(function (array $row) {
+            return [Buffer::hex($row['expectedSecret']), Buffer::hex($row['recoverySecret']), $row['recoveryEncryptedMnemonic']];
+        }, $this->getTestVectors()['password_reset_case']);
+    }
+
+    /**
      * @dataProvider getDecryptionOnlyVectors
      * @param BufferInterface $password
      * @param string $encryptedPrimarySeedMnemonic
@@ -45,12 +54,14 @@ class FullTest extends AbstractTestCase
         $this->assertEquals($checksum, $hdnode->getPublicKey()->getAddress()->getAddress());
     }
 
-    public function testAllowsPasswordReset() {
-        $expectedSecret = Buffer::hex('9d1a50059b9107f430b8526697d371205770986d020c45900867d228fe56feaa');
-        $recoverySecret = Buffer::hex('c40f61d7be45d699cc91dd929af01da235cf67abd6d3d8c0290d2b30c4066acf');
-        $recoveryEncryptedSecret = 'light army dragon annual army gauge pumpkin swift home license scale accident supply garbage turn atom display comfort frequent suit choice demand strategy wasp enrich occur dash slogan spring express melt edge long budget dwarf exile crystal limb that normal eternal unveil tennis quality cruel hamster whisper parade situate viable sting special kingdom output height supply surround local can fork';
-
-        $decodedRS = Mnemonic::decode($recoveryEncryptedSecret);
+    /**
+     * @param BufferInterface $expectedSecret
+     * @param BufferInterface $recoverySecret
+     * @param $recoveryEncryptedMnemonic
+     * @dataProvider getPasswordResetVectors
+     */
+    public function testAllowsPasswordReset(BufferInterface $expectedSecret, BufferInterface $recoverySecret, $recoveryEncryptedMnemonic) {
+        $decodedRS = Mnemonic::decode($recoveryEncryptedMnemonic);
         $decryptedSecret = Encryption::decrypt($decodedRS, $recoverySecret);
 
         $this->assertEquals($decryptedSecret->getHex(), $expectedSecret->getHex());
