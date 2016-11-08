@@ -1098,6 +1098,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * send raw transaction
+     *
+     * @param     $txHex
+     * @return bool
+     */
+    public function sendRawTransaction($txHex) {
+        $response = $this->client->post("send-raw-tx", null, ['hex' => $txHex], RestClient::AUTH_HTTP_SIG);
+        return self::jsonDecode($response->body(), true);
+    }
+
+    /**
      * verify a message signed bitcoin-core style
      *
      * @param  string           $message

@@ -514,7 +514,14 @@ interface BlocktrailSDKInterface {
      * @return array                     associative array containing the response
      */
     public function allWallets($page = 1, $limit = 20);
-
+    
+    /**
+     * send raw transaction
+     *
+     * @param     $txHex
+     * @return bool
+     */
+    public function sendRawTransaction($txHex);
     /**
      * verify a message signed bitcoin-core style
      *
