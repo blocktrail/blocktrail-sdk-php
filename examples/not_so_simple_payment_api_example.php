@@ -23,7 +23,7 @@ try {
         "primary_mnemonic" => false
     ]);
 } catch (ObjectNotFound $e) {
-    list($wallet, $primaryMnemonic, $backupMnemonic, $blocktrailPublicKeys) = $client->createNewWallet([
+    list($wallet, $backupInfo) = $client->createNewWallet([
         "identifier" => "example-wallet",
         "primary_private_key" => $primaryPrivateKey,
         "backup_public_key" => $backupPublicKey,

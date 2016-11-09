@@ -2,6 +2,7 @@
 
 use Blocktrail\SDK\BackupGenerator;
 use Blocktrail\SDK\BlocktrailSDK;
+use Blocktrail\SDK\WalletInterface;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
@@ -13,20 +14,14 @@ $client->setVerboseErrors(true);
 $bytes = BlocktrailSDK::randomBytes(10);
 $identifier = bin2hex($bytes);
 
+/** @var WalletInterface $wallet */
 list($wallet, $backupInfo) = $client->createNewWallet($identifier, "example-strong-password", $_account=9999);
 
+$backupInfo = $wallet->passwordChange("example-stronger-password");
+
 //generate the backup document
-$backupGenerator = new BackupGenerator($identifier, $backupInfo, /* $extra = */['username' => 'testing123', 'note to self' => 'buy pizza with BTC 2night!']);
+$backupGenerator = new BackupGenerator($identifier, $backupInfo, null, ['page1' => false, 'page3' => false]);
 $pdfStream = $backupGenerator->generatePDF();
 
 //we can either save the pdf file locally
-file_put_contents("my-wallet-backup.pdf", $pdfStream);
-
-//or output the pdf to the browser
-// header("Content-type:application/pdf");
-// echo $pdfStream;
-
-
-//html and img documents can also be generated for saving/returning to the browser
-//$backupHTML = $backupGenerator->generateHTML();
-//echo $backupHTML;
+file_put_contents("my-wallet-backup-password-change.pdf", $pdfStream);
