@@ -15,9 +15,9 @@ class WalletPath {
     protected $address;
 
     public function __construct($keyIndex = 0, $chain = 0, $address = 0) {
-        $this->keyIndex = $keyIndex;
-        $this->chain = $chain;
-        $this->address = $address;
+        $this->keyIndex = str_replace("'", "", $keyIndex ?: 0);
+        $this->chain = str_replace("'", "", $chain ?: 0);
+        $this->address = str_replace("'", "", $address ?: 0);
     }
 
     /**
@@ -94,6 +94,17 @@ class WalletPath {
      */
     public static function create($keyIndex = 0, $chain = 0, $address = 0) {
         return new static($keyIndex, $chain, $address);
+    }
+
+    /**
+     * @param BIP32Path $path
+     * @return WalletPath
+     * @throws \Exception
+     */
+    public static function fromBIP32Path(BIP32Path $path) {
+        if (strtolower($path[0]) != "m") throw new \Exception("Path should be absolute [{$path}]");
+
+        return static::create($path[1], $path[2], $path[3]);
     }
 
     /**
