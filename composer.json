@@ -22,12 +22,6 @@
             "Blocktrail\\SDK\\Tests\\": "tests/"
         }
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/rubensayshi/http-signatures-guzzlehttp"
-        }
-    ],
     "license": "MIT",
     "require": {
         "php": ">=5.6.0",
@@ -42,7 +36,7 @@
         "mdanter/ecc": "v0.4.0",
 
         "guzzlehttp/guzzle": "6.*",
-        "99designs/http-signatures-guzzlehttp": "dev-guzzle-v6",
+        "99designs/http-signatures-guzzlehttp": "dev-master",
 
         "rych/hash_pbkdf2-compat": "~1.0",
         "ramsey/array_column": "~1.1",
