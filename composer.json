@@ -36,7 +36,7 @@
         "mdanter/ecc": "v0.4.0",
 
         "guzzlehttp/guzzle": "6.*",
-        "99designs/http-signatures-guzzlehttp": "dev-master",
+        "99designs/http-signatures-guzzlehttp": "2.0.*",
 
         "rych/hash_pbkdf2-compat": "~1.0",
         "ramsey/array_column": "~1.1",
