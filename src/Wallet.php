@@ -443,6 +443,7 @@ abstract class Wallet implements WalletInterface {
         $txBuilder = new TransactionBuilder();
         $txBuilder->randomizeChangeOutput($randomizeChangeIdx);
         $txBuilder->setFeeStrategy($feeStrategy);
+        $txBuilder->setChangeAddress($changeAddress);
 
         foreach ($outputs as $output) {
             $txBuilder->addRecipient($output['address'], $output['value']);
