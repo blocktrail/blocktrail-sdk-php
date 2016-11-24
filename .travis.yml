@@ -15,14 +15,21 @@ before_install:
 
 install:
   - composer update
+  - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then composer global require fxp/composer-asset-plugin; fi'
 
 script:
   # run tests when phpcs is not enabled
-  - sh -c 'if [ "${PHPCS}" != "true" ]; then ./vendor/bin/phpunit -c ./phpunit.xml; fi'
-  - sh -c 'if [ "${PHPCS}" != "true" ]; then ./vendor/bin/phpunit -c ./phpunit-recovery.xml; fi';
+  - export RUN_PHPUNIT=true
+  - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
+  - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then export RUN_PHPUNIT=false; fi'
+  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit.xml; fi'
+  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit-recovery.xml; fi';
 
   # run phpcs when enabled
   - sh -c 'if [ "${PHPCS}" = "true" ]; then ./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/ && echo "PHPCS OK"; fi'
+
+  # run framework tests when enabled
+  - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then php framework-test.php dev-${TRAVIS_PULL_REQUEST_BRANCH} && echo "Framework integration OK"; fi'
 
   # check coverage if report was generated (requires xdebug enabled)
   - sh -c 'if [ -e clover.xml ]; then php coverage-checker.php clover.xml 70; fi'
@@ -50,3 +57,7 @@ matrix:
     # php5.6 run with phpcs (won't run tests, only phpcs)
     - php: 5.6
       env: PHPCS=true WITH_XDEBUG=false
+    - php: 5.6
+      env: TEST_FRAMEWORK=true WITH_XDEBUG=false
+    - php: 7.1
+      env: TEST_FRAMEWORK=true WITH_XDEBUG=false
