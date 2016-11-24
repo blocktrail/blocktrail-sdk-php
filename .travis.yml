@@ -8,6 +8,10 @@ php:
 branches:
   only:
     - "master"
+    - "develop"
+    - "release-v1.x"
+    - "release-v2.x"
+    - "release-v3.x"
 
 before_install:
   # disable XDEBUG unless specified to be used
