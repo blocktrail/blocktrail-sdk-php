@@ -907,6 +907,26 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(40000, Wallet::estimateFee(2, 71));
     }
 
+    public function testEstimateSizeOutputs() {
+        $this->assertEquals(34, Wallet::estimateSizeOutputs(1));
+        $this->assertEquals(68, Wallet::estimateSizeOutputs(2));
+        $this->assertEquals(102, Wallet::estimateSizeOutputs(3));
+        $this->assertEquals(3366, Wallet::estimateSizeOutputs(99));
+    }
+
+    public function testEstimateSizeUTXOs() {
+        $this->assertEquals(297, Wallet::estimateSizeUTXOs(1));
+        $this->assertEquals(594, Wallet::estimateSizeUTXOs(2));
+        $this->assertEquals(891, Wallet::estimateSizeUTXOs(3));
+        $this->assertEquals(29403, Wallet::estimateSizeUTXOs(99));
+    }
+
+    public function testEstimateSize() {
+        $this->assertEquals(347, Wallet::estimateSize(34, 297));
+        $this->assertEquals(29453, Wallet::estimateSize(34, 29403));
+        $this->assertEquals(3679, Wallet::estimateSize(3366, 297));
+    }
+
     public function testBuildTx() {
         $client = $this->setupBlocktrailSDK();
 
