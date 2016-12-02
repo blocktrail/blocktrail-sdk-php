@@ -796,6 +796,7 @@ abstract class Wallet implements WalletInterface {
                     3, // scriptVarInt[>=253]
                     ((1 + 72) * $sigCnt), // (OP_PUSHDATA[<75] + 72) * sigCnt
                     (2 + 105) + // OP_PUSHDATA[>=75] + script
+                    1, // OP_0
                     4, // sequence
                 ]);
             } else {
