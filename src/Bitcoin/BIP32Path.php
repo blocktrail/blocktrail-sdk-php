@@ -20,6 +20,13 @@ class BIP32Path implements \ArrayAccess {
         }
     }
 
+    /**
+     * @return int
+     */
+    public function depth() {
+        return count($this->path);
+    }
+
     public function insert($insert, $offset) {
         $path = $this->path;
 
