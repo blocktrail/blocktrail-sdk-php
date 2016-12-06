@@ -6,7 +6,7 @@ use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
 
-class Mnemonic
+class EncryptionMnemonic
 {
     const CHUNK_SIZE = 4;
     const PADDING_DUMMY = "\x81";

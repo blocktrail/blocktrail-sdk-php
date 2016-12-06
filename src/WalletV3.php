@@ -9,7 +9,7 @@ use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
 use Blocktrail\SDK\V3Crypt\Encryption;
-use Blocktrail\SDK\V3Crypt\Mnemonic;
+use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 
 class WalletV3 extends Wallet
 {
@@ -158,7 +158,7 @@ class WalletV3 extends Wallet
         $this->encryptedSecret = $encryptedSecret;
 
         return [
-            'encrypted_secret' => Mnemonic::encode($encryptedSecret),
+            'encrypted_secret' => EncryptionMnemonic::encode($encryptedSecret),
         ];
     }
 }

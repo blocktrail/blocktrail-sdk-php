@@ -6,7 +6,7 @@ use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\V3Crypt\Encryption;
-use Blocktrail\SDK\V3Crypt\Mnemonic;
+use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 
 class WalletV3Sweeper extends WalletSweeper
 {
@@ -27,11 +27,11 @@ class WalletV3Sweeper extends WalletSweeper
         $encryptedSecretMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($encryptedSecretMnemonic))));
         $backupMnemonic = str_replace("  ", " ", str_replace("\r\n", " ", str_replace("\n", " ", trim($backupMnemonic))));
 
-        if (!($secret = Encryption::decrypt(Mnemonic::decode($encryptedSecretMnemonic), $passphrase))) {
+        if (!($secret = Encryption::decrypt(EncryptionMnemonic::decode($encryptedSecretMnemonic), $passphrase))) {
             throw new BlocktrailSDKException("Failed to decret password encrypted secret");
         }
 
-        if (!($primarySeed = Encryption::decrypt(Mnemonic::decode($encryptedPrimaryMnemonic), $secret))) {
+        if (!($primarySeed = Encryption::decrypt(EncryptionMnemonic::decode($encryptedPrimaryMnemonic), $secret))) {
             throw new BlocktrailSDKException("failed to decrypt encrypted primary seed! (weird!)");
         }
 

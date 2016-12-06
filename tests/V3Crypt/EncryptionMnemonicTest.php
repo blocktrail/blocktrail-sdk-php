@@ -4,9 +4,9 @@ namespace Blocktrail\SDK\Tests\V3Crypt;
 
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
-use Blocktrail\SDK\V3Crypt\Mnemonic;
+use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 
-class MnemonicTest extends AbstractTestCase
+class EncryptionMnemonicTest extends AbstractTestCase
 {
     /**
      * @return array
@@ -23,7 +23,7 @@ class MnemonicTest extends AbstractTestCase
      * @param $mnemonic
      */
     public function testConsistency(BufferInterface $data, $mnemonic) {
-        $this->assertEquals($mnemonic, Mnemonic::encode($data));
-        $this->assertTrue($data->equals(Mnemonic::decode($mnemonic)));
+        $this->assertEquals($mnemonic, EncryptionMnemonic::encode($data));
+        $this->assertTrue($data->equals(EncryptionMnemonic::decode($mnemonic)));
     }
 }

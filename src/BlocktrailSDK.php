@@ -23,7 +23,7 @@ use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
 use Blocktrail\SDK\V3Crypt\Encryption;
-use Blocktrail\SDK\V3Crypt\Mnemonic;
+use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 
 /**
  * Class BlocktrailSDK
@@ -926,10 +926,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         return [
             $wallet,
             [
-                'encrypted_primary_seed'    => $encryptedPrimarySeed ? Mnemonic::encode($encryptedPrimarySeed) : null,
+                'encrypted_primary_seed'    => $encryptedPrimarySeed ? EncryptionMnemonic::encode($encryptedPrimarySeed) : null,
                 'backup_seed'               => $backupSeed ? MnemonicFactory::bip39()->entropyToMnemonic($backupSeed) : null,
-                'recovery_encrypted_secret' => $recoveryEncryptedSecret ? Mnemonic::encode($recoveryEncryptedSecret) : null,
-                'encrypted_secret'          => $encryptedSecret ? Mnemonic::encode($encryptedSecret) : null,
+                'recovery_encrypted_secret' => $recoveryEncryptedSecret ? EncryptionMnemonic::encode($recoveryEncryptedSecret) : null,
+                'encrypted_secret'          => $encryptedSecret ? EncryptionMnemonic::encode($encryptedSecret) : null,
                 'blocktrail_public_keys'    => Util::arrayMapWithIndex(function ($keyIndex, BIP32Key $pubKey) {
                     return [$keyIndex, $pubKey->tuple()];
                 }, $blocktrailPublicKeys),

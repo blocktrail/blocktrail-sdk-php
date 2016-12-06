@@ -6,7 +6,7 @@ use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\V3Crypt\Encryption;
-use Blocktrail\SDK\V3Crypt\Mnemonic;
+use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 
 class FullTest extends AbstractTestCase
 {
@@ -44,10 +44,10 @@ class FullTest extends AbstractTestCase
      * @param string $checksum
      */
     public function testDecryptionOnly(BufferInterface $password, $encryptedPrimarySeedMnemonic, $encryptedSecretMnemonic, $checksum) {
-        $decodedSecret = Mnemonic::decode($encryptedSecretMnemonic);
+        $decodedSecret = EncryptionMnemonic::decode($encryptedSecretMnemonic);
         $decryptedSecret = Encryption::decrypt($decodedSecret, $password);
 
-        $decodedPrimarySeed = Mnemonic::decode($encryptedPrimarySeedMnemonic);
+        $decodedPrimarySeed = EncryptionMnemonic::decode($encryptedPrimarySeedMnemonic);
         $decryptedPrimarySeed = Encryption::decrypt($decodedPrimarySeed, $decryptedSecret);
 
         $hdnode = HierarchicalKeyFactory::fromEntropy($decryptedPrimarySeed);
@@ -61,7 +61,7 @@ class FullTest extends AbstractTestCase
      * @dataProvider getPasswordResetVectors
      */
     public function testAllowsPasswordReset(BufferInterface $expectedSecret, BufferInterface $recoverySecret, $recoveryEncryptedMnemonic) {
-        $decodedRS = Mnemonic::decode($recoveryEncryptedMnemonic);
+        $decodedRS = EncryptionMnemonic::decode($recoveryEncryptedMnemonic);
         $decryptedSecret = Encryption::decrypt($decodedRS, $recoverySecret);
 
         $this->assertEquals($decryptedSecret->getHex(), $expectedSecret->getHex());
@@ -83,14 +83,14 @@ class FullTest extends AbstractTestCase
         $this->assertTrue($secret->equals(Encryption::decrypt($recoveryEncryptedSecret, $recoverySecret)));
 
         $backupInfo = [
-            'encryptedPrimarySeed' => Mnemonic::encode($encryptedPrimarySeed),
-            'encryptedSecret' => Mnemonic::encode($encryptedSecret),
-            'recoveryEncryptedSecret' => Mnemonic::encode($recoveryEncryptedSecret),
+            'encryptedPrimarySeed' => EncryptionMnemonic::encode($encryptedPrimarySeed),
+            'encryptedSecret' => EncryptionMnemonic::encode($encryptedSecret),
+            'recoveryEncryptedSecret' => EncryptionMnemonic::encode($recoveryEncryptedSecret),
         ];
 
         foreach ($backupInfo as $key => $val) {
             $cmp = $$key;
-            $this->assertTrue(Mnemonic::decode($val)->equals($cmp));
+            $this->assertTrue(EncryptionMnemonic::decode($val)->equals($cmp));
         }
     }
 }
