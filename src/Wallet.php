@@ -881,7 +881,7 @@ abstract class Wallet implements WalletInterface {
      * @return TransactionInterface
      * @throws \Exception
      */
-    protected function signTransaction(Transaction $tx, array $signInfo) {
+    public function signTransaction(Transaction $tx, array $signInfo) {
         $signer = new Signer($tx, Bitcoin::getEcAdapter());
 
         assert(Util::all(function ($signInfo) {
