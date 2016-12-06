@@ -6,15 +6,14 @@ namespace Blocktrail\SDK\Tests;
 
 use BitWasp\Bitcoin\Script\Interpreter\Interpreter;
 use BitWasp\Bitcoin\Script\ScriptFactory;
+use BitWasp\Bitcoin\Transaction\Factory\Signer;
 use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
+use BitWasp\Bitcoin\Transaction\TransactionOutputInterface;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Services\BlocktrailBatchUnspentOutputFinder;
 use Blocktrail\SDK\Services\InsightUnspentOutputFinder;
-use Blocktrail\SDK\UnspentOutputFinder;
-use Blocktrail\SDK\Util;
-use Blocktrail\SDK\WalletSweeper;
 use Blocktrail\SDK\WalletV1Sweeper;
 
 /**
@@ -183,13 +182,17 @@ class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
 
         $tx = TransactionFactory::fromHex($result);
 
-        $utxos = [];
+        /** @var TransactionOutputInterface[] $utxos */
+        $consensus = ScriptFactory::consensus();
         foreach ($results['utxos'] as $address => $data) {
             foreach ($data['utxos'] as $utxo) {
                 $utxos[] = new TransactionOutput($utxo['value'], ScriptFactory::fromHex($utxo['script_hex']));
             }
         }
 
-        $this->assertTrue($tx->validator()->checkSignatures(ScriptFactory::consensus(), Interpreter::VERIFY_P2SH, $utxos));
+
+        foreach ($utxos as $idx => $utxo) {
+            $this->assertTrue($consensus->verify($tx, $utxo->getScript(), Interpreter::VERIFY_P2SH, $idx, $utxo->getValue()));
+        }
     }
 }

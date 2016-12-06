@@ -8,6 +8,7 @@ use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Network\NetworkFactory;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
+use BitWasp\Bitcoin\Transaction\Factory\SignData;
 use BitWasp\Bitcoin\Transaction\Factory\Signer;
 use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
 use BitWasp\Bitcoin\Transaction\OutPoint;
@@ -379,8 +380,12 @@ abstract class WalletSweeper {
             $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
             $backupKey = $this->backupPrivateKey->buildKey($path->unhardenedPath())->key()->getPrivateKey();
 
-            $signer->sign($idx, $key, $output, $redeemScript);
-            $signer->sign($idx, $backupKey, $output, $redeemScript);
+            $signData = new SignData();
+            $signData->p2sh($redeemScript);
+            $input = $signer->input($idx, $output, $signData);
+
+            $input->sign($key);
+            $input->sign($backupKey);
         }
 
         return $signer->get();
