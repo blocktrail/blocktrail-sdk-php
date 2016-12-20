@@ -24,7 +24,7 @@
     },
     "license": "MIT",
     "require": {
-        "php": ">=5.6.0",
+        "php-64bit": ">=5.6.0",
 
         "ext-intl": "*",
         "ext-gmp": "*",
