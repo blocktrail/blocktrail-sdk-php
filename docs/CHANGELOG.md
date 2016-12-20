@@ -1,6 +1,12 @@
 BlockTrail PHP SDK Changelog
 ============================
 
+v3.0.0
+------
+ - New [Default] Wallet Version 3  
+   Better encryption scheme / key derivation.
+ - Deprecated passing in `primaryPrivateKey`, should use `primarySeed` instead.
+
 v2.1.0
 ------
  - Replaced `bitcoin-lib-php` with `bitcoin-php`.
