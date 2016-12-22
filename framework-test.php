@@ -45,8 +45,11 @@ function checkBuilds (array $builds) {
   }
 }
 
+$outputLog = '';
+
 function runFrameworkTest($sdkTarget, $testFramework, $testFrameworkVersion)
 {
+    global $outputLog;
   $composer = <<<EOF
 {
   "name": "integration tester",
@@ -62,21 +65,35 @@ function runFrameworkTest($sdkTarget, $testFramework, $testFrameworkVersion)
 }
 EOF;
 
-    $output = null;
-    $ret = 0;
     mkdir('framework');
     chdir('./framework');
     file_put_contents('composer.json', $composer);
-    exec('composer install', $output);
 
-    $output = null;
-    exec('composer require blocktrail/blocktrail-sdk ' . $sdkTarget, $output, $ret);
-    chdir('..');
-    exec('rm -rf framework');
+    $returnCode = 0;
+    $output = [];
+    exec('composer install 2>&1', $output, $returnCode);
 
-    return $ret === 0;
+    if ($returnCode !== 0) {
+        $outputLog .= explode("\n", $output);
+        cleanup();
+        return false;
+    }
+
+    exec('composer require blocktrail/blocktrail-sdk ' . $sdkTarget . ' 2>&1', $output, $returnCode);
+
+    if ($returnCode !== 0) {
+        $outputLog .= explode("\n", $output);
+    }
+
+    cleanup();
+
+    return $returnCode === 0;
 }
 
+function cleanup() {
+    chdir('..');
+    exec('rm -rf framework');
+}
 
 function build($sdkTarget, array $builds) {
   checkBuilds($builds);
@@ -94,8 +111,10 @@ function build($sdkTarget, array $builds) {
   }
 
   if (!$ok) {
-    echo "Some tests failed!";
-    exit(-1);
+      global $errorLog;
+      echo "[DEBUG LOG]\n";
+      echo $errorLog . PHP_EOL;
+      exit(-1);
   }
 
   exit(0);
