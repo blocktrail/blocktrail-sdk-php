@@ -19,7 +19,7 @@ install:
 
 script:
   # run tests when phpcs is not enabled
-  - export RUN_PHPUNIT=true
+  - export RUN_PHPUNIT="${RUN_PHPUNIT}:-true"
   - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
   - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then export RUN_PHPUNIT=false; fi'
   - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit.xml; fi'
