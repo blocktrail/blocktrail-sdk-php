@@ -2,11 +2,35 @@
 
 $sdkTarget = '@dev';
 if ($argc > 1) {
-  $sdkTarget = $argv[1];
+    $sdkTarget = $argv[1];
 }
 
 $builds = [
-  'laravel/framework' => ['5.3', '5.2']
+    'slim/slim' => [
+        '3.7.*', '3.6.*', '3.5.*', '3.4.*', '3.3.*', '3.2.*', '3.1.*', '3.0.*', '2.6.*',
+        '2.5.*', '2.4.*', '2.3.*'
+    ],
+    'laravel/framework' => [
+        '5.3.*', '5.2.*'
+    ],
+    'symfony/symfony' => [
+        '3.2.*', '3.1.*', '3.0.*', '2.8.*'
+    ],
+    'silex/silex' => [
+        '2.0.*', '1.3.*',
+    ],
+    'fuel/fuel' => [
+        '1.8.*'
+    ],
+    'yiisoft/yii' => [
+        '1.1.*'
+    ],
+    'yiisoft/yii2' => [
+        '2.0.*'
+    ],
+    'cakephp/cakephp' => [
+        '3.3.*', '3.2.*',
+    ]
 ];
 
 function checkBuilds (array $builds) {
