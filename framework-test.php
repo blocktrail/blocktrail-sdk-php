@@ -49,6 +49,9 @@ $outputLog = '';
 
 function runFrameworkTest($sdkTarget, $testFramework, $testFrameworkVersion)
 {
+
+    $framework = "{$testFramework} {$testFrameworkVersion}";
+
     global $outputLog;
   $composer = <<<EOF
 {
@@ -72,22 +75,23 @@ EOF;
     $returnCode = 0;
     $output = [];
     exec('composer install 2>&1', $output, $returnCode);
-
     if ($returnCode !== 0) {
-        $outputLog .= explode("\n", $output);
-        cleanup();
-        return false;
-    }
-
-    exec('composer require blocktrail/blocktrail-sdk ' . $sdkTarget . ' 2>&1', $output, $returnCode);
-
-    if ($returnCode !== 0) {
-        $outputLog .= explode("\n", $output);
+        $outputLog .= "###################### Failure: Installing framework {$framework} ###################### \n\n" . implode("\n", $output);
+    } else {
+        $returnCode = 0;
+        $output = [];
+        exec('composer require blocktrail/blocktrail-sdk ' . $sdkTarget . ' 2>&1', $output, $returnCode);
+        if ($returnCode !== 0) {
+            $outputLog .= "###################### Failure: Installing SDK with {$framework} ###################### \n\n" . implode("\n", $output);
+        }
     }
 
     cleanup();
 
-    return $returnCode === 0;
+    $ok = $returnCode === 0;
+    echo "Testing {$framework} - " . ($ok ? 'pass' : 'FAIL') . PHP_EOL;
+
+    return $ok;
 }
 
 function cleanup() {
@@ -105,15 +109,14 @@ function build($sdkTarget, array $builds) {
   }
 
   $ok = true;
-  foreach ($results as $title => $result) {
-    echo "Test of $title was " . ($result ? 'successful' : 'UNSUCCESSFUL') . PHP_EOL;
+  foreach ($results as $result) {
     $ok = $ok && $result;
   }
 
   if (!$ok) {
-      global $errorLog;
-      echo "[DEBUG LOG]\n";
-      echo $errorLog . PHP_EOL;
+      global $outputLog;
+      echo "\nOutput log: \n\n";
+      echo $outputLog . PHP_EOL;
       exit(-1);
   }
 
