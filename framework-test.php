@@ -52,7 +52,6 @@ function runFrameworkTest($sdkTarget, $testFramework, $testFrameworkVersion)
 
     $framework = "{$testFramework} {$testFrameworkVersion}";
 
-    global $outputLog;
   $composer = <<<EOF
 {
   "name": "integration tester",
@@ -74,6 +73,8 @@ EOF;
 
     $returnCode = 0;
     $output = [];
+    $outputLog = null;
+
     exec('composer install 2>&1', $output, $returnCode);
     if ($returnCode !== 0) {
         $outputLog .= "###################### Failure: Installing framework {$framework} ###################### \n\n" . implode("\n", $output);
@@ -89,7 +90,10 @@ EOF;
     cleanup();
 
     $ok = $returnCode === 0;
-    echo "Testing {$framework} - " . ($ok ? 'pass' : 'FAIL') . PHP_EOL;
+    echo "Testing {$framework} with target {$sdkTarget}:  " . ($ok ? 'pass' : 'FAIL') . PHP_EOL;
+    if (!$ok) {
+        echo $outputLog . PHP_EOL;
+    }
 
     return $ok;
 }
@@ -113,14 +117,7 @@ function build($sdkTarget, array $builds) {
     $ok = $ok && $result;
   }
 
-  if (!$ok) {
-      global $outputLog;
-      echo "\nOutput log: \n\n";
-      echo $outputLog . PHP_EOL;
-      exit(-1);
-  }
-
-  exit(0);
+  exit($ok ? 0 : -1);
 }
 
 build($sdkTarget, $builds);
