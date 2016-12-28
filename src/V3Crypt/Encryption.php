@@ -17,12 +17,16 @@ class Encryption
     /**
      * @param BufferInterface $pt
      * @param BufferInterface $pw
+     * @param int $iterations
      * @return BufferInterface
      */
-    public static function encrypt(BufferInterface $pt, BufferInterface $pw) {
+    public static function encrypt(BufferInterface $pt, BufferInterface $pw, $iterations = KeyDerivation::DEFAULT_ITERATIONS) {
         $salt = new Buffer(random_bytes(self::DEFAULT_SALTLEN));
         $iv = new Buffer(random_bytes(self::IVLEN_BYTES));
-        $iterations = KeyDerivation::DEFAULT_ITERATIONS;
+        if (!is_int($iterations) || $iterations < 1) {
+            throw new \InvalidArgumentException('Iterations must be an integer > 0');
+        }
+
         return self::encryptWithSaltAndIV($pt, $pw, $salt, $iv, $iterations);
     }
 
