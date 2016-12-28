@@ -65,6 +65,6 @@ matrix:
     - php: 5.6
       env: PHPCS=true WITH_XDEBUG=false
     - php: 5.6
-      env: TEST_FRAMEWORK=true RUN_PHPUNIT="false"
+      env: TEST_FRAMEWORK=true WITH_XDEBUG=false RUN_PHPUNIT="false"
     - php: 7.1
-      env: TEST_FRAMEWORK=true RUN_PHPUNIT="false"
+      env: TEST_FRAMEWORK=true WITH_XDEBUG=false RUN_PHPUNIT="false"
