@@ -19,9 +19,10 @@ install:
 
 script:
   # run tests when phpcs is not enabled
-  - export RUN_PHPUNIT="${RUN_PHPUNIT}:-true"
+  - if [[ "${RUN_PHPUNIT}" != "false" ]]; then
+      export RUN_PHPUNIT="true";
+    fi
   - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
-  - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then export RUN_PHPUNIT=false; fi'
   - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit.xml; fi'
   - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit-recovery.xml; fi';
 
@@ -29,7 +30,13 @@ script:
   - sh -c 'if [ "${PHPCS}" = "true" ]; then ./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/ && echo "PHPCS OK"; fi'
 
   # run framework tests when enabled
-  - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then php framework-test.php dev-${TRAVIS_PULL_REQUEST_BRANCH} && echo "Framework integration OK"; fi'
+  - if [[ "${TEST_FRAMEWORK}" != "" ]]; then
+      if [[ "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
+        php framework-test.php dev-${TRAVIS_BRANCH} && echo "Framework integration OK";
+      elif [[ "${TRAVIS_PULL_REQUEST_BRANCH}" != "" ]]; then
+        php framework-test.php dev-${TRAVIS_PULL_REQUEST_BRANCH} && echo "Framework integration OK";
+      fi
+    fi
 
   # check coverage if report was generated (requires xdebug enabled)
   - sh -c 'if [ -e clover.xml ]; then php coverage-checker.php clover.xml 70; fi'
@@ -58,6 +65,6 @@ matrix:
     - php: 5.6
       env: PHPCS=true WITH_XDEBUG=false
     - php: 5.6
-      env: TEST_FRAMEWORK=true RUN_PHPUNIT=false
+      env: TEST_FRAMEWORK=true RUN_PHPUNIT="false"
     - php: 7.1
-      env: TEST_FRAMEWORK=true RUN_PHPUNIT=false
+      env: TEST_FRAMEWORK=true RUN_PHPUNIT="false"
