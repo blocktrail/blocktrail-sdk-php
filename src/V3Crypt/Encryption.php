@@ -71,7 +71,7 @@ class Encryption
             throw new \RuntimeException('IV must be exactly 16 bytes');
         }
 
-        $header = new Buffer(pack('c', $salt->getSize()) . $salt->getBinary() . pack('V', $iterations));
+        $header = new Buffer(pack('C', $salt->getSize()) . $salt->getBinary() . pack('V', $iterations));
 
         list ($ct, $tag) = AESGCM::encrypt(
             KeyDerivation::compute($pw, $salt, $iterations)->getBinary(),
