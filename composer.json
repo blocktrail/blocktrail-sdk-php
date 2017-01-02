@@ -31,6 +31,7 @@
         "ext-bcmath": "*",
         "ext-gd": "*",
         "ext-dom": "*",
+        "ext-curl": "*",
 
         "bitwasp/bitcoin": "v0.0.31.2",
         "mdanter/ecc": "v0.4.1",
