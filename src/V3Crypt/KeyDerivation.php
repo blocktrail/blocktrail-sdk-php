@@ -9,6 +9,7 @@ class KeyDerivation
 {
     const HASHER = 'sha512';
     const DEFAULT_ITERATIONS = 35000;
+    const SUBKEY_ITERATIONS = 1;
     const KEYLEN_BITS = 256;
 
     /**
@@ -22,8 +23,8 @@ class KeyDerivation
             throw new \RuntimeException('Iterations must be a number between 1 and 2^32');
         }
 
-        if ($iterations < 512) {
-            throw new \RuntimeException('Iteration count should be at least 512');
+        if ($iterations < 0) {
+            throw new \RuntimeException('Iteration count should be at least 1');
         }
 
         if ($salt->getSize() === 0) {

@@ -24,6 +24,7 @@ use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
 use Blocktrail\SDK\V3Crypt\Encryption;
 use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
+use Blocktrail\SDK\V3Crypt\KeyDerivation;
 
 /**
  * Class BlocktrailSDK
@@ -842,7 +843,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 }
 
                 $secret = new Buffer(self::randomBits(256));
-                $encryptedSecret = Encryption::encrypt($secret, new Buffer($options['passphrase']));
+                $encryptedSecret = Encryption::encrypt($secret, new Buffer($options['passphrase']), KeyDerivation::DEFAULT_ITERATIONS);
             } else {
                 if (!$options['secret'] instanceof Buffer) {
                     throw new \RuntimeException('Secret must be provided as a Buffer');
@@ -851,10 +852,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 $secret = $options['secret'];
             }
 
-            $encryptedPrimarySeed = Encryption::encrypt($primarySeed, $secret);
+            $encryptedPrimarySeed = Encryption::encrypt($primarySeed, $secret, KeyDerivation::SUBKEY_ITERATIONS);
             $recoverySecret = new Buffer(self::randomBits(256));
 
-            $recoveryEncryptedSecret = Encryption::encrypt($secret, $recoverySecret);
+            $recoveryEncryptedSecret = Encryption::encrypt($secret, $recoverySecret, KeyDerivation::DEFAULT_ITERATIONS);
         }
 
         if (!isset($options['backup_public_key'])) {
