@@ -2,7 +2,7 @@
 
 namespace Blocktrail\SDK;
 
-use Blocktrail\SDK\Connection\RestClient;
+use Blocktrail\SDK\Connection\BaseRestClient;
 
 /**
  * Interface BlocktrailSDK
@@ -39,7 +39,7 @@ interface BlocktrailSDKInterface {
     public function setCurlDefaultOption($key, $value);
 
     /**
-     * @return  RestClient
+     * @return  BaseRestClient
      */
     public function getRestClient();
 

@@ -23,6 +23,7 @@ use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+use Blocktrail\SDK\Connection\RestClientInterface;
 use Blocktrail\SDK\V3Crypt\Encryption;
 use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 use Blocktrail\SDK\V3Crypt\KeyDerivation;
@@ -32,7 +33,7 @@ use Blocktrail\SDK\V3Crypt\KeyDerivation;
  */
 class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
-     * @var Connection\RestClient
+     * @var Connection\RestClientInterface
      */
     protected $client;
 
@@ -128,10 +129,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
-     * @return  RestClient
+     * @return  RestClientInterface
      */
     public function getRestClient() {
         return $this->client;
+    }
+
+    /**
+     * @param RestClientInterface $restClient
+     */
+    public function setRestClient(RestClientInterface $restClient) {
+        $this->client = $restClient;
     }
 
     /**
