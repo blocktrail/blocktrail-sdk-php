@@ -22,6 +22,7 @@ use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\V3Crypt\Encryption;
 use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 use Blocktrail\SDK\V3Crypt\KeyDerivation;
@@ -567,7 +568,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         $storePrimaryMnemonic = isset($options['store_primary_mnemonic']) ? $options['store_primary_mnemonic'] : null;
 
-        if (isset($options['primary_mnemonic']) && $options['primary_private_key']) {
+        if (isset($options['primary_mnemonic']) && isset($options['primary_private_key'])) {
             throw new \InvalidArgumentException("Can't specify Primary Mnemonic and Primary PrivateKey");
         }
 
@@ -607,8 +608,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // create primary public key from the created private key
-        $path = (string)$walletPath->keyIndexPath()->publicPath();
-        $primaryPublicKey = BIP32Key::create($primaryPrivateKey->derivePath($path), $path);
+        $path = $walletPath->keyIndexPath()->publicPath();
+        $primaryPublicKey = BIP32Key::create($primaryPrivateKey, "m")->buildKey($path);
 
         if (isset($options['backup_mnemonic']) && $options['backup_public_key']) {
             throw new \InvalidArgumentException("Can't specify Backup Mnemonic and Backup PublicKey");
@@ -939,6 +940,30 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * @param array $bip32Key
+     * @throws BlocktrailSDKException
+     */
+    private function verifyPublicBIP32Key(array $bip32Key) {
+        $hk = HierarchicalKeyFactory::fromExtended($bip32Key[0]);
+        if ($hk->isPrivate()) {
+            throw new BlocktrailSDKException('Private key was included in request, abort');
+        }
+
+        if (substr($bip32Key[1], 0, 1) === "m") {
+            throw new BlocktrailSDKException("Private path was included in the request, abort");
+        }
+    }
+
+    /**
+     * @param array $walletData
+     * @throws BlocktrailSDKException
+     */
+    private function verifyPublicOnly(array $walletData) {
+        $this->verifyPublicBIP32Key($walletData['primary_public_key']);
+        $this->verifyPublicBIP32Key($walletData['backup_public_key']);
+    }
+
+    /**
      * create wallet using the API
      *
      * @param string    $identifier             the wallet identifier to create
@@ -958,7 +983,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'checksum' => $checksum,
             'key_index' => $keyIndex
         ];
-
+        $this->verifyPublicOnly($data);
         $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
@@ -989,7 +1014,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'checksum' => $checksum,
             'key_index' => $keyIndex
         ];
-
+        $this->verifyPublicOnly($data);
         $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
@@ -1009,6 +1034,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @throws \Exception
      */
     public function storeNewWalletV3($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex) {
+
         $data = [
             'identifier' => $identifier,
             'wallet_version' => Wallet::WALLET_VERSION_V3,
@@ -1021,6 +1047,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'key_index' => $keyIndex
         ];
 
+        $this->verifyPublicOnly($data);
         $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
     }
