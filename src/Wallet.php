@@ -586,7 +586,9 @@ abstract class Wallet implements WalletInterface {
         }
 
         if (array_sum(array_map(
-            function (UTXO $utxo) { return $utxo->value; },
+            function (UTXO $utxo) {
+                return $utxo->value;
+            },
             $utxos
         )) < array_sum(array_column($send, 'value'))) {
             throw new \Exception("Atempting to spend more than sum of UTXOs");
