@@ -54,7 +54,7 @@ class WalletV1 extends Wallet {
         }
 
         if (!$primaryMnemonic && !$primaryPrivateKey) {
-            throw new \InvalidArgumentException("Can't init wallet with Primary Mnemonic or Primary PrivateKey");
+            throw new \InvalidArgumentException("Can't init wallet without Primary Mnemonic or Primary PrivateKey");
         }
 
         if ($primaryMnemonic && !$password) {
