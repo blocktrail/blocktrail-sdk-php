@@ -847,6 +847,8 @@ abstract class Wallet implements WalletInterface {
 
         $size = self::estimateSize(self::estimateSizeUTXOs(count($utxos)), $outputSize);
 
+        error_log("determineFee size={$size}, optimal={$optimalFeePerKB}, lowpriority={$lowPriorityFeePerKB}");
+
         switch ($feeStrategy) {
             case self::FEE_STRATEGY_BASE_FEE:
                 return self::baseFeeForSize($size);
@@ -930,6 +932,8 @@ abstract class Wallet implements WalletInterface {
      */
     public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
         $result = $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
+
+        error_log("coinSelection size={$result['size']}, fee={$result['fee']}, optimal={$result['fees'][self::FEE_STRATEGY_OPTIMAL]}, lowpriority={$result['fees'][self::FEE_STRATEGY_LOW_PRIORITY]}");
 
         $this->optimalFeePerKB = $result['fees'][self::FEE_STRATEGY_OPTIMAL];
         $this->lowPriorityFeePerKB = $result['fees'][self::FEE_STRATEGY_LOW_PRIORITY];
