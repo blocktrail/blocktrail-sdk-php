@@ -23,10 +23,6 @@ class KeyDerivation
             throw new \RuntimeException('Iterations must be a number between 1 and 2^32');
         }
 
-        if ($iterations < 0) {
-            throw new \RuntimeException('Iteration count should be at least 1');
-        }
-
         if ($salt->getSize() === 0) {
             throw new \RuntimeException('Salt must not be empty');
         }
