@@ -4,6 +4,7 @@ namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Address\AddressInterface;
 use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Transaction\TransactionOutput;
 
 class UTXO {
 
@@ -27,7 +28,23 @@ class UTXO {
      */
     public $redeemScript;
 
-    public function __construct($hash, $index, $value = null, AddressInterface $address = null, ScriptInterface $scriptPubKey = null, $path = null, ScriptInterface $redeemScript = null) {
+    /**
+     * @var string
+     */
+    public $signMode;
+
+    /**
+     * UTXO constructor.
+     * @param $hash
+     * @param $index
+     * @param null $value
+     * @param AddressInterface|null $address
+     * @param ScriptInterface|null $scriptPubKey
+     * @param null $path
+     * @param ScriptInterface|null $redeemScript
+     * @param string $signMode
+     */
+    public function __construct($hash, $index, $value = null, AddressInterface $address = null, ScriptInterface $scriptPubKey = null, $path = null, ScriptInterface $redeemScript = null, $signMode = SignInfo::MODE_SIGN) {
         $this->hash = $hash;
         $this->index = $index;
         $this->value = $value;
@@ -35,5 +52,13 @@ class UTXO {
         $this->scriptPubKey = $scriptPubKey;
         $this->path = $path;
         $this->redeemScript = $redeemScript;
+        $this->signMode = $signMode;
+    }
+
+    /**
+     * @return SignInfo
+     */
+    public function getSignInfo() {
+        return new SignInfo(new TransactionOutput($this->value, $this->scriptPubKey), $this->signMode, $this->path, $this->redeemScript);
     }
 }

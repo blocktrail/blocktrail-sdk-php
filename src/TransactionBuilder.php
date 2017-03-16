@@ -4,7 +4,6 @@ namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
-use BitWasp\Bitcoin\Script\Script;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Buffertools\Buffer;
@@ -51,7 +50,7 @@ class TransactionBuilder {
      * @param ScriptInterface|string $redeemScript           when NULL we'll use the path to determine the redeemscript
      * @return $this
      */
-    public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null) {
+    public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null, $signMode = SignInfo::MODE_SIGN) {
         $address = $address instanceof AddressInterface ? $address : AddressFactory::fromString($address);
         $scriptPubKey = ($scriptPubKey instanceof ScriptInterface)
             ? $scriptPubKey
@@ -60,7 +59,7 @@ class TransactionBuilder {
             ? $redeemScript
             : (ctype_xdigit($redeemScript) ? ScriptFactory::fromHex($redeemScript) : null);
 
-        $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript);
+        $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript, $signMode);
 
         return $this;
     }

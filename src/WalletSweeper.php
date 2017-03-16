@@ -14,7 +14,6 @@ use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
 use BitWasp\Bitcoin\Transaction\OutPoint;
 use BitWasp\Bitcoin\Transaction\SignatureHash\SigHash;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
-use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
@@ -332,22 +331,22 @@ abstract class WalletSweeper {
                     AddressFactory::fromString($address),
                     ScriptFactory::fromHex($utxo['script_hex']),
                     $data['path'],
-                    $data['redeem']
+                    $data['redeem'],
+                    SignInfo::MODE_SIGN
                 );
 
                 $utxos[] = $utxo;
-                $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey));
+                $signInfo[] = $utxo->getSignInfo();
             }
         }
 
         foreach ($utxos as $utxo) {
-            $txb->spendOutPoint(new OutPoint(Buffer::hex($utxo->hash), $utxo->index), $utxo->scriptPubKey);
+            $txb->spendOutPoint(new OutPoint(Buffer::hex($utxo->hash, 32), $utxo->index), $utxo->scriptPubKey);
         }
 
         $fee = Wallet::estimateFee($this->sweepData['count'], 1);
 
         $txb->payToAddress($this->sweepData['balance'] - $fee, AddressFactory::fromString($destinationAddress));
-
 
         if ($this->debug) {
             echo "\nSigning transaction";
@@ -380,19 +379,22 @@ abstract class WalletSweeper {
         }, $signInfo), '$signInfo should be SignInfo[]');
 
         foreach ($signInfo as $idx => $info) {
-            $path = BIP32Path::path($info->path)->privatePath();
-            $redeemScript = $info->redeemScript;
-            $output = $info->output;
+            if ($info->mode === SignInfo::MODE_SIGN) {
+                $path = BIP32Path::path($info->path)->privatePath();
+                $redeemScript = $info->redeemScript;
+                $output = $info->output;
 
-            $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
-            $backupKey = $this->backupPrivateKey->buildKey($path->unhardenedPath())->key()->getPrivateKey();
+                $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
+                $backupKey = $this->backupPrivateKey->buildKey($path->unhardenedPath())->key()->getPrivateKey();
 
-            $signData = new SignData();
-            $signData->p2sh($redeemScript);
-            $input = $signer->input($idx, $output, $signData);
+                $signData = (new SignData())
+                    ->p2sh($redeemScript);
 
-            $input->sign($key, $sigHash);
-            $input->sign($backupKey, $sigHash);
+                $input = $signer->input($idx, $output, $signData);
+
+                $input->sign($key, $sigHash);
+                $input->sign($backupKey, $sigHash);
+            }
         }
 
         return $signer->get();
