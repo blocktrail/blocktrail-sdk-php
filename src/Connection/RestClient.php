@@ -246,7 +246,7 @@ class RestClient {
             $contentMD5Mode = !is_null($body) ? 'body' : 'url';
         }
 
-        $request = new Request($method, $endpointUrl);
+        $request = new Request($method, $this->apiEndpoint . $endpointUrl);
         $uri = $request->getUri();
 
         if ($queryString) {
@@ -301,7 +301,7 @@ class RestClient {
      * @return Response
      */
     public function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
-        $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $contentMD5Mode);
+        $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $auth, $contentMD5Mode);
         $response = $this->guzzle->send($request, ['auth' => $auth, 'timeout' => $timeout]);
 
         return $this->responseHandler($response);
