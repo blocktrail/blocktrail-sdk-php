@@ -316,6 +316,16 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $response = $this->client->get("transaction/{$txhash}");
         return self::jsonDecode($response->body(), true);
     }
+
+    /**
+     * get a single transaction
+     * @param  string[] $txhashes list of transaction hashes (up to 20)
+     * @return array[]            array containing the response
+     */
+    public function transactions($txhashes) {
+        $response = $this->client->get("transactions/" . implode(",", $txhashes));
+        return self::jsonDecode($response->body(), true);
+    }
     
     /**
      * get a paginated list of all webhooks associated with the api user
