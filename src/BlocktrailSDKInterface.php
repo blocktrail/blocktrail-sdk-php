@@ -534,9 +534,10 @@ interface BlocktrailSDKInterface {
      * @param  integer $page        pagination: page number
      * @param  integer $limit       pagination: records per page (max 500)
      * @param  string  $sortDir     pagination: sort direction (asc|desc)
+     * @param  boolean $zeroconf    include zero confirmation transactions
      * @return array                associative array containing the response
      */
-    public function walletUTXOs($identifier, $page = 1, $limit = 20, $sortDir = 'asc');
+    public function walletUTXOs($identifier, $page = 1, $limit = 20, $sortDir = 'asc', $zeroconf = true);
 
     /**
      *
