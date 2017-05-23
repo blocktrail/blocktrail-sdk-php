@@ -1,3 +1,4 @@
+dist: trusty # fix for travis not updating their HHVM images
 language: php
 php:
   - 5.6
