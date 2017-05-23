@@ -1382,10 +1382,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param string    $rawTransaction         raw hex of the transaction (should be partially signed)
      * @param array     $paths                  list of the paths that were used for the UTXO
      * @param bool      $checkFee               let the server verify the fee after signing
+     * @param bool      $checkUtxosSpent        when FALSE server won't check if UTXOs are already spent
      * @return string                           the complete raw transaction
      * @throws \Exception
      */
-    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee = false) {
+    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee = false, $checkUtxosSpent = true) {
         $data = [
             'raw_transaction' => $rawTransaction,
             'paths' => $paths
@@ -1394,7 +1395,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         // dynamic TTL for when we're signing really big transactions
         $ttl = max(5.0, count($paths) * 0.25) + 4.0;
 
-        $response = $this->client->post("wallet/{$identifier}/send", ['check_fee' => (int)!!$checkFee], $data, RestClient::AUTH_HTTP_SIG, $ttl);
+        $response = $this->client->post("wallet/{$identifier}/send", [
+            'check_fee' => (int)!!$checkFee,
+            'check_utxos_spent' => (int)!!$checkUtxosSpent,
+        ], $data, RestClient::AUTH_HTTP_SIG, $ttl);
         $signed = self::jsonDecode($response->body(), true);
 
         if (!$signed['complete'] || $signed['complete'] == 'false') {

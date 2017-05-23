@@ -417,10 +417,11 @@ interface BlocktrailSDKInterface {
      * @param string    $rawTransaction         raw hex of the transaction (should be partially signed)
      * @param array     $paths                  list of the paths that were used for the UTXO
      * @param bool      $checkFee               let the server verify the fee after signing
+     * @param bool      $checkUtxosSpent        when FALSE server won't check if UTXOs are already spent
      * @return string                           the complete raw transaction
      * @throws \Exception
      */
-    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee);
+    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee = false, $checkUtxosSpent = true);
 
     /**
      * use the API to get the best inputs to use based on the outputs

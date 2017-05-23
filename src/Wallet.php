@@ -608,7 +608,7 @@ abstract class Wallet implements WalletInterface {
         }
 
         foreach ($utxos as $utxo) {
-            $txb->spendOutPoint(new OutPoint(Buffer::hex($utxo->hash), $utxo->index), $utxo->scriptPubKey);
+            $txb->spendOutPoint(new OutPoint(Buffer::hex($utxo->hash), $utxo->index), $utxo->scriptPubKey, $utxo->sequence);
         }
 
         // outputs should be randomized to make the change harder to detect
@@ -692,14 +692,16 @@ abstract class Wallet implements WalletInterface {
      * create, sign and send transction based on TransactionBuilder
      *
      * @param TransactionBuilder $txBuilder
-     * @param bool $apiCheckFee     let the API check if the fee is correct
+     * @param bool $apiCheckFee         let the API check if the fee is correct
+     * @param bool $apiCheckUtxosSpent  when FALSE server won't check if UTXOs are already spent
+     * @param bool $sign
      * @return string
      * @throws \Exception
      */
-    public function sendTx(TransactionBuilder $txBuilder, $apiCheckFee = true) {
+    public function sendTx(TransactionBuilder $txBuilder, $apiCheckFee = true, $apiCheckUtxosSpent = true, $sign = true) {
         list($tx, $signInfo) = $this->buildTx($txBuilder);
 
-        return $this->_sendTx($tx, $signInfo, $apiCheckFee);
+        return $this->_sendTx($tx, $signInfo, $apiCheckFee, $apiCheckUtxosSpent, $sign);
     }
 
     /**
@@ -708,13 +710,15 @@ abstract class Wallet implements WalletInterface {
      *
      * @param Transaction $tx
      * @param SignInfo[]  $signInfo
-     * @param bool $apiCheckFee     let the API check if the fee is correct
+     * @param bool $apiCheckFee         let the API check if the fee is correct
+     * @param bool $apiCheckUtxosSpent  when FALSE server won't check if UTXOs are already spent
+     * @param bool $sign
      * @return string
      * @throws \Exception
      * @internal
      */
-    public function _sendTx(Transaction $tx, array $signInfo, $apiCheckFee = true) {
-        if ($this->locked) {
+    public function _sendTx(Transaction $tx, array $signInfo, $apiCheckFee = true, $apiCheckUtxosSpent = true, $sign = true) {
+        if ($sign && $this->locked) {
             throw new \Exception("Wallet needs to be unlocked to pay");
         }
 
@@ -723,12 +727,15 @@ abstract class Wallet implements WalletInterface {
         }, $signInfo), '$signInfo should be SignInfo[]');
 
         // sign the transaction with our keys
-        $signed = $this->signTransaction($tx, $signInfo);
+        if ($sign) {
+            $signed = $this->signTransaction($tx, $signInfo);
+            $tx = $signed;
+        }
 
         // send the transaction
-        $finished = $this->sendTransaction($signed->getHex(), array_map(function (SignInfo $r) {
+        $finished = $this->sendTransaction($tx->getHex(), array_map(function (SignInfo $r) {
             return $r->path;
-        }, $signInfo), $apiCheckFee);
+        }, $signInfo), $apiCheckFee, $apiCheckUtxosSpent);
 
         return $finished;
     }
@@ -913,11 +920,12 @@ abstract class Wallet implements WalletInterface {
      * @param string    $signed
      * @param string[]  $paths
      * @param bool      $checkFee
+     * @param bool      $apiCheckUtxosSpent
      * @return string           the complete raw transaction
      * @throws \Exception
      */
-    protected function sendTransaction($signed, $paths, $checkFee = false) {
-        return $this->sdk->sendTransaction($this->identifier, $signed, $paths, $checkFee);
+    protected function sendTransaction($signed, $paths, $checkFee = false, $apiCheckUtxosSpent = true) {
+        return $this->sdk->sendTransaction($this->identifier, $signed, $paths, $checkFee, $apiCheckUtxosSpent);
     }
 
     /**

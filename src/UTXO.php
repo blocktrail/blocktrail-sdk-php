@@ -4,6 +4,7 @@ namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Address\AddressInterface;
 use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Transaction\TransactionInput;
 
 class UTXO {
 
@@ -26,6 +27,8 @@ class UTXO {
      * @var ScriptInterface
      */
     public $redeemScript;
+
+    public $sequence = TransactionInput::SEQUENCE_FINAL;
 
     public function __construct($hash, $index, $value = null, AddressInterface $address = null, ScriptInterface $scriptPubKey = null, $path = null, ScriptInterface $redeemScript = null) {
         $this->hash = $hash;
