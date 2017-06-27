@@ -59,12 +59,21 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         if (is_null($apiEndpoint)) {
             $network = strtoupper($network);
 
-            if ($testnet) {
-                $network = "t{$network}";
+            if ($network === "TBTC") {
+                $apiNetwork = "tBTC";
+            } else if ($network === "RBTC") {
+                $apiNetwork = "rBTC";
+            } else {
+                if ($testnet) {
+                    $apiNetwork = "tBTC";
+                    $network = "tBTC";
+                } else {
+                    $apiNetwork = "BTC";
+                }
             }
 
             $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
-            $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$network}/";
+            $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$apiNetwork}/";
         }
 
         // normalize network and set bitcoinlib to the right magic-bytes
@@ -92,6 +101,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
             case 'tbtc':
             case 'bitcoin-testnet':
+                $network = 'bitcoin';
+                $testnet = true;
+
+            case 'rbtc':
+            case 'bitcoin-regtest':
                 $network = 'bitcoin';
                 $testnet = true;
 
