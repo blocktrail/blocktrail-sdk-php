@@ -5,6 +5,8 @@ php:
   - 7.1
   - hhvm
 
+dist: trusty
+
 # only build master branch (and PRs)
 branches:
   only:
