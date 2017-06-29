@@ -24,7 +24,7 @@
     },
     "license": "MIT",
     "require": {
-        "php-64bit": ">=5.6.0",
+        "php": ">=5.6.0",
 
         "ext-intl": "*",
         "ext-gmp": "*",
@@ -45,6 +45,9 @@
         "endroid/qrcode": "1.5.*",
         "blocktrail/cryptojs-aes-php": "0.1.*",
         "spomky-labs/php-aes-gcm": "v1.2.0"
+    },
+    "suggest": {
+        "php-64bit": "32bit will have funky issues with BIP32 (and probably more)",
     },
     "require-dev": {
         "phpunit/phpunit": "4.3.*",
