@@ -96,19 +96,18 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             case 'btc':
             case 'bitcoin':
                 $network = 'bitcoin';
-
                 break;
 
             case 'tbtc':
             case 'bitcoin-testnet':
                 $network = 'bitcoin';
                 $testnet = true;
+                break;
 
             case 'rbtc':
             case 'bitcoin-regtest':
                 $network = 'bitcoin';
                 $testnet = true;
-
                 break;
 
             default:
