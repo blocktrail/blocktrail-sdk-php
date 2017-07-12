@@ -113,6 +113,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
             default:
                 throw new \Exception("Unknown network [{$network}]");
+                // this comment silences a phpcs error.
         }
 
         return [$network, $testnet];
@@ -1664,12 +1665,26 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @return mixed
      * @throws \Exception
      */
-    public function faucetWithdrawl($address, $amount = 10000) {
+    public function faucetWithdrawal($address, $amount = 10000) {
         $response = $this->client->post("faucet/withdrawl", null, [
             'address' => $address,
             'amount' => $amount,
         ], RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
+    }
+
+    /**
+     * Exists for BC. Remove at major bump.
+     *
+     * @see faucetWithdrawal
+     * @deprecated
+     * @param     $address
+     * @param int $amount       defaults to 0.0001 BTC, max 0.001 BTC
+     * @return mixed
+     * @throws \Exception
+     */
+    public function faucetWithdrawl($address, $amount = 10000) {
+        return $this->faucetWithdrawal($address, $amount);
     }
 
     /**
