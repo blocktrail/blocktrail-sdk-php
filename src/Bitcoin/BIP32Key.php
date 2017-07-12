@@ -5,6 +5,7 @@ namespace Blocktrail\SDK\Bitcoin;
 use BitWasp\Bitcoin\Crypto\EcAdapter\Impl\PhpEcc\Key\PublicKey;
 use BitWasp\Bitcoin\Crypto\EcAdapter\Key\PublicKeyInterface;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
+use BitWasp\Bitcoin\Network\NetworkInterface;
 
 /**
  * Class BIP32Key
@@ -112,8 +113,8 @@ class BIP32Key {
         return BIP32Path::path($this->path);
     }
 
-    public function tuple() {
-        return [$this->key->toExtendedKey(), (string)$this->path];
+    public function tuple(NetworkInterface $network = null) {
+        return [$this->key->toExtendedKey($network), (string)$this->path];
     }
 
     /**
