@@ -33,7 +33,7 @@
         "ext-dom": "*",
         "ext-curl": "*",
 
-        "bitwasp/bitcoin": "v0.0.31.2",
+        "bitwasp/bitcoin": "v0.0.33.2",
         "mdanter/ecc": "v0.4.1",
 
         "guzzlehttp/guzzle": "6.*",
