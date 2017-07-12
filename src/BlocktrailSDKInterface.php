@@ -585,7 +585,7 @@ interface BlocktrailSDKInterface {
      * @return mixed
      * @throws \Exception
      */
-    public function faucetWithdrawl($address, $amount = 10000);
+    public function faucetWithdrawal($address, $amount = 10000);
     /**
      * convert a Satoshi value to a BTC value
      *

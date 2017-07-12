@@ -1664,7 +1664,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @return mixed
      * @throws \Exception
      */
-    public function faucetWithdrawl($address, $amount = 10000) {
+    public function faucetWithdrawal($address, $amount = 10000) {
         $response = $this->client->post("faucet/withdrawl", null, [
             'address' => $address,
             'amount' => $amount,
