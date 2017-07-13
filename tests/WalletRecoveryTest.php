@@ -6,12 +6,9 @@ namespace Blocktrail\SDK\Tests;
 
 use BitWasp\Bitcoin\Script\Interpreter\Interpreter;
 use BitWasp\Bitcoin\Script\ScriptFactory;
-use BitWasp\Bitcoin\Transaction\Factory\Signer;
 use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Bitcoin\Transaction\TransactionOutputInterface;
-use Blocktrail\SDK\BlocktrailSDK;
-use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Services\BlocktrailBatchUnspentOutputFinder;
 use Blocktrail\SDK\Services\InsightUnspentOutputFinder;
 use Blocktrail\SDK\WalletV1Sweeper;
@@ -23,33 +20,14 @@ use Blocktrail\SDK\WalletV1Sweeper;
  *
  * @package Blocktrail\SDK\Tests
  */
-class WalletRecoveryTest extends \PHPUnit_Framework_TestCase {
+class WalletRecoveryTest extends BlocktrailTestCase {
 
     protected $wallets = [];
-
-    /**
-     * setup an instance of BlocktrailSDK
-     *
-     * @return BlocktrailSDKInterface
-     */
-    public function setupBlocktrailSDK() {
-        $client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true, 'v1');
-        // $client->setCurlDebugging();
-        return $client;
-    }
-
-    protected function tearDown() {
-        $this->cleanUp();
-    }
 
     protected function onNotSuccessfulTest(\Exception $e) {
         //called when a test fails
         $this->cleanUp();
         throw $e;
-    }
-
-    protected function cleanUp() {
-        //No cleanup to do
     }
 
     public function testUnspentOutputFinder() {
