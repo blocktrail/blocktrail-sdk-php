@@ -11,10 +11,9 @@ namespace Blocktrail\SDK\Tests;
 class WebhookTest extends BlocktrailTestCase
 {
     public function testWebhooks() {
-        $client = $this->setupBlocktrailSDK();
+        $client = $this->setupBlocktrailSDK('BTC', false);
 
         //keep track of all webhooks created for cleanup
-        $this->cleanupData['webhooks'] = array();
 
         //create a webhook with custom identifier (randomly generated)
         $bytes = openssl_random_pseudo_bytes(10);
