@@ -7,7 +7,6 @@ namespace Blocktrail\SDK\Tests;
 use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
-use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInput;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
@@ -15,7 +14,6 @@ use BitWasp\Buffertools\Buffer;
 
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
-use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
@@ -38,7 +36,7 @@ use Blocktrail\SDK\WalletV3;
  *
  * @package Blocktrail\SDK\Tests
  */
-class WalletTest extends \PHPUnit_Framework_TestCase {
+class WalletTest extends BlocktrailTestCase {
     const DEFAULT_WALLET_VERSION = 'v3';
     const DEFAULT_WALLET_INSTANCE = WalletV3::class;
 
@@ -48,45 +46,17 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
     protected $wallets = [];
 
     /**
-     * setup an instance of BlocktrailSDK
-     *
+     * params are same defaults as BlocktrailSDK, except testnet, which is `true` for these tests
+     * @see BlocktrailTestCase::setupBlocktrailSDK
      * @return BlocktrailSDK
      */
-    public function setupBlocktrailSDK() {
+    public function setupBlocktrailSDK($network = 'BTC', $testnet = true, $apiVersion = 'v1', $apiEndpoint = null) {
         $apiKey = getenv('BLOCKTRAIL_SDK_APIKEY') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APIKEY';
         $apiSecret = getenv('BLOCKTRAIL_SDK_APISECRET') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APISECRET';
-        $client = new BlocktrailSDK($apiKey, $apiSecret, "BTC", true, 'v1');
+
+        $client = new BlocktrailSDK($apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint);
 
         return $client;
-    }
-
-    protected function tearDown() {
-        $this->cleanUp();
-    }
-
-    protected function onNotSuccessfulTest(\Exception $e) {
-        //called when a test fails
-        $this->cleanUp();
-        throw $e;
-    }
-
-    protected function setUp() {
-        $this->setupBlocktrailSDK();
-    }
-
-    protected function cleanUp() {
-        foreach ($this->wallets as $wallet) {
-            try {
-                if ($wallet->isLocked()) {
-                    $wallet->unlock(['passphrase' => 'password']);
-                }
-                $wallet->deleteWallet(true);
-            } catch (ObjectNotFound $e) {
-                // that's ok
-            }
-        }
-
-        $this->wallets = [];
     }
 
     protected function getRandomTestIdentifier() {
@@ -218,7 +188,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createTransactionTestWallet($client, $identifier);
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $wallets = $client->allWallets();
         $this->assertTrue(count($wallets) > 0);
@@ -430,7 +400,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createDiscoveryTestWallet($client, $identifier);
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
@@ -494,7 +464,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
 
         $identifier = $this->getRandomTestIdentifier();
         $wallet = $this->createDiscoveryTestWallet($client, $identifier, "badpassword");
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertEquals($identifier, $wallet->getIdentifier());
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
@@ -569,7 +539,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             "identifier" => $identifier,
             "passphrase" => "password"
         ]);
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertEquals($expectedWalletClass, get_class($wallet));
 
@@ -618,7 +588,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             "identifier" => $identifier,
             "passphrase" => "password"
         ]);
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertTrue($wallet instanceof WalletV1);
 
@@ -656,7 +626,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             "identifier" => $identifier,
             "primary_private_key" => $primaryPrivateKey
         ]);
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertTrue($wallet instanceof WalletV2);
         $this->assertEquals(0, $wallet->getBalance()[0]);
@@ -692,7 +662,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             "identifier" => $identifier,
             "passphrase" => "password"
         ]);
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertTrue($wallet instanceof $default);
 
@@ -834,7 +804,7 @@ class WalletTest extends \PHPUnit_Framework_TestCase {
             "identifier" => $identifier,
             "passphrase" => "password"
         ]);
-        $this->wallets[] = $wallet; // store for cleanup
+        $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $wallets = $client->allWallets();
         $this->assertTrue(count($wallets) > 0);

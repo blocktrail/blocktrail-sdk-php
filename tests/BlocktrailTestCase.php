@@ -3,6 +3,8 @@
 namespace Blocktrail\SDK\Tests;
 
 use Blocktrail\SDK\BlocktrailSDK;
+use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
+use Blocktrail\SDK\WalletInterface;
 
 abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
 
@@ -14,14 +16,15 @@ abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
 
     /**
      * setup an instance of BlocktrailSDK
+     * params are same defaults as BlocktrailSDK
      *
      * @return BlocktrailSDK
      */
-    public function setupBlocktrailSDK() {
+    public function setupBlocktrailSDK($network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null) {
         $apiKey = getenv('BLOCKTRAIL_SDK_APIKEY') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APIKEY';
         $apiSecret = getenv('BLOCKTRAIL_SDK_APISECRET') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APISECRET';
 
-        $client = new BlocktrailSDK($apiKey, $apiSecret);
+        $client = new BlocktrailSDK($apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint);
 
         return $client;
     }
@@ -40,8 +43,27 @@ abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
         //cleanup any records that were created
         $client = $this->setupBlocktrailSDK();
 
+        if (array_key_exists('wallets', $this->cleanupData)) {
+            $count = 0;
+            foreach ($this->cleanupData['wallets'] as $wallet) {
+                /** @var WalletInterface $wallet */
+                try {
+                    if ($wallet->isLocked()) {
+                        $wallet->unlock(['passphrase' => 'password']);
+                    }
+                    $wallet->deleteWallet(true);
+                    $count++;
+                } catch (ObjectNotFound $e) {
+                    // that's ok
+                }
+            }
+
+            $this->cleanupData['wallets'] = [];
+
+        }
+
         //webhooks
-        if (isset($this->cleanupData['webhooks'])) {
+        if (array_key_exists('webhooks', $this->cleanupData)) {
             $count = 0;
             foreach ($this->cleanupData['webhooks'] as $webhook) {
                 try {
@@ -49,6 +71,7 @@ abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
                 } catch (\Exception $e) {
                 }
             }
+            $this->cleanupData['webhooks'] = [];
         }
     }
 
