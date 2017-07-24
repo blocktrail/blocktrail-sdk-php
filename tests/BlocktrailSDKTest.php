@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: tk
- * Date: 7/13/17
- * Time: 3:15 PM
- */
 
 namespace Blocktrail\SDK\Tests;
 
