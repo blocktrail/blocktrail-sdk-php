@@ -36,6 +36,8 @@ class TransactionBuilder {
 
     private $validateFee = null;
 
+    private $bccOpreturn = false;
+
     private $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL;
 
     public function __construct() {
@@ -308,5 +310,22 @@ class TransactionBuilder {
      */
     public function getValidateFee() {
         return $this->validateFee;
+    }
+
+    /**
+     * @param string|null $bccOpreturn
+     * @return $this
+     */
+    public function bccOpreturn($bccOpreturn) {
+        $this->bccOpreturn = $bccOpreturn;
+
+        return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getBccOpreturn() {
+        return $this->bccOpreturn;
     }
 }

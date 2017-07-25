@@ -7,6 +7,7 @@ use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\MessageSigner\MessageSigner;
 use BitWasp\Bitcoin\Script\P2shScript;
+use BitWasp\Bitcoin\Script\Script;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Transaction\Factory\SignData;
@@ -522,6 +523,10 @@ abstract class Wallet implements WalletInterface {
         $fee = $coinSelection['fee'];
         $change = $coinSelection['change'];
 
+        if (isset($coinSelection['bitcoincash_opreturn'])) {
+            $txBuilder->bccOpreturn($coinSelection['bitcoincash_opreturn']);
+        }
+
         if ($forceFee !== null) {
             $txBuilder->setFee($forceFee);
         } else {
@@ -616,16 +621,36 @@ abstract class Wallet implements WalletInterface {
             shuffle($send);
         }
 
+        $hasOpreturn = false; // @TODO
+
         foreach ($send as $out) {
             assert(isset($out['value']));
 
             if (isset($out['scriptPubKey'])) {
-                $txb->output($out['value'], $out['scriptPubKey']);
+                /** @var $scriptPubKey Script */
+                $scriptPubKey = $out['scriptPubKey'];
+                $isOpreturn = substr($scriptPubKey->getBuffer()->getHex(), 0, 2) === "6a";
+                $hasOpreturn = $hasOpreturn || $isOpreturn;
+
+                $txb->output($out['value'], $scriptPubKey);
             } elseif (isset($out['address'])) {
                 $txb->payToAddress($out['value'], AddressFactory::fromString($out['address']));
             } else {
                 throw new \Exception();
             }
+        }
+
+        if ($bccOpreturn = $txBuilder->getBccOpreturn()) {
+            if ($hasOpreturn) {
+                throw new \Exception("Can't add replay protection when transaction also contains opreturn");
+            }
+
+            $script = ScriptFactory::create()
+                ->op('OP_RETURN')
+                ->push(new Buffer($bccOpreturn))
+                ->getScript();
+
+            $txb->output(0, $script);
         }
 
         return [$txb->get(), $signInfo];
