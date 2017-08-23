@@ -12,6 +12,7 @@ use BitWasp\Bitcoin\Transaction\Factory\SignData;
 use BitWasp\Bitcoin\Transaction\Factory\Signer;
 use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
 use BitWasp\Bitcoin\Transaction\OutPoint;
+use BitWasp\Bitcoin\Transaction\SignatureHash\SigHash;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
@@ -368,6 +369,12 @@ abstract class WalletSweeper {
     protected function signTransaction(TransactionInterface $tx, array $signInfo) {
         $signer = new Signer($tx, Bitcoin::getEcAdapter());
 
+        $sigHash = SigHash::ALL;
+        if ($this->network === "bitcoincash") {
+            $sigHash |= SigHash::BITCOINCASH;
+            $signer->redeemBitcoinCash(true);
+        }
+
         assert(Util::all(function ($signInfo) {
             return $signInfo instanceof SignInfo;
         }, $signInfo), '$signInfo should be SignInfo[]');
@@ -384,8 +391,8 @@ abstract class WalletSweeper {
             $signData->p2sh($redeemScript);
             $input = $signer->input($idx, $output, $signData);
 
-            $input->sign($key);
-            $input->sign($backupKey);
+            $input->sign($key, $sigHash);
+            $input->sign($backupKey, $sigHash);
         }
 
         return $signer->get();
