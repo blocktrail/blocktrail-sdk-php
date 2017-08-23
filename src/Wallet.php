@@ -13,6 +13,7 @@ use BitWasp\Bitcoin\Transaction\Factory\SignData;
 use BitWasp\Bitcoin\Transaction\Factory\Signer;
 use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
 use BitWasp\Bitcoin\Transaction\OutPoint;
+use BitWasp\Bitcoin\Transaction\SignatureHash\SigHash;
 use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
@@ -894,6 +895,12 @@ abstract class Wallet implements WalletInterface {
             return $signInfo instanceof SignInfo;
         }, $signInfo), '$signInfo should be SignInfo[]');
 
+        $sigHash = SigHash::ALL;
+        if ($this->network === "bitcoincash") {
+            $sigHash |= SigHash::BITCOINCASH;
+            $signer->redeemBitcoinCash(true);
+        }
+
         foreach ($signInfo as $idx => $info) {
             $path = BIP32Path::path($info->path)->privatePath();
             $redeemScript = $info->redeemScript;
@@ -901,7 +908,8 @@ abstract class Wallet implements WalletInterface {
 
             $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
 
-            $signer->sign($idx, $key, $output, (new SignData())->p2sh($redeemScript));
+            $input = $signer->input($idx, $output, (new SignData())->p2sh($redeemScript));
+            $input->sign($key, $sigHash);
         }
 
         return $signer->get();

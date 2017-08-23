@@ -59,7 +59,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         if (is_null($apiEndpoint)) {
             $network = strtoupper($network);
 
-            if ($network === "TBTC") {
+            if ($network === "BCC") {
+                $apiNetwork = "BCC";
+            } else if ($network === "TBCC") {
+                $apiNetwork = "tBCC";
+            } else if ($network === "TBTC") {
                 $apiNetwork = "tBTC";
             } else if ($network === "RBTC") {
                 $apiNetwork = "rBTC";
@@ -103,6 +107,16 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 $network = 'bitcoin';
                 $testnet = true;
                 break;
+            case 'bcc':
+            case 'bitcoincash':
+                $network = 'bitcoincash';
+                break;
+
+            case 'tbcc':
+            case 'bitcoincash-testnet':
+                $network = 'bitcoincash';
+                $testnet = true;
+                break;
 
             case 'rbtc':
             case 'bitcoin-regtest':
@@ -125,7 +139,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param $testnet
      */
     protected function setBitcoinLibMagicBytes($network, $testnet) {
-        assert($network == "bitcoin");
+        assert($network == "bitcoin" || $network == "bitcoincash");
         Bitcoin::setNetwork($testnet ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin());
     }
 
