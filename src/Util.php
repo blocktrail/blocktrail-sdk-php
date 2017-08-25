@@ -8,6 +8,89 @@ abstract class Util {
         return count(array_unique($allvalues)) === 1 && end($allvalues) === true;
     }
 
+    /**
+     * Given a $network string and $testnet bool, this function
+     * will apply the old method (conditionally prepending 't'
+     * to the network if ($testnet).. but also some new special
+     * cases which ignore the testnet setting.
+     *
+     * @param string $network
+     * @param bool $testnet
+     * @return array
+     */
+    public static function parseApiNetwork($network, $testnet) {
+        $network = strtoupper($network);
+
+        // deal with testnet special cases
+        if (strlen($network) === 4 && $network[0] === 'T') {
+            $testnet = true;
+            $network = substr($network, 1);
+        }
+
+        if (strlen($network) === 3) {
+            // work out apiNetwork
+            $apiNetwork = $network;
+            if ($testnet) {
+                $apiNetwork = "t{$network}";
+            }
+        } else if ($network === "RBTC") {
+            // Regtest is magic
+            $apiNetwork = "rBTC";
+            $testnet = true;
+        } else {
+            // Default to bitcoin if they make no sense.
+            $apiNetwork = "BTC";
+            $testnet = false;
+        }
+
+        return [$apiNetwork, $testnet];
+    }
+
+    /**
+     * normalize network string
+     *
+     * @param $network
+     * @param $testnet
+     * @return array
+     * @throws \Exception
+     */
+    public static function normalizeNetwork($network, $testnet) {
+        switch (strtolower($network)) {
+            case 'btc':
+            case 'bitcoin':
+                $network = 'bitcoin';
+                break;
+
+            case 'tbtc':
+            case 'bitcoin-testnet':
+                $network = 'bitcoin';
+                $testnet = true;
+                break;
+            case 'bcc':
+            case 'bitcoincash':
+                $network = 'bitcoincash';
+                break;
+
+            case 'tbcc':
+            case 'bitcoincash-testnet':
+                $network = 'bitcoincash';
+                $testnet = true;
+                break;
+
+            case 'rbtc':
+            case 'bitcoin-regtest':
+                $network = 'bitcoin';
+                $testnet = true;
+                break;
+
+            default:
+                throw new \Exception("Unknown network [{$network}]");
+            // this comment silences a phpcs error.
+        }
+
+        return [$network, $testnet];
+    }
+
     public static function arrayMapWithIndex(callable $fn, $arr) {
         $result = [];
         $assoc = null;
