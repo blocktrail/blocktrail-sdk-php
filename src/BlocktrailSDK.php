@@ -37,13 +37,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *                                       this will cause the $network, $testnet and $apiVersion to be ignored!
      */
     public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null) {
+        list ($apiNetwork, $testnet) = Util::parseApiNetwork($network, $testnet);
+
         if (is_null($apiEndpoint)) {
-            $network = strtoupper($network);
-
-            if ($testnet) {
-                $network = "t{$network}";
-            }
-
             $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
             $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$network}/";
         }
@@ -64,25 +60,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @throws \Exception
      */
     protected function normalizeNetwork($network, $testnet) {
-        switch (strtolower($network)) {
-            case 'btc':
-            case 'bitcoin':
-                $network = 'bitcoin';
-
-                break;
-
-            case 'tbtc':
-            case 'bitcoin-testnet':
-                $network = 'bitcoin';
-                $testnet = true;
-
-                break;
-
-            default:
-                throw new \Exception("Unknown network [{$network}]");
-        }
-
-        return [$network, $testnet];
+        return Util::normalizeNetwork($network, $testnet);
     }
 
     /**
