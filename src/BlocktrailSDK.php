@@ -56,26 +56,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *                                       this will cause the $network, $testnet and $apiVersion to be ignored!
      */
     public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null) {
+
+        list ($apiNetwork, $testnet) = Util::parseApiNetwork($network, $testnet);
+
         if (is_null($apiEndpoint)) {
-            $network = strtoupper($network);
-
-            if ($network === "BCC") {
-                $apiNetwork = "BCC";
-            } else if ($network === "TBCC") {
-                $apiNetwork = "tBCC";
-            } else if ($network === "TBTC") {
-                $apiNetwork = "tBTC";
-            } else if ($network === "RBTC") {
-                $apiNetwork = "rBTC";
-            } else {
-                if ($testnet) {
-                    $apiNetwork = "tBTC";
-                    $network = "tBTC";
-                } else {
-                    $apiNetwork = "BTC";
-                }
-            }
-
             $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
             $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$apiNetwork}/";
         }
@@ -96,40 +80,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @throws \Exception
      */
     protected function normalizeNetwork($network, $testnet) {
-        switch (strtolower($network)) {
-            case 'btc':
-            case 'bitcoin':
-                $network = 'bitcoin';
-                break;
-
-            case 'tbtc':
-            case 'bitcoin-testnet':
-                $network = 'bitcoin';
-                $testnet = true;
-                break;
-            case 'bcc':
-            case 'bitcoincash':
-                $network = 'bitcoincash';
-                break;
-
-            case 'tbcc':
-            case 'bitcoincash-testnet':
-                $network = 'bitcoincash';
-                $testnet = true;
-                break;
-
-            case 'rbtc':
-            case 'bitcoin-regtest':
-                $network = 'bitcoin';
-                $testnet = true;
-                break;
-
-            default:
-                throw new \Exception("Unknown network [{$network}]");
-                // this comment silences a phpcs error.
-        }
-
-        return [$network, $testnet];
+        return Util::normalizeNetwork($network, $testnet);
     }
 
     /**
