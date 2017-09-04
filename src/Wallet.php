@@ -216,7 +216,7 @@ class Wallet implements WalletInterface {
             // convert the mnemonic to a seed using BIP39 standard
             $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $password);
             // create BIP32 private key from the seed
-            $primaryPrivateKey = BIP32::master_key($primarySeed, $this->network, $this->testnet);
+            $primaryPrivateKey = BIP32::master_key($primarySeed, 'bitcoin', $this->testnet);
         }
 
         $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey);

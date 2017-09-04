@@ -41,7 +41,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         if (is_null($apiEndpoint)) {
             $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
-            $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$network}/";
+            $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$apiNetwork}/";
         }
 
         // normalize network and set bitcoinlib to the right magic-bytes
@@ -70,6 +70,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param $testnet
      */
     protected function setBitcoinLibMagicBytes($network, $testnet) {
+        if ($network === "bitcoincash") {
+            $network = "bitcoin";
+        }
+
         BitcoinLib::setMagicByteDefaults($network . ($testnet ? '-testnet' : ''));
     }
 
@@ -732,7 +736,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
             $seed = BIP39::mnemonicToSeedHex($mnemonic, $passphrase);
 
-            $key = BIP32::master_key($seed, $this->network, $this->testnet);
+            $key = BIP32::master_key($seed, 'bitcoin', $this->testnet);
         } while (!$key);
 
         return [$mnemonic, $seed, $key];

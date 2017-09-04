@@ -96,8 +96,8 @@ class WalletSweeper {
         // convert the primary and backup mnemonics to seeds (using BIP39), then create private keys (using BIP32)
         $primarySeed = BIP39::mnemonicToSeedHex($primaryMnemonic, $primaryPassphrase);
         $backupSeed = BIP39::mnemonicToSeedHex($backupMnemonic, "");
-        $this->primaryPrivateKey = BIP32Key::create(BIP32::master_key($primarySeed, $this->network, $this->testnet));
-        $this->backupPrivateKey = BIP32Key::create(BIP32::master_key($backupSeed, $this->network, $this->testnet));
+        $this->primaryPrivateKey = BIP32Key::create(BIP32::master_key($primarySeed, 'bitcoin', $this->testnet));
+        $this->backupPrivateKey = BIP32Key::create(BIP32::master_key($backupSeed, 'bitcoin', $this->testnet));
     }
 
     /**
