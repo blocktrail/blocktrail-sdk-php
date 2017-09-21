@@ -319,7 +319,13 @@ abstract class Wallet implements WalletInterface {
             $key = $this->primaryPublicKeys[$path->getKeyIndex()]->buildKey($path);
         }
 
-        return $this->getRedeemScriptFromKey($key, $path);
+        $walletScript = $this->getRedeemScriptFromKey($key, $path);
+        if (!$walletScript->isP2SH()) {
+            // really should just check path!
+            throw new \RuntimeException("Wallet Script was not P2SH, therefore no redeemScript exists");
+        }
+
+        return [$walletScript->getAddress()->getAddress(), $walletScript->getRedeemScript()];
     }
 
     /**
@@ -328,13 +334,13 @@ abstract class Wallet implements WalletInterface {
      * @return string
      */
     protected function getAddressFromKey(BIP32Key $key, $path) {
-        return $this->getRedeemScriptFromKey($key, $path)[0];
+        return $this->getRedeemScriptFromKey($key, $path)->getAddress()->getAddress();
     }
 
     /**
      * @param BIP32Key          $key
      * @param string|BIP32Path  $path
-     * @return array[string, ScriptInterface]                 [address, redeemScript]
+     * @return WalletScript
      * @throws \Exception
      */
     protected function getRedeemScriptFromKey(BIP32Key $key, $path) {
@@ -342,13 +348,14 @@ abstract class Wallet implements WalletInterface {
 
         $blocktrailPublicKey = $this->getBlocktrailPublicKey($path);
 
-        $redeemScript = ScriptFactory::scriptPubKey()->multisig(2, BlocktrailSDK::sortMultisigKeys([
+        $multisig = ScriptFactory::scriptPubKey()->multisig(2, BlocktrailSDK::sortMultisigKeys([
             $key->buildKey($path)->publicKey(),
             $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKey(),
             $blocktrailPublicKey->buildKey($path)->publicKey()
         ]), false);
 
-        return [(new P2shScript($redeemScript))->getAddress()->getAddress(), $redeemScript];
+        $redeemScript = new P2shScript($multisig);
+        return new WalletScript($path, $redeemScript->getOutputScript(), $redeemScript);
     }
 
     /**
