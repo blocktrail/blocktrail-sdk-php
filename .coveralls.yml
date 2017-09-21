@@ -1,0 +1,4 @@
+service: travis-ci
+coverage_clover: clover.xml
+json_path: coveralls
+
