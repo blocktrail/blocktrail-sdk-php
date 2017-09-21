@@ -44,6 +44,13 @@ script:
   # check coverage if report was generated (requires xdebug enabled)
   - sh -c 'if [ -e clover.xml ]; then php coverage-checker.php clover.xml 70; fi'
 
+after_script:
+  - |
+      if [ "${WITH_XDEBUG}" = "true" ]; then 
+        wget https://scrutinizer-ci.com/ocular.phar &&
+        php ocular.phar code-coverage:upload --format=php-clover build/coverage.clover
+      fi
+
 notifications:
   slack:
     secure: fwLiJFbxPCyY6+REN3XZ06RlffSVua3tW5Ih/p4xwp2KXNdcCldWCmziVhf65JGYaRU20M4HEOOcD+IpOI/IjpNHjF/+6OmtUGfkT9OfDCmuElqyq8UT6ck+xfb7FVtK42zkx0U3xC1qCclbFjY1Rht7vt5VnGN7Q3qJ3ax7mcM=

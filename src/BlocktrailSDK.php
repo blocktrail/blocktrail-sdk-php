@@ -58,6 +58,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null) {
 
         list ($apiNetwork, $testnet) = Util::parseApiNetwork($network, $testnet);
+        var_Dump($apiNetwork, $testnet);
 
         if (is_null($apiEndpoint)) {
             $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
@@ -66,6 +67,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
+
         $this->setBitcoinLibMagicBytes($this->network, $this->testnet);
 
         $this->client = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
