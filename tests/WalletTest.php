@@ -5,8 +5,14 @@ namespace Blocktrail\SDK\Tests;
 \error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
 use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
+use BitWasp\Bitcoin\Address\ScriptHashAddress;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
+use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
+use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Script\ScriptType;
+use BitWasp\Bitcoin\Script\WitnessProgram;
 use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInput;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
@@ -21,6 +27,7 @@ use Blocktrail\SDK\SignInfo;
 use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\Wallet;
 use Blocktrail\SDK\WalletPath;
+use Blocktrail\SDK\WalletScript;
 use Blocktrail\SDK\WalletV1;
 use Blocktrail\SDK\WalletV2;
 use Blocktrail\SDK\WalletV3;
@@ -222,6 +229,51 @@ class WalletTest extends BlocktrailTestCase {
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
         $this->assertEquals($address, AddressFactory::fromString($address)->getAddress());
+
+        $nestedP2wshPath = "M/9999'/2/0";
+        $script = $wallet->getWalletScriptByPath($nestedP2wshPath);
+
+        $this->assertTrue($script->isP2SH());
+        $this->assertTrue($script->isP2WSH());
+
+        $this->isBase58Address($script);
+        $this->checkP2sh($script->getScriptPubKey(), $script->getRedeemScript());
+        $this->checkP2wsh($script->getRedeemScript(), $script->getWitnessScript());
+
+        $this->assertEquals("2N3j4Vx3D9LPumjtRbRe2RJpwVocvCCkHKh", $script->getAddress()->getAddress());
+        $this->assertEquals("a91472f4fbf13b171d3acfe3316264835cc4767549a187", $script->getScriptPubKey()->getHex());
+        $this->assertEquals("0020bbb712fe7c81544b588b6f6d8d915b4e6f485ba2b43a70761e1dd9c68e391094", $script->getRedeemScript()->getHex());
+        $this->assertEquals("5221020c9855979a83bedd4f45f47938f1008038b703506dd097bf81b76c4c8127482e2102381a4cf140c24080523b5e63082496b514e99657d3506444b7f77c12176635302102ff3475471c1f6caa27def90b97ceee72e2e9c569ebe59232fc19ef3db9e7ecbc53ae", $script->getWitnessScript()->getHex());
+
+    }
+
+    private function checkP2sh(ScriptInterface $spk, ScriptInterface $rs) {
+        $spkData = (new OutputClassifier())->decode($spk);
+        $this->assertEquals(ScriptType::P2SH, $spkData->getType());
+
+        $scriptHash = $rs->getScriptHash();
+        $this->assertTrue($spkData->getSolution()->equals($scriptHash));
+    }
+
+    private function checkP2wsh(ScriptInterface $wp, ScriptInterface $ws) {
+        $spkData = (new OutputClassifier())->decode($wp);
+        $this->assertEquals(ScriptType::P2WSH, $spkData->getType());
+
+        $scriptHash = $ws->getWitnessScriptHash();
+        $this->assertTrue($spkData->getSolution()->equals($scriptHash));
+    }
+
+    private function isBase58Address(WalletScript $script) {
+
+        try {
+            $addr = $script->getAddress();
+            $ok = $addr instanceof PayToPubKeyHashAddress || $addr instanceof ScriptHashAddress;
+        } catch (\Exception $e) {
+            $ok = false;
+        }
+
+        $this->assertTrue($ok, "address should be a base58 type");
+
     }
 
     public function testNormalizeOutputStruct() {
@@ -895,6 +947,88 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals(347, Wallet::estimateSize(34, 297));
         $this->assertEquals(29453, Wallet::estimateSize(34, 29403));
         $this->assertEquals(3679, Wallet::estimateSize(3366, 297));
+    }
+
+    public function testSegwitBuildTx() {
+        $client = $this->setupBlocktrailSDK();
+
+        $wallet = $client->initWallet([
+            "identifier" => "unittest-transaction",
+            "passphrase" => "password"
+        ]);
+
+        /*
+         * test simple (real world TX) scenario
+         */
+        $txid = "cafdeffb255ed7f8175f2bffc745e2dcc0ab0fa9abf9dad70a543c307614d374";
+        $vout = 0;
+        $address = "2MtLjsE6SyBoxXt3Xae2wTU8sPdN8JUkUZc";
+        $value = 9900000;
+        $outValue = 9899999;
+        $expectfee = $value-$outValue;
+        $scriptPubKey = "a9140c03259201742cb7476f10f70b2cf75fbfb8ab4087";
+        $redeemScript = "0020cc7f3e23ec2a4cbba32d7e8f2e1aaabac38b88623d09f41dc2ee694fd33c6b14";
+        $witnessScript = "5221021b3657937c54c616cbb519b447b4e50301c40759282901e04d81b5221cfcce992102381a4cf140c24080523b5e63082496b514e99657d3506444b7f77c1217663530210317e37c952644cf08b356671b4bb0308bd2468f548b31a308e8bacb682d55747253ae";
+
+        $path = "M/9999'/2/0";
+
+        $utxos = [
+            $txid => $value,
+        ];
+
+        /** @var Transaction $tx */
+        /** @var SignInfo[] $signInfo */
+        list($tx, $signInfo) = $wallet->buildTx(
+            (new TransactionBuilder())
+                ->spendOutput(
+                    $txid,
+                    $vout,
+                    $value,
+                    $address,
+                    $scriptPubKey,
+                    $path,
+                    $redeemScript,
+                    $witnessScript
+                )
+                ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $outValue)
+                ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
+        );
+
+        $inputTotal = array_sum(array_map(function (TransactionInput $txin) use ($utxos) {
+            return $utxos[$txin->getOutPoint()->getTxId()->getHex()];
+        }, $tx->getInputs()));
+        $outputTotal = array_sum(array_map(function (TransactionOutput $txout) {
+            return $txout->getValue();
+        }, $tx->getOutputs()));
+
+        $fee = $inputTotal - $outputTotal;
+
+        // assert the output(s)
+        $this->assertEquals($value, $inputTotal);
+        $this->assertEquals($outValue, $outputTotal);
+        $this->assertEquals($expectfee, $fee);
+
+        // assert the input(s)
+        $this->assertEquals(1, count($tx->getInputs()));
+        $this->assertEquals($txid, $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
+        $this->assertEquals(0, $tx->getInput(0)->getOutPoint()->getVout());
+        $this->assertEquals($address, AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
+        $this->assertEquals($scriptPubKey, $signInfo[0]->output->getScript()->getHex());
+        $this->assertEquals($value, $signInfo[0]->output->getValue());
+        $this->assertEquals($path, $signInfo[0]->path);
+        $this->assertEquals(
+            $redeemScript,
+            $signInfo[0]->redeemScript->getHex()
+        );
+        $this->assertEquals(
+            $witnessScript,
+            $signInfo[0]->witnessScript->getHex()
+        );
+
+        // assert the output(s)
+        $this->assertEquals(1, count($tx->getOutputs()));
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals($outValue, $tx->getOutput(0)->getValue());
     }
 
     public function testBuildTx() {
