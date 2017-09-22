@@ -9,7 +9,6 @@ use BitWasp\Bitcoin\MessageSigner\MessageSigner;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
-use BitWasp\Bitcoin\Script\WitnessProgram;
 use BitWasp\Bitcoin\Script\WitnessScript;
 use BitWasp\Bitcoin\Transaction\Factory\SignData;
 use BitWasp\Bitcoin\Transaction\Factory\Signer;
@@ -152,7 +151,7 @@ abstract class Wallet implements WalletInterface {
 
         $this->identifier = $identifier;
         $this->backupPublicKey = BlocktrailSDK::normalizeBIP32Key($backupPublicKey);
-        $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);
+        $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);;
         $this->blocktrailPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($blocktrailPublicKeys);
 
         $this->network = $network;
@@ -307,12 +306,10 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
-     * get address and redeemScript for specified path
-     *
-     * @param string    $path
-     * @return array[string, ScriptInterface, ScriptInterface|null]     [address, redeemScript, witnessScript]
+     * @param string $path
+     * @return WalletScript
      */
-    public function getRedeemScriptByPath($path) {
+    public function getWalletScriptByPath($path) {
         $path = BIP32Path::path($path);
 
         // optimization to avoid doing BitcoinLib::private_key_to_public_key too much
@@ -322,7 +319,17 @@ abstract class Wallet implements WalletInterface {
             $key = $this->primaryPublicKeys[$path->getKeyIndex()]->buildKey($path);
         }
 
-        $walletScript = $this->getWalletScriptFromKey($key, $path);
+        return $this->getWalletScriptFromKey($key, $path);
+    }
+
+    /**
+     * get address and redeemScript for specified path
+     *
+     * @param string    $path
+     * @return array[string, ScriptInterface, ScriptInterface|null]     [address, redeemScript, witnessScript]
+     */
+    public function getRedeemScriptByPath($path) {
+        $walletScript = $this->getWalletScriptByPath($path);
 
         $redeemScript = $walletScript->isP2SH() ? $walletScript->getRedeemScript() : null;
         $witnessScript = $walletScript->isP2WSH() ? $walletScript->getWitnessScript() : null;
@@ -355,7 +362,8 @@ abstract class Wallet implements WalletInterface {
             $blocktrailPublicKey->buildKey($path)->publicKey()
         ]), false);
 
-        if ($this->network !== "bitcoincash" && $path[2] === 2) {
+        $type = (int)$key->path()[2];
+        if ($this->network !== "bitcoincash" && $type === 2) {
             $witnessScript = new WitnessScript($multisig);
             $redeemScript = new P2shScript($witnessScript);
             $scriptPubKey = $redeemScript->getOutputScript();
@@ -556,7 +564,7 @@ abstract class Wallet implements WalletInterface {
                 }
             }
 
-            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'], $utxo['scriptpubkey_hex'], $utxo['path'], $utxo['redeem_script'], $signMode);
+            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'], $utxo['scriptpubkey_hex'], $utxo['path'], $utxo['redeem_script'], $utxo['witness_script'], $signMode);
         }
 
         return $txBuilder;
@@ -602,9 +610,10 @@ abstract class Wallet implements WalletInterface {
                     $utxo->path = $this->getPathForAddress($utxo->address->getAddress());
                 }
 
-                if (!$utxo->redeemScript) {
-                    list(, $redeemScript) = $this->getRedeemScriptByPath($utxo->path);
+                if (!$utxo->redeemScript || !$utxo->witnessScript) {
+                    list(, $redeemScript, $witnessScript) = $this->getRedeemScriptByPath($utxo->path);
                     $utxo->redeemScript = $redeemScript;
+                    $utxo->witnessScript = $witnessScript;
                 }
             }
 
@@ -751,8 +760,13 @@ abstract class Wallet implements WalletInterface {
         // sign the transaction with our keys
         $signed = $this->signTransaction($tx, $signInfo);
 
+        $txs = [
+            'signed_transaction' => $signed->getHex(),
+            'base_transaction' => $signed->getHex(),
+        ];
+
         // send the transaction
-        return $this->sendTransaction($signed->getHex(), array_map(function (SignInfo $r) {
+        $finished = $this->sendTransaction($txs, array_map(function (SignInfo $r) {
             return $r->path;
         }, $signInfo), $apiCheckFee);
     }
@@ -926,14 +940,17 @@ abstract class Wallet implements WalletInterface {
 
         foreach ($signInfo as $idx => $info) {
             if ($info->mode === SignInfo::MODE_SIGN) {
-                // required SignInfo: path, redeemScript, output
+                // required SignInfo: path, redeemScript|witnessScript, output
                 $path = BIP32Path::path($info->path)->privatePath();
-                $redeemScript = $info->redeemScript;
-                $output = $info->output;
-
                 $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
-
-                $input = $signer->input($idx, $output, (new SignData())->p2sh($redeemScript));
+                $signData = new SignData();
+                if ($info->redeemScript) {
+                    $signData->p2sh($info->redeemScript);
+                }
+                if ($info->witnessScript) {
+                    $signData->p2wsh($info->witnessScript);
+                }
+                $input = $signer->input($idx, $info->output, $signData);
                 $input->sign($key, $sigHash);
             }
         }

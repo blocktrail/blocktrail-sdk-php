@@ -86,6 +86,12 @@ interface WalletInterface {
     public function getRedeemScriptByPath($path);
 
     /**
+     * @param string|BIP32Path $path
+     * @return WalletScript
+     */
+    public function getWalletScriptByPath($path);
+
+    /**
      * get the path (and redeemScript) to specified address
      *
      * @param string $address

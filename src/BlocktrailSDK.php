@@ -1090,7 +1090,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // get the wallet data from the server
         $data = $this->getWallet($identifier);
-
         if (!$data) {
             throw new \Exception("Failed to get wallet");
         }
@@ -1366,9 +1365,20 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      */
     public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee = false) {
         $data = [
-            'raw_transaction' => $rawTransaction,
             'paths' => $paths
         ];
+
+        if (is_array($rawTransaction)) {
+            if (array_key_exists('base_transaction', $rawTransaction)
+            && array_key_exists('signed_transaction', $rawTransaction)) {
+                $data['base_transaction'] = $rawTransaction['base_transaction'];
+                $data['signed_transaction'] = $rawTransaction['signed_transaction'];
+            } else {
+                throw new \RuntimeException("Invalid value for transaction. For segwit transactions, pass ['base_transaction' => '...', 'signed_transaction' => '...']");
+            }
+        } else {
+            $data['raw_transaction'] = $rawTransaction;
+        }
 
         // dynamic TTL for when we're signing really big transactions
         $ttl = max(5.0, count($paths) * 0.25) + 4.0;

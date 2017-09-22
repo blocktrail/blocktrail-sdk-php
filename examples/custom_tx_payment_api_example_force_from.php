@@ -60,8 +60,13 @@ foreach ($utxos['data'] as $utxo) {
     $scriptPubKey = ScriptFactory::fromHex($utxo['script_hex']);
     $address = AddressFactory::fromString($utxo['address']);
     $path = $wallet->getPathForAddress($address->getAddress());
-    $redeemScript = $wallet->getRedeemScriptByPath($path);
-    $txBuilder->spendOutput($utxo['hash'], $utxo['index'], $utxo['value'], $address, $scriptPubKey, $path, $redeemScript);
+    $scripts = $wallet->getWalletScriptByPath($path);
+    $redeemScript = $scripts->getRedeemScript();
+    $witnessScript = null;
+    if ($scripts->isP2WSH()) {
+        $witnessScript = $scripts->getWitnessScript();
+    }
+    $txBuilder->spendOutput($utxo['hash'], $utxo['index'], $utxo['value'], $address, $scriptPubKey, $path, $redeemScript, $witnessScript);
 }
 
 // determine fee

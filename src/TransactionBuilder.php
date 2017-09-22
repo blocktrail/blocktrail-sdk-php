@@ -4,6 +4,8 @@ namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
+use BitWasp\Bitcoin\Address\SegwitAddress;
+use BitWasp\Bitcoin\Script\Script;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Buffertools\Buffer;
@@ -47,10 +49,11 @@ class TransactionBuilder {
      * @param AddressInterface|string $address                when NULL we'll use the data API to fetch the address
      * @param ScriptInterface|string $scriptPubKey           as HEX, when NULL we'll use the data API to fetch the scriptpubkey
      * @param string $path                   when NULL we'll use the API to determine the path for the specified address
-     * @param ScriptInterface|string $redeemScript           when NULL we'll use the path to determine the redeemscript
+     * @param ScriptInterface|string $redeemScript           when NULL we'll use the path to determine the $redeemScript
+     * @param ScriptInterface|string $witnessScript          when NULL we'll use the path to determine the $witnessScript
      * @return $this
      */
-    public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null, $signMode = SignInfo::MODE_SIGN) {
+    public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null, $witnessScript = null, $signMode = SignInfo::MODE_SIGN) {
         $address = $address instanceof AddressInterface ? $address : AddressFactory::fromString($address);
         $scriptPubKey = ($scriptPubKey instanceof ScriptInterface)
             ? $scriptPubKey
@@ -58,8 +61,11 @@ class TransactionBuilder {
         $redeemScript = ($redeemScript instanceof ScriptInterface)
             ? $redeemScript
             : (ctype_xdigit($redeemScript) ? ScriptFactory::fromHex($redeemScript) : null);
+        $witnessScript = ($witnessScript instanceof ScriptInterface)
+            ? $witnessScript
+            : (ctype_xdigit($witnessScript) ? ScriptFactory::fromHex($witnessScript) : null);
 
-        $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript, $signMode);
+        $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript, $witnessScript, $signMode);
 
         return $this;
     }
@@ -90,7 +96,8 @@ class TransactionBuilder {
      * @throws \Exception
      */
     public function addRecipient($address, $value) {
-        if (AddressFactory::fromString($address)->getAddress() != $address) {
+        $object = AddressFactory::fromString($address);
+        if ($object->getAddress() != $address) {
             throw new \Exception("Invalid address [{$address}]");
         }
 
@@ -103,10 +110,17 @@ class TransactionBuilder {
             throw new \Exception("Values should be more than dust (" . Blocktrail::DUST . ")");
         }
 
-        $this->addOutput([
-            'address' => $address,
-            'value' => $value
-        ]);
+        if ($object instanceof SegwitAddress) {
+            $this->addOutput([
+                'scriptPubKey' => $object->getScriptPubKey(),
+                'value' => $value
+            ]);
+        } else {
+            $this->addOutput([
+                'address' => $address,
+                'value' => $value
+            ]);
+        }
 
         return $this;
     }
