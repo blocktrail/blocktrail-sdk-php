@@ -9,6 +9,8 @@ use BitWasp\Bitcoin\MessageSigner\MessageSigner;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Script\WitnessProgram;
+use BitWasp\Bitcoin\Script\WitnessScript;
 use BitWasp\Bitcoin\Transaction\Factory\SignData;
 use BitWasp\Bitcoin\Transaction\Factory\Signer;
 use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
@@ -308,7 +310,7 @@ abstract class Wallet implements WalletInterface {
      * get address and redeemScript for specified path
      *
      * @param string    $path
-     * @return array[string, ScriptInterface]     [address, redeemScript]
+     * @return array[string, ScriptInterface, ScriptInterface|null]     [address, redeemScript, witnessScript]
      */
     public function getRedeemScriptByPath($path) {
         $path = BIP32Path::path($path);
@@ -320,7 +322,11 @@ abstract class Wallet implements WalletInterface {
             $key = $this->primaryPublicKeys[$path->getKeyIndex()]->buildKey($path);
         }
 
-        return $this->getRedeemScriptFromKey($key, $path);
+        $walletScript = $this->getWalletScriptFromKey($key, $path);
+
+        $redeemScript = $walletScript->isP2SH() ? $walletScript->getRedeemScript() : null;
+        $witnessScript = $walletScript->isP2WSH() ? $walletScript->getWitnessScript() : null;
+        return [$walletScript->getAddress()->getAddress(), $redeemScript, $witnessScript];
     }
 
     /**
@@ -329,27 +335,37 @@ abstract class Wallet implements WalletInterface {
      * @return string
      */
     protected function getAddressFromKey(BIP32Key $key, $path) {
-        return $this->getRedeemScriptFromKey($key, $path)[0];
+        return $this->getWalletScriptFromKey($key, $path)->getAddress()->getAddress();
     }
 
     /**
      * @param BIP32Key          $key
      * @param string|BIP32Path  $path
-     * @return array[string, ScriptInterface]                 [address, redeemScript]
+     * @return WalletScript
      * @throws \Exception
      */
-    protected function getRedeemScriptFromKey(BIP32Key $key, $path) {
+    protected function getWalletScriptFromKey(BIP32Key $key, $path) {
         $path = BIP32Path::path($path)->publicPath();
 
         $blocktrailPublicKey = $this->getBlocktrailPublicKey($path);
 
-        $redeemScript = ScriptFactory::scriptPubKey()->multisig(2, BlocktrailSDK::sortMultisigKeys([
+        $multisig = ScriptFactory::scriptPubKey()->multisig(2, BlocktrailSDK::sortMultisigKeys([
             $key->buildKey($path)->publicKey(),
             $this->backupPublicKey->buildKey($path->unhardenedPath())->publicKey(),
             $blocktrailPublicKey->buildKey($path)->publicKey()
         ]), false);
 
-        return [(new P2shScript($redeemScript))->getAddress()->getAddress(), $redeemScript];
+        if ($this->network !== "bitcoincash" && $path[2] === 2) {
+            $witnessScript = new WitnessScript($multisig);
+            $redeemScript = new P2shScript($witnessScript);
+            $scriptPubKey = $redeemScript->getOutputScript();
+        } else {
+            $witnessScript = null;
+            $redeemScript = new P2shScript($multisig);
+            $scriptPubKey = $redeemScript->getOutputScript();
+        }
+
+        return new WalletScript($path, $scriptPubKey, $redeemScript, $witnessScript);
     }
 
     /**
