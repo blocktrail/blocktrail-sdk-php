@@ -762,12 +762,12 @@ abstract class Wallet implements WalletInterface {
 
         $txs = [
             'signed_transaction' => $signed->getHex(),
-            'base_transaction' => $signed->getHex(),
+            'base_transaction' => $signed->getBaseSerialization()->getHex(),
         ];
 
         // send the transaction
         $finished = $this->sendTransaction($txs, array_map(function (SignInfo $r) {
-            return $r->path;
+            return (string)$r->path;
         }, $signInfo), $apiCheckFee);
     }
 
