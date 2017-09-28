@@ -316,11 +316,22 @@ class WalletTest extends BlocktrailTestCase {
             $client->initWallet([
                 'identifier' => $identifier,
                 'password' => $password,
+                'check_backup_key' => []
+            ]);
+            $this->fail("this should have caused an exception");
+        } catch (\Exception $e) {
+            $this->assertEquals("check_backup_key should be a string (the xpub)", $e->getMessage());
+        }
+
+        try {
+            $client->initWallet([
+                'identifier' => $identifier,
+                'password' => $password,
                 'check_backup_key' => 'for demonstration purposes only'
             ]);
             $this->fail("test should have caused an exception");
         } catch (\Exception $e) {
-            $this->assertEquals("Backup key returned from server didn't match", $e->getMessage());
+            $this->assertEquals("Backup key returned from server didn't match our own", $e->getMessage());
         }
 
         try {
