@@ -1043,22 +1043,32 @@ class WalletTest extends BlocktrailTestCase {
          * test simple (real world TX) scenario
          */
         $utxos = [
-            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.0001)
+            '0d8703ab259b03a757e37f3cdba7fc4543e8d47f7cc3556e46c0aeef6f5e832b' => BlocktrailSDK::toSatoshi(0.0001),
+            'be837cd8f04911f3ee10d010823a26665980f7bb6c9ed307d798cb968ca00128' => BlocktrailSDK::toSatoshi(0.001),
         ];
         /** @var Transaction $tx */
         /** @var SignInfo[] $signInfo */
         list($tx, $signInfo) = $wallet->buildTx(
             (new TransactionBuilder())
                 ->spendOutput(
-                    "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
+                    "0d8703ab259b03a757e37f3cdba7fc4543e8d47f7cc3556e46c0aeef6f5e832b",
                     0,
                     BlocktrailSDK::toSatoshi(0.0001),
-                    "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
-                    "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
-                    "M/9999'/0/1537",
-                    "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae"
+                    "2N9os1eAZXrWwKWgo7ppDRsY778PyxbScYH",
+                    "a914b5ae3a9950fa66efa4aab2c21ce4a4275e7c95b487",
+                    "M/9999'/0/5",
+                    "5221032923eb97175038268cd320ffbb74bbef5a97ad58717026564431b5a131d47a3721036965ca88b87b25e1fb48df54ef6401eaa48383216f6725f6ec73009f84bfd79a2103cdea44d3fb80b36794fb393360279a54392785fbf05ff7f6af93d4d68448f53753ae"
                 )
-                ->addRecipient("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", BlocktrailSDK::toSatoshi(0.0001))
+                ->spendOutput(
+                    "be837cd8f04911f3ee10d010823a26665980f7bb6c9ed307d798cb968ca00128",
+                    0,
+                    BlocktrailSDK::toSatoshi(0.001),
+                    "2NBV4sxQMYNyBbUeZkmPTZYtpdmKcuZ4Cyw",
+                    "a914c8107bd24bae2c521a5a9f56c9b72e047eafa1f587",
+                    "M/9999'/0/12",
+                    "5221031a51c189641ff16a0afd9658b4864357e5ec4913ee5822103319adbd16d8fc262103628501430353863e2c3986372c251a562709e60238f129e494faf44aedf500dd2103ec9869b201d54cd1df80f49eafe7ff1a5a8a80b4b1e99b7a7fd2423e717e8d2753ae"
+                )
+                ->addRecipient("2N7C5Jn1LasbEK9mvHetBYXaDnQACXkarJe", BlocktrailSDK::toSatoshi(0.001))
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
         );
 
@@ -1072,27 +1082,38 @@ class WalletTest extends BlocktrailTestCase {
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $inputTotal);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $outputTotal);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0), $fee);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0011), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.001), $outputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
 
         // assert the input(s)
-        $this->assertEquals(1, count($tx->getInputs()));
-        $this->assertEquals("ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396", $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
+        $this->assertEquals(2, count($tx->getInputs()));
+        $this->assertEquals("0d8703ab259b03a757e37f3cdba7fc4543e8d47f7cc3556e46c0aeef6f5e832b", $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
         $this->assertEquals(0, $tx->getInput(0)->getOutPoint()->getVout());
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
-        $this->assertEquals("a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87", $signInfo[0]->output->getScript()->getHex());
+        $this->assertEquals("2N9os1eAZXrWwKWgo7ppDRsY778PyxbScYH", AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
+        $this->assertEquals("a914b5ae3a9950fa66efa4aab2c21ce4a4275e7c95b487", $signInfo[0]->output->getScript()->getHex());
         $this->assertEquals(10000, $signInfo[0]->output->getValue());
-        $this->assertEquals("M/9999'/0/1537", $signInfo[0]->path);
+        $this->assertEquals("M/9999'/0/5", $signInfo[0]->path);
         $this->assertEquals(
-            "5221025a341fad401c73eaa1ee40ba850cc7368c41f7a29b3c6e1bbb537be51b398c4d210331801794a117dac34b72d61262aa0fcec7990d72a82ddde674cf583b4c6a5cdf21033247488e521170da034e4d8d0251530df0e0d807419792492af3e54f6226441053ae",
+            "5221032923eb97175038268cd320ffbb74bbef5a97ad58717026564431b5a131d47a3721036965ca88b87b25e1fb48df54ef6401eaa48383216f6725f6ec73009f84bfd79a2103cdea44d3fb80b36794fb393360279a54392785fbf05ff7f6af93d4d68448f53753ae",
             $signInfo[0]->redeemScript->getHex()
+        );
+
+        $this->assertEquals("be837cd8f04911f3ee10d010823a26665980f7bb6c9ed307d798cb968ca00128", $tx->getInput(1)->getOutPoint()->getTxId()->getHex());
+        $this->assertEquals(0, $tx->getInput(1)->getOutPoint()->getVout());
+        $this->assertEquals("2NBV4sxQMYNyBbUeZkmPTZYtpdmKcuZ4Cyw", AddressFactory::fromOutputScript($signInfo[1]->output->getScript())->getAddress());
+        $this->assertEquals("a914c8107bd24bae2c521a5a9f56c9b72e047eafa1f587", $signInfo[1]->output->getScript()->getHex());
+        $this->assertEquals(100000, $signInfo[1]->output->getValue());
+        $this->assertEquals("M/9999'/0/12", $signInfo[1]->path);
+        $this->assertEquals(
+            "5221031a51c189641ff16a0afd9658b4864357e5ec4913ee5822103319adbd16d8fc262103628501430353863e2c3986372c251a562709e60238f129e494faf44aedf500dd2103ec9869b201d54cd1df80f49eafe7ff1a5a8a80b4b1e99b7a7fd2423e717e8d2753ae",
+            $signInfo[1]->redeemScript->getHex()
         );
 
         // assert the output(s)
         $this->assertEquals(1, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
-        $this->assertEquals(10000, $tx->getOutput(0)->getValue());
+        $this->assertEquals("2N7C5Jn1LasbEK9mvHetBYXaDnQACXkarJe", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals(100000, $tx->getOutput(0)->getValue());
 
         /*
          * test trying to spend too much
