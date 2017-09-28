@@ -1109,7 +1109,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 throw new \RuntimeException("check_backup_key should be a string (the xpub)");
             }
             if ($options['check_backup_key'] !== $data['backup_public_key'][0]) {
-                throw new \RuntimeException("Backup key returned from server didn't match");
+                throw new \RuntimeException("Backup key returned from server didn't match our own");
             }
         }
 
