@@ -1066,6 +1066,16 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * initialize a previously created wallet
      *
+     * Takes an options object, or accepts identifier/password for backwards compatiblity.
+     *
+     * Some of the options:
+     *  - "readonly/readOnly/read-only" can be to a boolean value,
+     *    so the wallet is loaded in read-only mode (no private key)
+     *  - "check_backup_key" can be set to your own backup key:
+     *    Format: ["M', "xpub..."]
+     *    Setting this will allow the SDK to check the server hasn't
+     *    a different key (one it happens to control)
+
      * Either takes one argument:
      * @param array $options
      *
@@ -1095,6 +1105,15 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $data = $this->getWallet($identifier);
         if (!$data) {
             throw new \Exception("Failed to get wallet");
+        }
+
+        if (array_key_exists('check_backup_key', $options)) {
+            if (!is_string($options['check_backup_key'])) {
+                throw new \RuntimeException("check_backup_key should be a string (the xpub)");
+            }
+            if ($options['check_backup_key'] !== $data['backup_public_key'][0]) {
+                throw new \RuntimeException("Backup key returned from server didn't match");
+            }
         }
 
         switch ($data['wallet_version']) {

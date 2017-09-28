@@ -23,6 +23,13 @@ interface WalletInterface {
     public function getIdentifier();
 
     /**
+     * Returns the serialized xpub, and the path
+     * of the backup key
+     * @return array [xpub, path]
+     */
+    public function getBackupKey();
+
+    /**
      * return list of Blocktrail co-sign extended public keys
      *
      * @return array[]      [ [xpub, path] ]
