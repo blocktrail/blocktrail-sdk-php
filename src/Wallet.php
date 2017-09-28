@@ -32,6 +32,10 @@ abstract class Wallet implements WalletInterface {
     const WALLET_VERSION_V2 = 'v2';
     const WALLET_VERSION_V3 = 'v3';
 
+    const CHAIN_BTC_DEFAULT = 0;
+    const CHAIN_BCC_DEFAULT = 1;
+    const CHAIN_BTC_SEGWIT = 2;
+
     const BASE_FEE = 10000;
 
     /**
@@ -159,7 +163,44 @@ abstract class Wallet implements WalletInterface {
         $this->keyIndex = $keyIndex;
         $this->checksum = $checksum;
 
-        $this->walletPath = WalletPath::create($this->keyIndex);
+        $this->setChainIndex();
+    }
+
+    /**
+     * @return int
+     */
+    public function getDefaultChainIdx() {
+        if ($this->network !== "bitcoincash") {
+            return self::CHAIN_BTC_SEGWIT;
+        } else {
+            return self::CHAIN_BCC_DEFAULT;
+        }
+    }
+
+    /**
+     * Returns the current chain index, usually
+     * indicating what type of scripts to derive.
+     * @return int
+     */
+    public function getChainIndex() {
+        return $this->walletPath->path()[2];
+    }
+
+    /**
+     * @param null $chainIdx
+     * @return $this
+     */
+    public function setChainIndex($chainIdx = null) {
+        if (null === $chainIdx) {
+            $chainIdx = $this->getDefaultChainIdx();
+        }
+
+        if (!in_array($chainIdx, [self::CHAIN_BTC_SEGWIT, self::CHAIN_BCC_DEFAULT, self::CHAIN_BTC_DEFAULT])) {
+            throw new \RuntimeException("Unsupported chain index");
+        }
+
+        $this->walletPath = WalletPath::create($this->keyIndex, $chainIdx);
+        return $this;
     }
 
     /**
@@ -237,23 +278,27 @@ abstract class Wallet implements WalletInterface {
      */
     protected function getNewDerivation() {
         $path = $this->walletPath->path()->last("*");
-
         if (self::VERIFY_NEW_DERIVATION) {
             $new = $this->sdk->_getNewDerivation($this->identifier, (string)$path);
 
             $path = $new['path'];
             $address = $new['address'];
             $redeemScript = $new['redeem_script'];
+            $witnessScript = array_key_exists('witness_script', $new) ? $new['witness_script'] : null;
 
             /** @var ScriptInterface $checkRedeemScript */
-            list($checkAddress, $checkRedeemScript) = $this->getRedeemScriptByPath($path);
-
+            /** @var ScriptInterface $checkWitnessScript */
+            list($checkAddress, $checkRedeemScript, $checkWitnessScript) = $this->getRedeemScriptByPath($path);
             if ($checkAddress != $address) {
                 throw new \Exception("Failed to verify that address from API [{$address}] matches address locally [{$checkAddress}]");
             }
 
-            if ($checkRedeemScript->getHex() != $redeemScript) {
+            if ($checkRedeemScript && $checkRedeemScript->getHex() != $redeemScript) {
                 throw new \Exception("Failed to verify that redeemScript from API [{$redeemScript}] matches address locally [{$checkRedeemScript->getHex()}]");
+            }
+
+            if ($checkWitnessScript && $checkWitnessScript->getHex() != $witnessScript) {
+                throw new \Exception("Failed to verify that witnessScript from API [{$witnessScript}] matches address locally [{$checkWitnessScript->getHex()}]");
             }
         } else {
             $path = $this->sdk->getNewDerivation($this->identifier, (string)$path);
