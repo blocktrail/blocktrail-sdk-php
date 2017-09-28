@@ -70,6 +70,13 @@ interface WalletInterface {
     public function upgradeKeyIndex($keyIndex);
 
     /**
+     * Sets the wallet chain index (determining script type)
+     * @param null|int $chainIdx
+     * @return $this
+     */
+    public function setChainIndex($chainIdx = null);
+
+    /**
      * get address for the specified path
      *
      * @param string|BIP32Path  $path

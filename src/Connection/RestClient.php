@@ -101,7 +101,7 @@ class RestClient {
             'handler' => $handler,
             'base_uri' => $this->apiEndpoint,
             'headers' => array(
-                'User-Agent' => Blocktrail::SDK_USER_AGENT . '/' . Blocktrail::SDK_VERSION
+                'User-Agent' => Blocktrail::SDK_USER_AGENT . '/' . Blocktrail::SDK_VERSION,
             ),
             'http_errors' => false,
             'connect_timeout' => 3,
