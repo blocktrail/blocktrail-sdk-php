@@ -170,6 +170,15 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
+     * Returns the wallets backup public key
+     *
+     * @return [xpub, path]
+     */
+    public function getBackupKey() {
+        return $this->backupPublicKey->tuple();
+    }
+
+    /**
      * return list of Blocktrail co-sign extended public keys
      *
      * @return array[]      [ [xpub, path] ]

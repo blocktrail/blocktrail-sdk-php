@@ -240,6 +240,55 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals($expected, Wallet::normalizeOutputsStruct($expected));
     }
 
+    public function testChecksBackupKey() {
+        $identifier = $this->getRandomTestIdentifier();
+        $password = 'password';
+
+        $client = $this->setupBlocktrailSDK();
+
+        /** @var Wallet $newWallet */
+        list ($newWallet) = $client->createNewWallet([
+            'identifier' => $identifier,
+            'password' => $password,
+        ]);
+
+        $this->cleanupData['wallets'][] = $newWallet;
+
+        $backupKey = $newWallet->getBackupKey();
+
+        try {
+            $client->initWallet([
+                'identifier' => $identifier,
+                'password' => $password,
+                'check_backup_key' => 'for demonstration purposes only'
+            ]);
+            $this->fail("test should have caused an exception");
+        } catch (\Exception $e) {
+            $this->assertEquals("Backup key returned from server didn't match", $e->getMessage());
+        }
+
+        try {
+            $init = $client->initWallet([
+                'identifier' => $identifier,
+                'password' => $password,
+            ]);
+            $this->assertEquals($backupKey[0], $init->getBackupKey()[0]);
+        } catch (\Exception $e) {
+            $this->fail("this should not fail");
+        }
+
+        try {
+            $init = $client->initWallet([
+                'identifier' => $identifier,
+                'password' => $password,
+                'check_backup_key' => $backupKey[0],
+            ]);
+            $this->assertEquals($backupKey[0], $init->getBackupKey()[0]);
+        } catch (\Exception $e) {
+            $this->fail("this should not fail");
+        }
+    }
+
     /**
      * this test requires / asumes that the test wallet it uses contains a balance
      *
