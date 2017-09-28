@@ -297,20 +297,14 @@ class WalletTest extends BlocktrailTestCase {
     }
 
     public function testChecksBackupKey() {
-        $identifier = $this->getRandomTestIdentifier();
+        $identifier = "unittest-transaction";
         $password = 'password';
 
         $client = $this->setupBlocktrailSDK();
 
-        /** @var Wallet $newWallet */
-        list ($newWallet) = $client->createNewWallet([
-            'identifier' => $identifier,
-            'password' => $password,
-        ]);
-
-        $this->cleanupData['wallets'][] = $newWallet;
-
-        $backupKey = $newWallet->getBackupKey();
+        $backupMnemonic = "give pause forget seed dance crawl situate hole give";
+        $backupPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed($backupMnemonic, "")), "m");
+        $backupKey = $backupPrivateKey->buildKey("M")->key()->toExtendedPublicKey();
 
         try {
             $client->initWallet([
@@ -339,7 +333,7 @@ class WalletTest extends BlocktrailTestCase {
                 'identifier' => $identifier,
                 'password' => $password,
             ]);
-            $this->assertEquals($backupKey[0], $init->getBackupKey()[0]);
+            $this->assertEquals($backupKey, $init->getBackupKey()[0]);
         } catch (\Exception $e) {
             $this->fail("this should not fail");
         }
@@ -348,9 +342,9 @@ class WalletTest extends BlocktrailTestCase {
             $init = $client->initWallet([
                 'identifier' => $identifier,
                 'password' => $password,
-                'check_backup_key' => $backupKey[0],
+                'check_backup_key' => $backupKey,
             ]);
-            $this->assertEquals($backupKey[0], $init->getBackupKey()[0]);
+            $this->assertEquals($backupKey, $init->getBackupKey()[0]);
         } catch (\Exception $e) {
             $this->fail("this should not fail");
         }
