@@ -172,7 +172,7 @@ class TransactionBuilder {
      * @throws BlocktrailSDKException
      */
     public function addOpReturn($data, $allowNonStandard = false) {
-        if (!$allowNonStandard && strlen($data) / 2 > 79) {
+        if (!$allowNonStandard && strlen($data) > 79) {
             throw new BlocktrailSDKException("OP_RETURN data should be <= 79 bytes to remain standard!");
         }
 
@@ -255,8 +255,12 @@ class TransactionBuilder {
     /**
      * @param bool $randomizeChangeOutput
      * @return $this
+     * @throws \Exception
      */
     public function randomizeChangeOutput($randomizeChangeOutput = true) {
+        if (!is_bool($randomizeChangeOutput)) {
+            throw new \Exception("Input to randomizeChangeOutput should be a boolean");
+        }
         $this->randomizeChangeOutput = $randomizeChangeOutput;
 
         return $this;
