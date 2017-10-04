@@ -156,7 +156,8 @@ abstract class Wallet implements WalletInterface {
 
         $this->identifier = $identifier;
         $this->backupPublicKey = BlocktrailSDK::normalizeBIP32Key($backupPublicKey);
-        $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);;
+        $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);
+        ;
         $this->blocktrailPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($blocktrailPublicKeys);
 
         $this->network = $network;
@@ -909,12 +910,11 @@ abstract class Wallet implements WalletInterface {
      * @param bool $withWitness
      * @return integer
      */
-    public static function estimateSpendSize(array $utxos, $withWitness)
-    {
+    public static function estimateSpendSize(array $utxos, $withWitness) {
         $inputSize = 0;
         $witnessSize = 0;
         foreach ($utxos as $utxo) {
-            $estimate = $utxo->estimateInputSize();
+            $estimate = SizeEstimation::estimateUtxo($utxo);
             $inputSize += 32 + 4 + 4;
             $inputSize += $estimate['scriptSig'];
             if ($withWitness) {
@@ -947,7 +947,7 @@ abstract class Wallet implements WalletInterface {
      * @param $outputSize
      * @return int
      */
-    public function estimateVsize(array $utxos, $outputSize) {
+    public static function estimateVsize(array $utxos, $outputSize) {
         return (int) ceil(self::estimateWeight($utxos, $outputSize) / 4);
     }
 
@@ -1055,9 +1055,9 @@ abstract class Wallet implements WalletInterface {
     /**
      * send the transaction using the API
      *
-     * @param string    $signed
-     * @param string[]  $paths
-     * @param bool      $checkFee
+     * @param string|array  $signed
+     * @param string[]      $paths
+     * @param bool          $checkFee
      * @return string           the complete raw transaction
      * @throws \Exception
      */

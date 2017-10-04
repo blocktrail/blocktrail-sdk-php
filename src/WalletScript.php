@@ -2,7 +2,6 @@
 
 namespace Blocktrail\SDK;
 
-
 use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
 use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
@@ -63,8 +62,7 @@ class WalletScript
      * @param P2shScript|null $redeemScript
      * @param WitnessScript|null $witnessScript
      */
-    public function __construct(BIP32Path $path, ScriptInterface $spk, P2shScript $redeemScript = null, WitnessScript $witnessScript = null)
-    {
+    public function __construct(BIP32Path $path, ScriptInterface $spk, P2shScript $redeemScript = null, WitnessScript $witnessScript = null) {
         if (static::$checkScripts || null === static::$checkScripts && self::DEFAULT_SHOULD_CHECK) {
             $this->checkScript($path[2], $spk, $redeemScript, $witnessScript);
         }
@@ -86,8 +84,7 @@ class WalletScript
      * @param ScriptInterface $script
      * @param P2shScript|null $redeemScript
      */
-    protected function checkP2shScript(OutputClassifier $classifier, ScriptInterface $script, P2shScript $redeemScript = null)
-    {
+    protected function checkP2shScript(OutputClassifier $classifier, ScriptInterface $script, P2shScript $redeemScript = null) {
         $scriptHash = null;
         if (!($classifier->classify($script, $scriptHash) === ScriptType::P2SH)) {
             throw new \RuntimeException("scriptPubKey should be script-hash");
@@ -106,8 +103,7 @@ class WalletScript
      * @param ScriptInterface $script
      * @param WitnessScript|null $witnessScript
      */
-    protected function checkWitnessScript(ScriptInterface $script, WitnessScript $witnessScript = null)
-    {
+    protected function checkWitnessScript(ScriptInterface $script, WitnessScript $witnessScript = null) {
         if (!$script->isWitness($wp)) {
             $errSuffix = $script instanceof P2shScript ? "P2SH script" : "Script";
             throw new \RuntimeException("$errSuffix should be v0_scripthash");
@@ -135,8 +131,7 @@ class WalletScript
      * @param P2shScript|null $redeemScript
      * @param WitnessScript|null $witnessScript
      */
-    protected function checkScript($scriptId, ScriptInterface $script, P2shScript $redeemScript = null, WitnessScript $witnessScript = null)
-    {
+    protected function checkScript($scriptId, ScriptInterface $script, P2shScript $redeemScript = null, WitnessScript $witnessScript = null) {
         $classifier = new OutputClassifier();
         switch ($scriptId) {
             case 2:
