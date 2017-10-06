@@ -7,7 +7,6 @@ use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\MessageSigner\MessageSigner;
 use BitWasp\Bitcoin\Script\P2shScript;
-use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Script\WitnessScript;
@@ -844,6 +843,7 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
+     * @todo: variable varint
      * @param int $txinSize
      * @param int $txoutSize
      * @return float
@@ -906,52 +906,6 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
-     * @param UTXO[] $utxos
-     * @param bool $withWitness
-     * @return integer
-     */
-    public static function estimateSpendSize(array $utxos, $withWitness) {
-        $inputSize = 0;
-        $witnessSize = 0;
-        foreach ($utxos as $utxo) {
-            $estimate = SizeEstimation::estimateUtxo($utxo);
-            $inputSize += 32 + 4 + 4;
-            $inputSize += $estimate['scriptSig'];
-            if ($withWitness) {
-                $witnessSize += $estimate['witness'];
-            }
-        }
-
-        if ($withWitness && $witnessSize != 0) {
-            $inputSize += $witnessSize;
-            $inputSize += 2; // flag bytes
-        }
-
-        return $inputSize;
-    }
-
-    /**
-     * @param array $utxos
-     * @param int $outputSize
-     * @return int
-     */
-    public static function estimateWeight(array $utxos, $outputSize) {
-        $baseSize = self::estimateSize(self::estimateSpendSize($utxos, false), $outputSize);
-        $witnessSize = self::estimateSize(self::estimateSpendSize($utxos, true), $outputSize);
-
-        return ($baseSize * 3) + $witnessSize;
-    }
-
-    /**
-     * @param array $utxos
-     * @param $outputSize
-     * @return int
-     */
-    public static function estimateVsize(array $utxos, $outputSize) {
-        return (int) ceil(self::estimateWeight($utxos, $outputSize) / 4);
-    }
-
-    /**
      * determine how much fee is required based on the inputs and outputs
      *  this is an estimation, not a proper 100% correct calculation
      *
@@ -964,20 +918,8 @@ abstract class Wallet implements WalletInterface {
      * @throws BlocktrailSDKException
      */
     protected function determineFee($utxos, $outputs, $feeStrategy, $optimalFeePerKB, $lowPriorityFeePerKB) {
-        $outputSize = 0;
-        foreach ($outputs as $output) {
-            if (isset($output['scriptPubKey'])) {
-                if ($output['scriptPubKey'] instanceof ScriptInterface) {
-                    $outputSize += $output['scriptPubKey']->getBuffer()->getSize();
-                } else {
-                    $outputSize += strlen($output['scriptPubKey']) / 2; // asume HEX
-                }
-            } else {
-                $outputSize += 34;
-            }
-        }
 
-        $size = self::estimateVsize($utxos, $outputSize);
+        $size = SizeEstimation::estimateVsize($utxos, $outputs);
 
         switch ($feeStrategy) {
             case self::FEE_STRATEGY_BASE_FEE:

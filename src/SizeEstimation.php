@@ -226,4 +226,84 @@ class SizeEstimation
             "witness" => $witness,
         ];
     }
+
+    /**
+     * @param UTXO[] $utxos
+     * @param bool $withWitness
+     * @return integer
+     */
+    public static function estimateInputsSize(array $utxos, $withWitness) {
+        $inputSize = 0;
+        $witnessSize = 0;
+        foreach ($utxos as $utxo) {
+            $estimate = SizeEstimation::estimateUtxo($utxo);
+            $inputSize += 32 + 4 + 4;
+            $inputSize += $estimate['scriptSig'];
+            if ($withWitness) {
+                $witnessSize += $estimate['witness'];
+            }
+        }
+
+        if ($withWitness && $witnessSize != 0) {
+            $inputSize += $witnessSize;
+            $inputSize += 2; // flag bytes
+        }
+
+        return $inputSize;
+    }
+
+    /**
+     * @param array $outputs
+     * @return int
+     */
+    public static function estimateOutputsSize(array $outputs) {
+        $outputSize = 0;
+        foreach ($outputs as $output) {
+            if (isset($output['scriptPubKey'])) {
+                $outputSize += 8; // amount
+                if ($output['scriptPubKey'] instanceof ScriptInterface) {
+                    $outputSize += $output['scriptPubKey']->getBuffer()->getSize();
+                } else {
+                    $outputSize += strlen($output['scriptPubKey']) / 2; // asume HEX
+                }
+            } else {
+                $outputSize += 34;
+            }
+        }
+        return $outputSize;
+    }
+
+    /**
+     * @param UTXO[] $utxos
+     * @param array $outputs
+     * @return int
+     */
+    public static function estimateVsize(array $utxos, array $outputs) {
+        return (int)ceil(self::estimateWeight($utxos, $outputs) / 4);
+    }
+
+    /**
+     * @param UTXO[] $utxos
+     * @param array $outputs
+     * @return int
+     */
+    public static function estimateWeight(array $utxos, array $outputs) {
+        $outputsSize = SizeEstimation::estimateOutputsSize($outputs);
+        $baseSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, false), $outputsSize);
+        $witnessSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, true), $outputsSize);
+
+        return ($baseSize * 3) + $witnessSize;
+    }
+
+    /**
+     * @param UTXO[] $utxos
+     * @param array $outputs
+     * @return int
+     */
+    public static function estimateLegacySize(array $utxos, array $outputs) {
+        $outputsSize = SizeEstimation::estimateOutputsSize($outputs);
+        $baseSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, false), $outputsSize);
+
+        return $baseSize;
+    }
 }
