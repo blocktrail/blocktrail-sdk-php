@@ -47,7 +47,7 @@ class WalletV3 extends Wallet
      * @param bool                   $testnet
      * @param string                 $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
         if ($encryptedPrimarySeed !== null && !($encryptedPrimarySeed instanceof Buffer)) {
             throw new \InvalidArgumentException('Encrypted Primary Seed must be a Buffer or null');
         }
@@ -57,7 +57,7 @@ class WalletV3 extends Wallet
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
-        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum);
+        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum);
     }
 
     /**

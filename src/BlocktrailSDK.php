@@ -646,6 +646,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $options['key_index'],
             $this->network,
             $this->testnet,
+            array_key_exists('segwit', $data) ? $data['segwit'] : false,
             $checksum
         );
 
@@ -765,6 +766,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $options['key_index'],
             $this->network,
             $this->testnet,
+            array_key_exists('segwit', $data) ? $data['segwit'] : false,
             $checksum
         );
 
@@ -903,6 +905,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $options['key_index'],
             $this->network,
             $this->testnet,
+            array_key_exists('segwit', $data) ? $data['segwit'] : false,
             $checksum
         );
 
@@ -1106,6 +1109,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     isset($options['key_index']) ? $options['key_index'] : $data['key_index'],
                     $this->network,
                     $this->testnet,
+                    array_key_exists('segwit', $data) ? $data['segwit'] : false,
                     $data['checksum']
                 );
                 break;
@@ -1121,6 +1125,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     isset($options['key_index']) ? $options['key_index'] : $data['key_index'],
                     $this->network,
                     $this->testnet,
+                    array_key_exists('segwit', $data) ? $data['segwit'] : false,
                     $data['checksum']
                 );
                 break;
@@ -1155,6 +1160,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     isset($options['key_index']) ? $options['key_index'] : $data['key_index'],
                     $this->network,
                     $this->testnet,
+                    array_key_exists('segwit', $data) ? $data['segwit'] : false,
                     $data['checksum']
                 );
                 break;
