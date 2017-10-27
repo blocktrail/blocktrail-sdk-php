@@ -148,9 +148,11 @@ abstract class Wallet implements WalletInterface {
      * @param int                           $keyIndex
      * @param string                        $network
      * @param bool                          $testnet
+     * @param bool                          $segwit
      * @param string                        $checksum
+     * @throws BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
@@ -164,18 +166,20 @@ abstract class Wallet implements WalletInterface {
         $this->keyIndex = $keyIndex;
         $this->checksum = $checksum;
 
-        $this->setChainIndex();
-    }
-
-    /**
-     * @return int
-     */
-    public function getDefaultChainIdx() {
-        if ($this->network !== "bitcoincash") {
-            return self::CHAIN_BTC_SEGWIT;
+        if ($network === "bitcoin") {
+            if ($segwit) {
+                $chainIdx = self::CHAIN_BTC_SEGWIT;
+            } else {
+                $chainIdx = self::CHAIN_BTC_DEFAULT;
+            }
         } else {
-            return self::CHAIN_BCC_DEFAULT;
+            if ($segwit && $network === "bitcoincash") {
+                throw new BlocktrailSDKException("Received segwit flag for bitcoincash - abort");
+            }
+            $chainIdx = self::CHAIN_BCC_DEFAULT;
         }
+
+        $this->walletPath = WalletPath::create($this->keyIndex, $chainIdx);
     }
 
     /**
@@ -187,21 +191,8 @@ abstract class Wallet implements WalletInterface {
         return $this->walletPath->path()[2];
     }
 
-    /**
-     * @param null $chainIdx
-     * @return $this
-     */
-    public function setChainIndex($chainIdx = null) {
-        if (null === $chainIdx) {
-            $chainIdx = $this->getDefaultChainIdx();
-        }
-
-        if (!in_array($chainIdx, [self::CHAIN_BTC_SEGWIT, self::CHAIN_BCC_DEFAULT, self::CHAIN_BTC_DEFAULT])) {
-            throw new \RuntimeException("Unsupported chain index");
-        }
-
-        $this->walletPath = WalletPath::create($this->keyIndex, $chainIdx);
-        return $this;
+    public function isSegwit() {
+        return $this->getChainIndex() === self::CHAIN_BTC_SEGWIT;
     }
 
     /**

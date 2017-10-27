@@ -53,6 +53,13 @@ interface WalletInterface {
     public function isLocked();
 
     /**
+     * check if wallet has segwit enabled
+     *
+     * @return bool
+     */
+    public function isSegwit();
+
+    /**
      * change password that is used to store data encrypted on server
      *
      * @param $newPassword
@@ -68,13 +75,6 @@ interface WalletInterface {
      * @return bool
      */
     public function upgradeKeyIndex($keyIndex);
-
-    /**
-     * Sets the wallet chain index (determining script type)
-     * @param null|int $chainIdx
-     * @return $this
-     */
-    public function setChainIndex($chainIdx = null);
 
     /**
      * get address for the specified path
