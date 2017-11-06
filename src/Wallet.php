@@ -9,6 +9,7 @@ use BitWasp\Bitcoin\MessageSigner\MessageSigner;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Transaction\Factory\SignData;
 use BitWasp\Bitcoin\Transaction\Factory\Signer;
 use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
 use BitWasp\Bitcoin\Transaction\OutPoint;
@@ -895,7 +896,9 @@ abstract class Wallet implements WalletInterface {
 
             $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
 
-            $signer->sign($idx, $key, $output, $redeemScript);
+            $input = $signer->input($idx, $output, (new SignData())->p2sh($redeemScript));
+            $input->sign($key);
+            }
         }
 
         return $signer->get();
