@@ -602,7 +602,10 @@ class Wallet implements WalletInterface {
         }
 
         foreach ($utxos as $utxo) {
-            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'], $utxo['scriptpubkey_hex'], $utxo['path'], $utxo['redeem_script']);
+            $signMode = isset($utxo['sign_mode']) ? $utxo['sign_mode'] : UTXO::MODE_SIGN;
+
+            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $utxo['address'],
+                $utxo['scriptpubkey_hex'], $utxo['path'], $utxo['redeem_script'], $signMode);
         }
 
         return $txBuilder;
@@ -684,7 +687,8 @@ class Wallet implements WalletInterface {
                 'scriptPubKey' => $utxo->scriptPubKeyHex,
                 'value' => $utxo->value,
                 'path' => $utxo->path,
-                'redeemScript' => $utxo->redeemScript
+                'redeemScript' => $utxo->redeemScript,
+                'signMode' => $utxo->signMode,
             ];
         }, $utxos);
 
@@ -959,6 +963,10 @@ class Wallet implements WalletInterface {
         $redeemScripts = [];
 
         foreach ($inputs as $input) {
+            if (isset($input['signMode']) && $input['signMode'] === UTXO::MODE_DONTSIGN) {
+                continue;
+            }
+
             $redeemScript = null;
             $key = null;
 

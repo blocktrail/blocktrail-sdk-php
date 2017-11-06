@@ -46,10 +46,11 @@ class TransactionBuilder {
      * @param string $scriptPubKey           as HEX, when NULL we'll use the data API to fetch the scriptpubkey
      * @param string $path                   when NULL we'll use the API to determine the path for the specified address
      * @param string $redeemScript           when NULL we'll use the path to determine the redeemscript
+     * @param string $signMode               when UTXO::MODE_DONT_SIGN utxo won't be signed by SDK
      * @return $this
      */
-    public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null) {
-        $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript);
+    public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null, $signMode = UTXO::MODE_SIGN) {
+        $this->utxos[] = new UTXO($txId, $index, $value, $address, $scriptPubKey, $path, $redeemScript, $signMode);
 
         return $this;
     }
