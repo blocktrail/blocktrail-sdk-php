@@ -530,7 +530,10 @@ abstract class Wallet implements WalletInterface {
             $scriptPubKey = ScriptFactory::fromHex($utxo['scriptpubkey_hex']);
             $redeemScript = ScriptFactory::fromHex($utxo['redeem_script']);
             $address = AddressFactory::fromString($utxo['address']);
-            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $address, $scriptPubKey, $utxo['path'], $redeemScript);
+            $signMode = isset($utxo['sign_mode']) ? $utxo['sign_mode'] : UTXO::MODE_SIGN;
+//            $signMode = UTXO::MODE_DONTSIGN;
+
+            $txBuilder->spendOutput($utxo['hash'], $utxo['idx'], $utxo['value'], $address, $scriptPubKey, $utxo['path'], $redeemScript, $signMode);
         }
 
         return $txBuilder;
@@ -580,7 +583,7 @@ abstract class Wallet implements WalletInterface {
                 $utxo->redeemScript = $redeemScript;
             }
 
-            $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey));
+            $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey), $utxo->signMode);
         }
 
         if (array_sum(array_map(function (UTXO $utxo) { return $utxo->value; }, $utxos)) < array_sum(array_column($send, 'value'))) {
@@ -890,14 +893,15 @@ abstract class Wallet implements WalletInterface {
         }, $signInfo), '$signInfo should be SignInfo[]');
 
         foreach ($signInfo as $idx => $info) {
-            $path = BIP32Path::path($info->path)->privatePath();
-            $redeemScript = $info->redeemScript;
-            $output = $info->output;
+            if ($info->signMode === UTXO::MODE_SIGN) {
+                $path = BIP32Path::path($info->path)->privatePath();
+                $redeemScript = $info->redeemScript;
+                $output = $info->output;
 
-            $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
+                $key = $this->primaryPrivateKey->buildKey($path)->key()->getPrivateKey();
 
-            $input = $signer->input($idx, $output, (new SignData())->p2sh($redeemScript));
-            $input->sign($key);
+                $input = $signer->input($idx, $output, (new SignData())->p2sh($redeemScript));
+                $input->sign($key);
             }
         }
 

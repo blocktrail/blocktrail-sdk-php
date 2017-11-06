@@ -19,10 +19,13 @@ class SignInfo {
      */
     public $output;
 
+    public $signMode;
 
-    public function __construct($path, ScriptInterface $redeemScript, TransactionOutput $output) {
+
+    public function __construct($path, ScriptInterface $redeemScript, TransactionOutput $output, $signMode) {
         $this->path = $path;
         $this->redeemScript = $redeemScript;
         $this->output = $output;
+        $this->signMode = $signMode;
     }
 }

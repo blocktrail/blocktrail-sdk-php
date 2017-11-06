@@ -7,6 +7,9 @@ use BitWasp\Bitcoin\Script\ScriptInterface;
 
 class UTXO {
 
+    const MODE_DONTSIGN = 'dont_sign';
+    const MODE_SIGN = 'sign';
+
     public $hash;
     public $index;
     public $value;
@@ -26,8 +29,9 @@ class UTXO {
      * @var ScriptInterface
      */
     public $redeemScript;
+    public $signMode;
 
-    public function __construct($hash, $index, $value = null, AddressInterface $address = null, ScriptInterface $scriptPubKey = null, $path = null, ScriptInterface $redeemScript = null) {
+    public function __construct($hash, $index, $value = null, AddressInterface $address = null, ScriptInterface $scriptPubKey = null, $path = null, ScriptInterface $redeemScript = null, $signMode = self::MODE_SIGN) {
         $this->hash = $hash;
         $this->index = $index;
         $this->value = $value;
@@ -35,5 +39,6 @@ class UTXO {
         $this->scriptPubKey = $scriptPubKey;
         $this->path = $path;
         $this->redeemScript = $redeemScript;
+        $this->signMode = $signMode ? $signMode : self::MODE_SIGN;
     }
 }

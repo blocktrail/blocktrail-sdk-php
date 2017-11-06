@@ -335,7 +335,7 @@ abstract class WalletSweeper {
                 );
 
                 $utxos[] = $utxo;
-                $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey));
+                $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey), UTXO::MODE_SIGN);
             }
         }
 
