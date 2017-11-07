@@ -644,18 +644,20 @@ class Wallet implements WalletInterface {
                 }
             }
 
-            if (!$utxo->path) {
-                $address = $utxo->address;
-                if (!BitcoinLib::validate_address($address)) {
-                    throw new \Exception("Invalid address [{$address}]");
+            if ($utxo->signMode === UTXO::MODE_SIGN) {
+                if (!$utxo->path) {
+                    $address = $utxo->address;
+                    if (!BitcoinLib::validate_address($address)) {
+                        throw new \Exception("Invalid address [{$address}]");
+                    }
+
+                    $utxo->path = $this->getPathForAddress($address);
                 }
 
-                $utxo->path = $this->getPathForAddress($address);
-            }
-
-            if (!$utxo->redeemScript) {
-                list(, $redeemScript) = $this->getRedeemScriptByPath($utxo->path);
-                $utxo->redeemScript = $redeemScript;
+                if (!$utxo->redeemScript) {
+                    list(, $redeemScript) = $this->getRedeemScriptByPath($utxo->path);
+                    $utxo->redeemScript = $redeemScript;
+                }
             }
         }
 
