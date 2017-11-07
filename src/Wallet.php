@@ -574,13 +574,15 @@ abstract class Wallet implements WalletInterface {
                 }
             }
 
-            if (!$utxo->path) {
-                $utxo->path = $this->getPathForAddress($utxo->address->getAddress());
-            }
+            if ($utxo->signMode === UTXO::MODE_SIGN) {
+                if (!$utxo->path) {
+                    $utxo->path = $this->getPathForAddress($utxo->address->getAddress());
+                }
 
-            if (!$utxo->redeemScript) {
-                list(, $redeemScript) = $this->getRedeemScriptByPath($utxo->path);
-                $utxo->redeemScript = $redeemScript;
+                if (!$utxo->redeemScript) {
+                    list(, $redeemScript) = $this->getRedeemScriptByPath($utxo->path);
+                    $utxo->redeemScript = $redeemScript;
+                }
             }
 
             $signInfo[] = new SignInfo($utxo->path, $utxo->redeemScript, new TransactionOutput($utxo->value, $utxo->scriptPubKey), $utxo->signMode);
