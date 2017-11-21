@@ -191,8 +191,11 @@ abstract class Wallet implements WalletInterface {
         return $this->walletPath->path()[2];
     }
 
+    /**
+     * @return bool
+     */
     public function isSegwit() {
-        return $this->getChainIndex() === self::CHAIN_BTC_SEGWIT;
+        return $this->getChainIndex() == self::CHAIN_BTC_SEGWIT;
     }
 
     /**
@@ -803,7 +806,7 @@ abstract class Wallet implements WalletInterface {
         ];
 
         // send the transaction
-        $finished = $this->sendTransaction($txs, array_map(function (SignInfo $r) {
+        return $this->sendTransaction($txs, array_map(function (SignInfo $r) {
             return (string)$r->path;
         }, $signInfo), $apiCheckFee);
     }
