@@ -17,7 +17,6 @@ use BitWasp\Bitcoin\Transaction\OutPoint;
 use BitWasp\Bitcoin\Transaction\SignatureHash\SigHash;
 use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
-use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
@@ -125,14 +124,27 @@ abstract class Wallet implements WalletInterface {
      */
     protected $derivationsByAddress = [];
 
-    /**
-     * @var WalletPath
-     */
-    protected $walletPath;
-
     protected $checksum;
 
+    /**
+     * @var bool
+     */
     protected $locked = true;
+
+    /**
+     * @var bool
+     */
+    protected $isSegwit = false;
+
+    /**
+     * @var int
+     */
+    protected $chainIndex;
+
+    /**
+     * @var int
+     */
+    protected $changeIndex;
 
     protected $optimalFeePerKB;
     protected $lowPriorityFeePerKB;
@@ -158,7 +170,6 @@ abstract class Wallet implements WalletInterface {
         $this->identifier = $identifier;
         $this->backupPublicKey = BlocktrailSDK::normalizeBIP32Key($backupPublicKey);
         $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);
-        ;
         $this->blocktrailPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($blocktrailPublicKeys);
 
         $this->network = $network;
@@ -168,34 +179,42 @@ abstract class Wallet implements WalletInterface {
 
         if ($network === "bitcoin") {
             if ($segwit) {
-                $chainIdx = self::CHAIN_BTC_SEGWIT;
+                $chainIdx = self::CHAIN_BTC_DEFAULT;
+                $changeIdx = self::CHAIN_BTC_SEGWIT;
             } else {
                 $chainIdx = self::CHAIN_BTC_DEFAULT;
+                $changeIdx = self::CHAIN_BTC_DEFAULT;
             }
         } else {
             if ($segwit && $network === "bitcoincash") {
                 throw new BlocktrailSDKException("Received segwit flag for bitcoincash - abort");
             }
             $chainIdx = self::CHAIN_BCC_DEFAULT;
+            $changeIdx = self::CHAIN_BCC_DEFAULT;
         }
 
-        $this->walletPath = WalletPath::create($this->keyIndex, $chainIdx);
+        $this->isSegwit = (bool) $segwit;
+        $this->chainIndex = $chainIdx;
+        $this->changeIndex = $changeIdx;
     }
 
     /**
-     * Returns the current chain index, usually
-     * indicating what type of scripts to derive.
-     * @return int
+     * @param int|null $chainIndex
+     * @return WalletPath
      */
-    public function getChainIndex() {
-        return $this->walletPath->path()[2];
+    protected function getWalletPath($chainIndex = null) {
+        if ($chainIndex === null) {
+            return WalletPath::create($this->keyIndex, $this->chainIndex);
+        } else {
+            return WalletPath::create($this->keyIndex, $chainIndex);
+        }
     }
 
     /**
      * @return bool
      */
     public function isSegwit() {
-        return $this->getChainIndex() == self::CHAIN_BTC_SEGWIT;
+        return $this->isSegwit;
     }
 
     /**
@@ -257,9 +276,7 @@ abstract class Wallet implements WalletInterface {
         $result = $this->sdk->upgradeKeyIndex($this->identifier, $keyIndex, $primaryPublicKey->tuple());
 
         $this->primaryPublicKeys[$keyIndex] = $primaryPublicKey;
-
         $this->keyIndex = $keyIndex;
-        $this->walletPath = $walletPath;
 
         // update the blocktrail public keys
         foreach ($result['blocktrail_public_keys'] as $keyIndex => $pubKey) {
@@ -278,10 +295,12 @@ abstract class Wallet implements WalletInterface {
      *  by requesting it from the API
      *
      * @return string
+     * @param int|null $chainIndex
      * @throws \Exception
      */
-    protected function getNewDerivation() {
-        $path = $this->walletPath->path()->last("*");
+    protected function getNewDerivation($chainIndex = null) {
+        $path = $this->getWalletPath($chainIndex)->path()->last("*");
+
         if (self::VERIFY_NEW_DERIVATION) {
             $new = $this->sdk->_getNewDerivation($this->identifier, (string)$path);
 
@@ -293,6 +312,7 @@ abstract class Wallet implements WalletInterface {
             /** @var ScriptInterface $checkRedeemScript */
             /** @var ScriptInterface $checkWitnessScript */
             list($checkAddress, $checkRedeemScript, $checkWitnessScript) = $this->getRedeemScriptByPath($path);
+
             if ($checkAddress != $address) {
                 throw new \Exception("Failed to verify that address from API [{$address}] matches address locally [{$checkAddress}]");
             }
@@ -412,14 +432,16 @@ abstract class Wallet implements WalletInterface {
         ]), false);
 
         $type = (int)$key->path()[2];
-        if ($this->network !== "bitcoincash" && $type === 2) {
+        if ($this->isSegwit && $type === Wallet::CHAIN_BTC_SEGWIT) {
             $witnessScript = new WitnessScript($multisig);
             $redeemScript = new P2shScript($witnessScript);
             $scriptPubKey = $redeemScript->getOutputScript();
-        } else {
+        } else if ($type === Wallet::CHAIN_BTC_DEFAULT || $type === Wallet::CHAIN_BCC_DEFAULT) {
             $witnessScript = null;
             $redeemScript = new P2shScript($multisig);
             $scriptPubKey = $redeemScript->getOutputScript();
+        } else {
+            throw new BlocktrailSDKException("Unsupported chain in path");
         }
 
         return new WalletScript($path, $scriptPubKey, $redeemScript, $witnessScript);
@@ -455,10 +477,11 @@ abstract class Wallet implements WalletInterface {
     /**
      * generate a new derived key and return the new path and address for it
      *
+     * @param int|null $chainIndex
      * @return string[]     [path, address]
      */
-    public function getNewAddressPair() {
-        $path = $this->getNewDerivation();
+    public function getNewAddressPair($chainIndex = null) {
+        $path = $this->getNewDerivation($chainIndex);
         $address = $this->getAddressByPath($path);
 
         return [$path, $address];
@@ -467,10 +490,11 @@ abstract class Wallet implements WalletInterface {
     /**
      * generate a new derived private key and return the new address for it
      *
+     * @param int|null $chainIndex
      * @return string
      */
-    public function getNewAddress() {
-        return $this->getNewAddressPair()[1];
+    public function getNewAddress($chainIndex = null) {
+        return $this->getNewAddressPair($chainIndex)[1];
     }
 
     /**
@@ -686,7 +710,7 @@ abstract class Wallet implements WalletInterface {
 
         if ($change > 0) {
             $send[] = [
-                'address' => $txBuilder->getChangeAddress() ?: $this->getNewAddress(),
+                'address' => $txBuilder->getChangeAddress() ?: $this->getNewAddress($this->changeIndex),
                 'value' => $change
             ];
         }
