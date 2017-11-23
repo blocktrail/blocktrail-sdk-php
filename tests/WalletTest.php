@@ -26,9 +26,11 @@ use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\SignInfo;
 use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\Wallet;
+use Blocktrail\SDK\WalletInterface;
 use Blocktrail\SDK\WalletPath;
 use Blocktrail\SDK\WalletScript;
 use Blocktrail\SDK\WalletV1;
@@ -234,21 +236,6 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
         $this->assertEquals($address, AddressFactory::fromString($address)->getAddress());
 
-        $nestedP2wshPath = "M/9999'/2/0";
-        $script = $wallet->getWalletScriptByPath($nestedP2wshPath);
-
-        $this->assertTrue($script->isP2SH());
-        $this->assertTrue($script->isP2WSH());
-
-        $this->isBase58Address($script);
-        $this->checkP2sh($script->getScriptPubKey(), $script->getRedeemScript());
-        $this->checkP2wsh($script->getRedeemScript(), $script->getWitnessScript());
-
-        $this->assertEquals("2N3j4Vx3D9LPumjtRbRe2RJpwVocvCCkHKh", $script->getAddress()->getAddress());
-        $this->assertEquals("a91472f4fbf13b171d3acfe3316264835cc4767549a187", $script->getScriptPubKey()->getHex());
-        $this->assertEquals("0020bbb712fe7c81544b588b6f6d8d915b4e6f485ba2b43a70761e1dd9c68e391094", $script->getRedeemScript()->getHex());
-        $this->assertEquals("5221020c9855979a83bedd4f45f47938f1008038b703506dd097bf81b76c4c8127482e2102381a4cf140c24080523b5e63082496b514e99657d3506444b7f77c12176635302102ff3475471c1f6caa27def90b97ceee72e2e9c569ebe59232fc19ef3db9e7ecbc53ae", $script->getWitnessScript()->getHex());
-
     }
 
     private function checkP2sh(ScriptInterface $spk, ScriptInterface $rs) {
@@ -371,23 +358,21 @@ class WalletTest extends BlocktrailTestCase {
             "passphrase" => "password"
         ]);
 
-        list ($swpath, $segwitAddress) = $segwitwallet->getNewAddressPair();
-        $addrObj = AddressFactory::fromString($segwitAddress);
+        $this->assertTrue($segwitwallet->isSegwit());
 
-        $segwitScript = $segwitwallet->getWalletScriptByPath($swpath);
-        $this->assertEquals($segwitScript->getAddress()->getAddress(), $segwitAddress);
-        $this->assertTrue($segwitScript->isP2SH());
-        $this->assertTrue($segwitScript->isP2WSH());
+        list ($path, $address) = $segwitwallet->getNewAddressPair();
+        $addrObj = AddressFactory::fromString($address);
 
         // Send back to unittest-transaction-sw
 
         $rand = random_int(1, 3);
 
         $builder = (new TransactionBuilder())
-            ->addRecipient($segwitAddress, BlocktrailSDK::toSatoshi(0.015) * $rand)
+            ->addRecipient($address, BlocktrailSDK::toSatoshi(0.015) * $rand)
             ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE);
 
         $builder = $segwitwallet->coinSelectionForTxBuilder($builder);
+
         $this->assertTrue(count($builder->getUtxos()) > 0);
         $this->assertEquals(1, count($builder->getOutputs()));
 
@@ -395,21 +380,34 @@ class WalletTest extends BlocktrailTestCase {
 
         $tx = $this->getTx($client, $txHash);
 
+        $this->assertTrue(count($tx['outputs']) === 1 || count($tx['outputs']) === 2);
+
+        $checkChange = count($tx['outputs']) > 1;
+
+        $changeIdx = null;
         $utxoIdx = null;
         foreach ($tx['outputs'] as $i => $output) {
-            if ($output['address'] === $segwitAddress) {
+            if ($output['address'] === $address) {
                 $utxoIdx = $i;
+            }
+            if ($checkChange && $output['address'] !== $address) {
+                $changeIdx = $i;
             }
         }
 
+        if ($checkChange) {
+            $pathForChangeAddr = $segwitwallet->getPathForAddress($tx['outputs'][$changeIdx]['address']);
+            $this->assertTrue(strpos("M/9999'/" . Wallet::CHAIN_BTC_SEGWIT . "/", $pathForChangeAddr) !== -1);
+        }
+
         $addresses = implode(" ", array_column($tx['outputs'], 'address'));
-        $this->assertNotNull($utxoIdx, "should have found utxo paying {$segwitAddress} in $addresses");
+        $this->assertNotNull($utxoIdx, "should have found utxo paying {$address} in $addresses");
 
         $utxo = $tx['outputs'][$utxoIdx];
 
         $spendSegwit = (new TransactionBuilder())
             ->addRecipient($segwitwallet->getNewAddress(), BlocktrailSDK::toSatoshi(0.010) * $rand)
-            ->spendOutput($tx['hash'], $utxoIdx, $utxo['value'], $utxo['address'], $utxo['script_hex'], $swpath)
+            ->spendOutput($tx['hash'], $utxoIdx, $utxo['value'], $utxo['address'], $utxo['script_hex'], $path)
             ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE);
 
         $txid = $segwitwallet->sendTx($spendSegwit);
@@ -418,6 +416,7 @@ class WalletTest extends BlocktrailTestCase {
 
         $tx = $this->getTx($client, $txid);
         $this->assertEquals(1, count($tx['inputs']));
+
     }
 
     /**
@@ -494,17 +493,14 @@ class WalletTest extends BlocktrailTestCase {
             "passphrase" => "password"
         ]);
 
+        $this->assertTrue($segwitwallet->isSegwit());
+
         list (, $unittestAddress) = $unittestWallet->getNewAddressPair();
 
-        if ($segwitwallet->isSegwit()) {
-            $segwitRow = [Wallet::CHAIN_BTC_SEGWIT, "M/9999'/2/"];
-        } else {
-            $segwitRow = [Wallet::CHAIN_BTC_DEFAULT, "M/9999'/0/"];
-        }
+        $testingChain = Wallet::CHAIN_BTC_SEGWIT;
+        $defaultChain = Wallet::CHAIN_BTC_DEFAULT;
 
-        $defaultRow = [Wallet::CHAIN_BTC_DEFAULT, "M/9999'/0/"];
-
-        $task = [$segwitRow, $defaultRow];
+        $task = [$testingChain, $defaultChain];
 
         $quanta = random_int(1, 5);
         $value = BlocktrailSDK::toSatoshi(0.0005) * $quanta;
@@ -517,16 +513,9 @@ class WalletTest extends BlocktrailTestCase {
             ->addRecipient($unittestAddress, BlocktrailSDK::toSatoshi(0.0003))
             ->setFeeStrategy(Wallet::FEE_STRATEGY_OPTIMAL);
 
-        foreach ($task as $i => $chainDetail) {
-            list ($chainDetail, $expectedPathRoot) = $chainDetail;
-
-            // @todo: Needs to be updated to switch chains when we roll out segwit
-            list ($path, $address) = $segwitwallet->getNewAddressPair();
-            if ($segwitwallet->isSegwit()) {
-                $this->assertTrue(strpos($path, "M/9999'/2/") !== -1);
-            } else {
-                $this->assertTrue(strpos($path, "M/9999'/0/") !== -1);
-            }
+        foreach ($task as $i => $chainIndex) {
+            list ($path, $address) = $segwitwallet->getNewAddressPair($chainIndex);
+            $this->assertTrue(strpos($path, "M/9999'/{$chainIndex}/") !== -1);
 
             // Fund segwit address 1
             $fundTxHash[$i] = $unittestWallet->pay([$address => $value,], null, true, true, Wallet::FEE_STRATEGY_OPTIMAL);
@@ -564,6 +553,79 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertInstanceOf(TransactionInterface::class, $tx);
     }
 
+    private function checkWalletScriptAgainstAddressPair(WalletInterface $wallet, $chainIdx)
+    {
+        list ($path, $address) = $wallet->getNewAddressPair($chainIdx);
+        $this->assertTrue(strpos("M/9999'/{$chainIdx}/", $path) !== -1);
+
+        $defaultScript = $wallet->getWalletScriptByPath($path);
+        $this->assertEquals($defaultScript->getAddress()->getAddress(), $address);
+
+        $classifier = new OutputClassifier();
+
+        switch($chainIdx) {
+            case Wallet::CHAIN_BTC_SEGWIT:
+                $this->assertTrue($defaultScript->isP2SH());
+                $this->assertTrue($defaultScript->isP2WSH());
+                $this->assertTrue($classifier->isMultisig($defaultScript->getWitnessScript()));
+                $this->assertTrue($classifier->isWitness($defaultScript->getRedeemScript()));
+                break;
+            case Wallet::CHAIN_BTC_DEFAULT:
+                $this->assertTrue($defaultScript->isP2SH());
+                $this->assertTrue($classifier->isMultisig($defaultScript->getRedeemScript()));
+                break;
+        }
+    }
+
+    public function testWalletRejectsUnknownPaths()
+    {
+        $client = $this->setupBlocktrailSDK();
+
+        /** @var Wallet $wallet */
+        $wallet = $client->initWallet([
+            "identifier" => "unittest-transaction",
+            "passphrase" => "password"
+        ]);
+
+        $this->setExpectedException(BlocktrailSDKException::class, "Unsupported chain in path");
+
+        $wallet->getWalletScriptByPath("M/9999'/123123123/0");
+
+    }
+
+    public function testWalletGetNewAddressPair() {
+        $client = $this->setupBlocktrailSDK();
+
+        // testnet/mainnet only
+
+        /** @var Wallet $wallet */
+        $wallet = $client->initWallet([
+            "identifier" => "unittest-transaction-sw",
+            "passphrase" => "password"
+        ]);
+
+        $this->assertTrue($wallet->isSegwit());
+
+        $this->checkWalletScriptAgainstAddressPair($wallet, Wallet::CHAIN_BTC_DEFAULT);
+
+        $this->checkWalletScriptAgainstAddressPair($wallet, Wallet::CHAIN_BTC_SEGWIT);
+
+        $nestedP2wshPath = "M/9999'/2/0";
+        $script = $wallet->getWalletScriptByPath($nestedP2wshPath);
+
+        $this->assertTrue($script->isP2SH());
+        $this->assertTrue($script->isP2WSH());
+
+        $this->isBase58Address($script);
+        $this->checkP2sh($script->getScriptPubKey(), $script->getRedeemScript());
+        $this->checkP2wsh($script->getRedeemScript(), $script->getWitnessScript());
+
+        $this->assertEquals("2N3j4Vx3D9LPumjtRbRe2RJpwVocvCCkHKh", $script->getAddress()->getAddress());
+        $this->assertEquals("a91472f4fbf13b171d3acfe3316264835cc4767549a187", $script->getScriptPubKey()->getHex());
+        $this->assertEquals("0020bbb712fe7c81544b588b6f6d8d915b4e6f485ba2b43a70761e1dd9c68e391094", $script->getRedeemScript()->getHex());
+        $this->assertEquals("5221020c9855979a83bedd4f45f47938f1008038b703506dd097bf81b76c4c8127482e2102381a4cf140c24080523b5e63082496b514e99657d3506444b7f77c12176635302102ff3475471c1f6caa27def90b97ceee72e2e9c569ebe59232fc19ef3db9e7ecbc53ae", $script->getWitnessScript()->getHex());
+    }
+
     /**
      * this test requires / asumes that the test wallet it uses contains a balance
      *
@@ -592,12 +654,7 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertGreaterThan(0, $confirmed, "positive confirmed balance");
 
         list($path, $address) = $wallet->getNewAddressPair();
-        if ($wallet->isSegwit()) {
-            $this->assertTrue(strpos($path, "M/9999'/2/") === 0);
-        } else {
-            $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
-        }
-
+        $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
         $this->assertTrue(AddressFactory::fromString($address)->getAddress() == $address);
 
         ///*
@@ -701,11 +758,7 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertGreaterThan(0, $confirmed, "positive confirmed balance");
 
         list($path, $address) = $wallet->getNewAddressPair();
-        if ($wallet->isSegwit()) {
-            $this->assertTrue(strpos($path, "M/9999'/2/") === 0);
-        } else {
-            $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
-        }
+        $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
 
         $this->assertTrue(AddressFactory::fromString($address)->getAddress() == $address);
 
@@ -715,7 +768,7 @@ class WalletTest extends BlocktrailTestCase {
         ]);
 
         $this->assertTrue(!!$txHash);
-        
+
         $tx = $this->getTx($client, $txHash);
 
         $this->assertEquals($txHash, $tx['hash']);

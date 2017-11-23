@@ -123,16 +123,18 @@ interface WalletInterface {
     /**
      * generate a new derived key and return the new path and address for it
      *
+     * @param int|null      $chainIndex
      * @return string[]     [path, address]
      */
-    public function getNewAddressPair();
+    public function getNewAddressPair($chainIndex = null);
 
     /**
      * generate a new derived private key and return the new address for it
      *
+     * @param int|null      $chainIndex
      * @return string
      */
-    public function getNewAddress();
+    public function getNewAddress($chainIndex = null);
 
     /**
      * get the balance for the wallet
