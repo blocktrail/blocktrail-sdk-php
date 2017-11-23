@@ -125,6 +125,32 @@ Unit Tests and Coding Style
 The project follows the PSR2 coding style, which can easily be validated with `./vendor/bin/phpcs --standard=./phpcs.xml -n -a ./src/`.
 Unit Tests are created with PHPunit and can be ran with `./vendor/bin/phpunit`
 
+Release
+-------
+```sh
+# make sure you've committed everything?
+git status
+
+# desired new tag
+TAG="v1.1.1"
+
+# strips off the v from your input
+TAG=$(echo $TAG | sed 's/^v//g')
+
+# update version number in src/Blocktrail.php
+sed -i 's/const SDK_VERSION = "[0-9].[0-9].[0-9]";/const SDK_VERSION = "'$TAG'";/g' src/Blocktrail.php
+
+# commit the updated version number
+git commit -am "release v${TAG}"
+
+# tag the version
+git tag v$TAG
+
+# push
+git push
+git push --tags
+```
+
 License
 -------
 The BlockTrail PHP SDK is released under the terms of the MIT license. See LICENCE.md for more information or see http://opensource.org/licenses/MIT.
