@@ -1813,20 +1813,25 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }, $keys);
     }
 
+    /**
+     * @param array|BIP32Key $key
+     * @return BIP32Key
+     * @throws \Exception
+     */
     public static function normalizeBIP32Key($key) {
         if ($key instanceof BIP32Key) {
             return $key;
         }
 
-        if (is_array($key)) {
+        if (is_array($key) && count($key) === 2) {
             $path = $key[1];
-            $key = $key[0];
+            $hk = $key[0];
 
-            if (!($key instanceof HierarchicalKey)) {
-                $key = HierarchicalKeyFactory::fromExtended($key);
+            if (!($hk instanceof HierarchicalKey)) {
+                $hk = HierarchicalKeyFactory::fromExtended($hk);
             }
 
-            return BIP32Key::create($key, $path);
+            return BIP32Key::create($hk, $path);
         } else {
             throw new \Exception("Bad Input");
         }
