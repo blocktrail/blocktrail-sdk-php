@@ -291,7 +291,6 @@ class SizeEstimation
         $outputsSize = SizeEstimation::estimateOutputsSize($outputs);
         $baseSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, false), $outputsSize);
         $witnessSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, true), $outputsSize);
-
         return ($baseSize * 3) + $witnessSize;
     }
 
