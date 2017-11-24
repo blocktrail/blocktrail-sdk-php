@@ -15,7 +15,7 @@ use BitWasp\Bitcoin\MessageSigner\MessageSigner;
 use BitWasp\Bitcoin\MessageSigner\SignedMessage;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
-use BitWasp\Bitcoin\Network\NetworkFactory;
+use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
@@ -47,6 +47,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     protected $testnet;
 
     /**
+     * @var NetworkParams
+     */
+    protected $networkParams;
+
+    /**
      * @param   string      $apiKey         the API_KEY to use for authentication
      * @param   string      $apiSecret      the API_SECRET to use for authentication
      * @param   string      $network        the cryptocurrency 'network' to consume, eg BTC, LTC, etc
@@ -56,7 +61,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *                                       this will cause the $network, $testnet and $apiVersion to be ignored!
      */
     public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null) {
-
         list ($apiNetwork, $testnet) = Util::parseApiNetwork($network, $testnet);
 
         if (is_null($apiEndpoint)) {
@@ -65,33 +69,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // normalize network and set bitcoinlib to the right magic-bytes
-        list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
-        $this->setBitcoinLibMagicBytes($this->network, $this->testnet);
+        $params = Util::normalizeNetwork($apiNetwork, $testnet);
+        assert($params->isNetwork("bitcoin") || $params->isNetwork("bitcoincash"));
 
+        $this->networkParams = $params;
         $this->client = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
-    }
-
-    /**
-     * normalize network string
-     *
-     * @param $network
-     * @param $testnet
-     * @return array
-     * @throws \Exception
-     */
-    protected function normalizeNetwork($network, $testnet) {
-        return Util::normalizeNetwork($network, $testnet);
-    }
-
-    /**
-     * set BitcoinLib to the correct magic-byte defaults for the selected network
-     *
-     * @param $network
-     * @param $testnet
-     */
-    protected function setBitcoinLibMagicBytes($network, $testnet) {
-        assert($network == "bitcoin" || $network == "bitcoincash");
-        Bitcoin::setNetwork($testnet ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin());
     }
 
     /**
@@ -128,10 +110,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
-     * @return  RestClient
+     * @return RestClient
      */
     public function getRestClient() {
         return $this->client;
+    }
+
+    /**
+     * @return NetworkParams
+     */
+    public function getNetworkParams() {
+        return $this->networkParams;
     }
 
     /**
@@ -552,6 +541,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
     }
 
+    private function formatBlocktrailKeys(NetworkInterface $network, array $blocktrailPublicKeys) {
+        return Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) use ($network) {
+            return [$keyIndex, BIP32Key::create($network, HierarchicalKeyFactory::fromExtended($pubKeyTuple[0], $network), $pubKeyTuple[1])];
+        }, $blocktrailPublicKeys);
+    }
+
     protected function createNewWalletV1($options) {
         $walletPath = WalletPath::create($options['key_index']);
 
@@ -597,8 +592,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // create primary public key from the created private key
+        $network = $this->networkParams->getNetwork();
         $path = $walletPath->keyIndexPath()->publicPath();
-        $primaryPublicKey = BIP32Key::create($primaryPrivateKey, "m")->buildKey($path);
+        $primaryPublicKey = BIP32Key::create($network, $primaryPrivateKey, "m")->buildKey($path);
 
         if (isset($options['backup_mnemonic']) && $options['backup_public_key']) {
             throw new \InvalidArgumentException("Can't specify Backup Mnemonic and Backup PublicKey");
@@ -621,11 +617,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             }
         } else {
             $backupPrivateKey = HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed($backupMnemonic, ""));
-            $backupPublicKey = BIP32Key::create($backupPrivateKey->toPublic(), "M");
+            $backupPublicKey = BIP32Key::create($network, $backupPrivateKey->toPublic(), "M");
         }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
-        $checksum = $primaryPrivateKey->getPublicKey()->getAddress()->getAddress();
+        $checksum = $primaryPrivateKey->getPublicKey()->getAddress()->getAddress($network);
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
@@ -640,9 +636,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         );
 
         // received the blocktrail public keys
-        $blocktrailPublicKeys = Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) {
-            return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])];
-        }, $data['blocktrail_public_keys']);
+        $blocktrailPublicKeys = $this->formatBlocktrailKeys($network, $data['blocktrail_public_keys']);
 
         $wallet = new WalletV1(
             $this,
@@ -652,8 +646,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $backupPublicKey,
             $blocktrailPublicKeys,
             $options['key_index'],
-            $this->network,
-            $this->testnet,
             array_key_exists('segwit', $data) ? $data['segwit'] : false,
             $checksum
         );
@@ -730,21 +722,22 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $backupSeed = isset($options['backup_seed']) ? $options['backup_seed'] : self::randomBits(256);
         }
 
+        $network = $this->networkParams->getNetwork();
         if (isset($options['primary_private_key'])) {
-            $options['primary_private_key'] = BlocktrailSDK::normalizeBIP32Key($options['primary_private_key']);
+            $options['primary_private_key'] = BlocktrailSDK::normalizeBIP32Key($options['primary_private_key'], $network);
         } else {
-            $options['primary_private_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy(new Buffer($primarySeed)), "m");
+            $options['primary_private_key'] = BIP32Key::create($network, HierarchicalKeyFactory::fromEntropy(new Buffer($primarySeed)), "m");
         }
 
         // create primary public key from the created private key
         $options['primary_public_key'] = $options['primary_private_key']->buildKey($walletPath->keyIndexPath()->publicPath());
 
         if (!isset($options['backup_public_key'])) {
-            $options['backup_public_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy(new Buffer($backupSeed)), "m")->buildKey("M");
+            $options['backup_public_key'] = BIP32Key::create($network, HierarchicalKeyFactory::fromEntropy(new Buffer($backupSeed)), "m")->buildKey("M");
         }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
-        $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress();
+        $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress($network);
 
         // send the public keys and encrypted data to server
         $data = $this->storeNewWalletV2(
@@ -760,9 +753,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         );
 
         // received the blocktrail public keys
-        $blocktrailPublicKeys = Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) {
-            return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])];
-        }, $data['blocktrail_public_keys']);
+        $blocktrailPublicKeys = $this->formatBlocktrailKeys($network, $data['blocktrail_public_keys']);
 
         $wallet = new WalletV2(
             $this,
@@ -773,8 +764,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $options['backup_public_key'],
             $blocktrailPublicKeys,
             $options['key_index'],
-            $this->network,
-            $this->testnet,
             array_key_exists('segwit', $data) ? $data['segwit'] : false,
             $checksum
         );
@@ -870,21 +859,22 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             }
         }
 
+        $network = $this->networkParams->getNetwork();
         if (isset($options['primary_private_key'])) {
-            $options['primary_private_key'] = BlocktrailSDK::normalizeBIP32Key($options['primary_private_key']);
+            $options['primary_private_key'] = BlocktrailSDK::normalizeBIP32Key($options['primary_private_key'], $network);
         } else {
-            $options['primary_private_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($primarySeed), "m");
+            $options['primary_private_key'] = BIP32Key::create($network, HierarchicalKeyFactory::fromEntropy($primarySeed), "m");
         }
 
         // create primary public key from the created private key
         $options['primary_public_key'] = $options['primary_private_key']->buildKey($walletPath->keyIndexPath()->publicPath());
 
         if (!isset($options['backup_public_key'])) {
-            $options['backup_public_key'] = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($backupSeed), "m")->buildKey("M");
+            $options['backup_public_key'] = BIP32Key::create($network, HierarchicalKeyFactory::fromEntropy($backupSeed), "m")->buildKey("M");
         }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
-        $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress();
+        $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress($network);
 
         // send the public keys and encrypted data to server
         $data = $this->storeNewWalletV3(
@@ -900,9 +890,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         );
 
         // received the blocktrail public keys
-        $blocktrailPublicKeys = Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) {
-            return [$keyIndex, BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKeyTuple[0]), $pubKeyTuple[1])];
-        }, $data['blocktrail_public_keys']);
+        $blocktrailPublicKeys = $this->formatBlocktrailKeys($network, $data['blocktrail_public_keys']);
 
         $wallet = new WalletV3(
             $this,
@@ -913,8 +901,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $options['backup_public_key'],
             $blocktrailPublicKeys,
             $options['key_index'],
-            $this->network,
-            $this->testnet,
             array_key_exists('segwit', $data) ? $data['segwit'] : false,
             $checksum
         );
@@ -946,7 +932,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @throws BlocktrailSDKException
      */
     private function verifyPublicBIP32Key(array $bip32Key) {
-        $hk = HierarchicalKeyFactory::fromExtended($bip32Key[0]);
+        $hk = HierarchicalKeyFactory::fromExtended($bip32Key[0], $this->networkParams->getNetwork());
         if ($hk->isPrivate()) {
             throw new BlocktrailSDKException('Private key was included in request, abort');
         }
@@ -1142,8 +1128,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $data['backup_public_key'],
                     $data['blocktrail_public_keys'],
                     isset($options['key_index']) ? $options['key_index'] : $data['key_index'],
-                    $this->network,
-                    $this->testnet,
                     array_key_exists('segwit', $data) ? $data['segwit'] : false,
                     $data['checksum']
                 );
@@ -1158,8 +1142,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $data['backup_public_key'],
                     $data['blocktrail_public_keys'],
                     isset($options['key_index']) ? $options['key_index'] : $data['key_index'],
-                    $this->network,
-                    $this->testnet,
                     array_key_exists('segwit', $data) ? $data['segwit'] : false,
                     $data['checksum']
                 );
@@ -1193,8 +1175,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $data['backup_public_key'],
                     $data['blocktrail_public_keys'],
                     isset($options['key_index']) ? $options['key_index'] : $data['key_index'],
-                    $this->network,
-                    $this->testnet,
                     array_key_exists('segwit', $data) ? $data['segwit'] : false,
                     $data['checksum']
                 );
@@ -1715,7 +1695,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         // $this->client->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature])['result'];
 
         $adapter = Bitcoin::getEcAdapter();
-        $addr = AddressFactory::fromString($address);
+        $addr = AddressFactory::fromString($address, $this->networkParams->getNetwork());
         if (!$addr instanceof PayToPubKeyHashAddress) {
             throw new \RuntimeException('Can only verify a message with a pay-to-pubkey-hash address');
         }
@@ -1823,18 +1803,19 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
     }
 
-    public static function normalizeBIP32KeyArray($keys) {
-        return Util::arrayMapWithIndex(function ($idx, $key) {
-            return [$idx, self::normalizeBIP32Key($key)];
+    public static function normalizeBIP32KeyArray($keys, NetworkInterface $network) {
+        return Util::arrayMapWithIndex(function ($idx, $key) use ($network) {
+            return [$idx, self::normalizeBIP32Key($key, $network)];
         }, $keys);
     }
 
     /**
-     * @param array|BIP32Key $key
+     * @param BIP32Key|array $key
+     * @param NetworkInterface $network
      * @return BIP32Key
      * @throws \Exception
      */
-    public static function normalizeBIP32Key($key) {
+    public static function normalizeBIP32Key($key, NetworkInterface $network) {
         if ($key instanceof BIP32Key) {
             return $key;
         }
@@ -1844,10 +1825,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $hk = $key[0];
 
             if (!($hk instanceof HierarchicalKey)) {
-                $hk = HierarchicalKeyFactory::fromExtended($hk);
+                $hk = HierarchicalKeyFactory::fromExtended($hk, $network);
             }
 
-            return BIP32Key::create($hk, $path);
+            return BIP32Key::create($network, $hk, $path);
         } else {
             throw new \Exception("Bad Input");
         }

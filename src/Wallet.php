@@ -6,6 +6,7 @@ use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\MessageSigner\MessageSigner;
+use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
@@ -97,6 +98,11 @@ abstract class Wallet implements WalletInterface {
     protected $network;
 
     /**
+     * @var NetworkInterface
+     */
+    protected $networkParams;
+
+    /**
      * testnet yes / no
      *
      * @var bool
@@ -158,26 +164,23 @@ abstract class Wallet implements WalletInterface {
      * @param BIP32Key                      $backupPublicKey            should be BIP32 master public key M/
      * @param BIP32Key[]                    $blocktrailPublicKeys
      * @param int                           $keyIndex
-     * @param string                        $network
-     * @param bool                          $testnet
      * @param bool                          $segwit
      * @param string                        $checksum
      * @throws BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $segwit, $checksum) {
         $this->sdk = $sdk;
+        $this->networkParams = $sdk->getNetworkParams();
 
         $this->identifier = $identifier;
-        $this->backupPublicKey = BlocktrailSDK::normalizeBIP32Key($backupPublicKey);
-        $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys);
-        $this->blocktrailPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($blocktrailPublicKeys);
+        $this->backupPublicKey = BlocktrailSDK::normalizeBIP32Key($backupPublicKey, $this->networkParams->getNetwork());
+        $this->primaryPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($primaryPublicKeys, $this->networkParams->getNetwork());
+        $this->blocktrailPublicKeys = BlocktrailSDK::normalizeBIP32KeyArray($blocktrailPublicKeys, $this->networkParams->getNetwork());
 
-        $this->network = $network;
-        $this->testnet = $testnet;
         $this->keyIndex = $keyIndex;
         $this->checksum = $checksum;
 
-        if ($network === "bitcoin") {
+        if ($this->networkParams->isNetwork("bitcoin")) {
             if ($segwit) {
                 $chainIdx = self::CHAIN_BTC_DEFAULT;
                 $changeIdx = self::CHAIN_BTC_SEGWIT;
@@ -186,7 +189,7 @@ abstract class Wallet implements WalletInterface {
                 $changeIdx = self::CHAIN_BTC_DEFAULT;
             }
         } else {
-            if ($segwit && $network === "bitcoincash") {
+            if ($segwit && $this->networkParams->isNetwork("bitcoincash")) {
                 throw new BlocktrailSDKException("Received segwit flag for bitcoincash - abort");
             }
             $chainIdx = self::CHAIN_BCC_DEFAULT;
@@ -287,7 +290,7 @@ abstract class Wallet implements WalletInterface {
             if (!isset($this->blocktrailPublicKeys[$keyIndex])) {
                 $path = $pubKey[1];
                 $pubKey = $pubKey[0];
-                $this->blocktrailPublicKeys[$keyIndex] = BIP32Key::create(HierarchicalKeyFactory::fromExtended($pubKey), $path);
+                $this->blocktrailPublicKeys[$keyIndex] = BIP32Key::fromString($this->networkParams->getNetwork(), $pubKey, $path);
             }
         }
 
@@ -406,7 +409,7 @@ abstract class Wallet implements WalletInterface {
 
         $redeemScript = $walletScript->isP2SH() ? $walletScript->getRedeemScript() : null;
         $witnessScript = $walletScript->isP2WSH() ? $walletScript->getWitnessScript() : null;
-        return [$walletScript->getAddress()->getAddress(), $redeemScript, $witnessScript];
+        return [$walletScript->getAddress()->getAddress($this->networkParams->getNetwork()), $redeemScript, $witnessScript];
     }
 
     /**
@@ -415,7 +418,7 @@ abstract class Wallet implements WalletInterface {
      * @return string
      */
     protected function getAddressFromKey(BIP32Key $key, $path) {
-        return $this->getWalletScriptFromKey($key, $path)->getAddress()->getAddress();
+        return $this->getWalletScriptFromKey($key, $path)->getAddress()->getAddress($this->networkParams->getNetwork());
     }
 
     /**
@@ -534,6 +537,13 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
+     * @return TransactionBuilder
+     */
+    public function createTransaction() {
+        return new TransactionBuilder($this->networkParams->getNetwork());
+    }
+
+    /**
      * create, sign and send a transaction
      *
      * @param array    $outputs             [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ] coins to send
@@ -553,7 +563,7 @@ abstract class Wallet implements WalletInterface {
 
         $outputs = self::normalizeOutputsStruct($outputs);
 
-        $txBuilder = new TransactionBuilder();
+        $txBuilder = $this->createTransaction();
         $txBuilder->randomizeChangeOutput($randomizeChangeIdx);
         $txBuilder->setFeeStrategy($feeStrategy);
         $txBuilder->setChangeAddress($changeAddress);
@@ -693,7 +703,7 @@ abstract class Wallet implements WalletInterface {
 
             if (SignInfo::MODE_SIGN === $utxo->signMode) {
                 if (!$utxo->path) {
-                    $utxo->path = $this->getPathForAddress($utxo->address->getAddress());
+                    $utxo->path = $this->getPathForAddress($utxo->address->getAddress($this->networkParams->getNetwork()));
                 }
 
                 if (!$utxo->redeemScript || !$utxo->witnessScript) {
@@ -744,7 +754,7 @@ abstract class Wallet implements WalletInterface {
             if (isset($out['scriptPubKey'])) {
                 $txb->output($out['value'], $out['scriptPubKey']);
             } elseif (isset($out['address'])) {
-                $txb->payToAddress($out['value'], AddressFactory::fromString($out['address']));
+                $txb->payToAddress($out['value'], AddressFactory::fromString($out['address'], $this->networkParams->getNetwork()));
             } else {
                 throw new \Exception();
             }
@@ -1011,7 +1021,7 @@ abstract class Wallet implements WalletInterface {
         }, $signInfo), '$signInfo should be SignInfo[]');
 
         $sigHash = SigHash::ALL;
-        if ($this->network === "bitcoincash") {
+        if ($this->networkParams->isNetwork("bitcoincash")) {
             $sigHash |= SigHash::BITCOINCASH;
             $signer->redeemBitcoinCash(true);
         }
@@ -1117,7 +1127,7 @@ abstract class Wallet implements WalletInterface {
         $privKey = $this->primaryPrivateKey->key();
 
         $pubKey = $this->primaryPrivateKey->publicKey();
-        $address = $pubKey->getAddress()->getAddress();
+        $address = $pubKey->getAddress()->getAddress($this->networkParams->getNetwork());
 
         $signer = new MessageSigner(Bitcoin::getEcAdapter());
         $signed = $signer->sign($address, $privKey->getPrivateKey());

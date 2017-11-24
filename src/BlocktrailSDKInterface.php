@@ -2,6 +2,7 @@
 
 namespace Blocktrail\SDK;
 
+use BitWasp\Bitcoin\Network\NetworkInterface;
 use Blocktrail\SDK\Connection\RestClient;
 
 /**
@@ -42,6 +43,11 @@ interface BlocktrailSDKInterface {
      * @return  RestClient
      */
     public function getRestClient();
+
+    /**
+     * @return NetworkParams
+     */
+    public function getNetworkParams();
 
     /**
      * get a single address
@@ -295,7 +301,7 @@ interface BlocktrailSDKInterface {
      *
      * @param string $identifier       the wallet identifier to create
      * @param array  $primaryPublicKey BIP32 extended public key - [key, path]
-     * @param string $backupPublicKey  plain public key
+     * @param array  $backupPublicKey  plain public key
      * @param        $encryptedPrimarySeed
      * @param        $encryptedSecret
      * @param        $recoverySecret

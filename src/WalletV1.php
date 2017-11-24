@@ -25,14 +25,12 @@ class WalletV1 extends Wallet {
      * @param BIP32Key                      $backupPublicKey            should be BIP32 master public key M/
      * @param BIP32Key[]                    $blocktrailPublicKeys
      * @param int                           $keyIndex
-     * @param string                        $network
-     * @param bool                          $testnet
      * @param string                        $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $segwit, $checksum) {
         $this->primaryMnemonic = $primaryMnemonic;
 
-        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum);
+        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $segwit, $checksum);
     }
 
     /**
@@ -72,10 +70,11 @@ class WalletV1 extends Wallet {
             $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($primarySeed);
         }
 
-        $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey, "m");
+        $network = $this->networkParams->getNetwork();
+        $this->primaryPrivateKey = BIP32Key::create($network, $primaryPrivateKey, "m");
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum = $this->primaryPrivateKey->key()->getPublicKey()->getAddress()->getAddress();
+        $checksum = $this->primaryPrivateKey->key()->getPublicKey()->getAddress()->getAddress($network);
         if ($checksum != $this->checksum) {
             throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
         }

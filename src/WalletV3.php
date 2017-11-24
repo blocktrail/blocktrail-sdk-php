@@ -35,19 +35,17 @@ class WalletV3 extends Wallet
     protected $primarySeed = null;
 
     /**
-     * @param BlocktrailSDKInterface $sdk        SDK instance used to do requests
-     * @param string                 $identifier identifier of the wallet
+     * @param BlocktrailSDKInterface $sdk                   SDK instance used to do requests
+     * @param string                 $identifier            identifier of the wallet
      * @param BufferInterface        $encryptedPrimarySeed
      * @param BufferInterface        $encryptedSecret
      * @param BIP32Key[]             $primaryPublicKeys
      * @param BIP32Key               $backupPublicKey
      * @param BIP32Key[]             $blocktrailPublicKeys
      * @param int                    $keyIndex
-     * @param string                 $network
-     * @param bool                   $testnet
      * @param string                 $checksum
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $segwit, $checksum) {
         if ($encryptedPrimarySeed !== null && !($encryptedPrimarySeed instanceof Buffer)) {
             throw new \InvalidArgumentException('Encrypted Primary Seed must be a Buffer or null');
         }
@@ -57,7 +55,7 @@ class WalletV3 extends Wallet
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
-        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum);
+        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $segwit, $checksum);
     }
 
     /**
@@ -100,10 +98,11 @@ class WalletV3 extends Wallet
                 throw new WalletDecryptException("Failed to decrypt primary seed with secret");
             }
         }
-        $this->primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($this->primarySeed), "m");
+        $network = $this->networkParams->getNetwork();
+        $this->primaryPrivateKey = BIP32Key::create($network, HierarchicalKeyFactory::fromEntropy($this->primarySeed), "m");
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum = $this->primaryPrivateKey->publicKey()->getAddress()->getAddress();
+        $checksum = $this->primaryPrivateKey->publicKey()->getAddress()->getAddress($network);
         if ($checksum != $this->checksum) {
             throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
         }
