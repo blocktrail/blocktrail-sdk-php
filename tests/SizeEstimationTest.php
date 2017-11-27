@@ -2,14 +2,22 @@
 
 namespace Blocktrail\SDK\Tests;
 
+use BitWasp\Bitcoin\Address\SegwitAddress;
+use BitWasp\Bitcoin\Network\NetworkFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 
 use BitWasp\Bitcoin\Script\ScriptInfo\Multisig;
+use BitWasp\Bitcoin\Script\WitnessProgram;
 use BitWasp\Bitcoin\Script\WitnessScript;
 use BitWasp\Bitcoin\Script\P2shScript;
+use BitWasp\Bitcoin\Transaction\Factory\SignData;
+use BitWasp\Bitcoin\Transaction\Factory\Signer;
+use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
+use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use Blocktrail\SDK\SizeEstimation;
 use \BitWasp\Bitcoin\Key\PrivateKeyFactory;
+use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\UTXO;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Wallet;
@@ -276,5 +284,295 @@ class SizeEstimationTest extends BlocktrailTestCase
         $newTxInEst = 32 + 4 + 4 + $newScriptEst;
 
         $this->assertEquals($oldTxInEst, $newTxInEst);
+    }
+
+    public function testTxWeightP2WPKH() {
+        $network = NetworkFactory::bitcoin();
+        $wif = PrivateKeyFactory::fromWif("L59Kc7sjZPfKTrWCn4hvs5AUWQJXrn1hCMFkxx7YZGRhAC12k4Kr", null, $network);
+
+        $hash160 = $wif->getPubKeyHash();
+        $p2wpkh = ScriptFactory::scriptPubKey()->p2wkh($hash160);
+        $value = 1234123;
+
+        $utxo = new UTXO(
+            "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+            0,
+            $value,
+            new SegwitAddress(WitnessProgram::v0($hash160)),
+            $p2wpkh
+        );
+
+        $outputs1 = [[
+            "scriptPubKey" => $p2wpkh->getHex(),
+            "value" => $value,
+        ]];
+
+        $outputs2 = [[
+            "scriptPubKey" => $p2wpkh,
+            "value" => $value,
+        ]];
+
+        /** @var UTXO[] $utxos */
+        $utxos = [$utxo];
+        $builder = new TxBuilder();
+        foreach ($utxos as $utxo) {
+            $builder->input($utxo->hash, $utxo->index);
+        }
+        $builder->output($value - 6000, $p2wpkh);
+
+        $signer = new Signer($builder->get());
+        foreach ($utxos as $i => $utxo) {
+            $txOut = new TransactionOutput($utxo->value, $utxo->scriptPubKey);
+            $signer->input(0, $txOut)
+                ->sign($wif);
+        }
+
+        $signed = $signer->get();
+
+        $expectedWeight = 438;
+        $expectedVSize = 110;
+
+        $weight = SizeEstimation::estimateWeight($utxos, $signed->getOutputs());
+        $this->assertEquals($expectedWeight, $weight, "weight (tx.outputs) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs1);
+        $this->assertEquals($expectedWeight, $weight, "weight (outputs array w/ script string) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs2);
+        $this->assertEquals($expectedWeight, $weight, "weight (outputs array w/ ScriptInterface) should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $signed->getOutputs());
+        $this->assertEquals($expectedVSize, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs1);
+        $this->assertEquals($expectedVSize, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs2);
+        $this->assertEquals($expectedVSize, $vsize, "vsize should be the same");
+    }
+
+
+    public function testTxWeightP2WPKHSeveralInputs() {
+        $network = NetworkFactory::bitcoin();
+        $wif = PrivateKeyFactory::fromWif("L59Kc7sjZPfKTrWCn4hvs5AUWQJXrn1hCMFkxx7YZGRhAC12k4Kr", null, $network);
+
+        $hash160 = $wif->getPubKeyHash();
+        $p2wpkh = ScriptFactory::scriptPubKey()->p2wkh($hash160);
+
+        $utxo1 = new UTXO(
+            "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+            0,
+            0,
+            new SegwitAddress(WitnessProgram::v0($hash160)),
+            $p2wpkh
+        );
+
+        $utxo2 = new UTXO(
+            "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd123e",
+            0,
+            0,
+            new SegwitAddress(WitnessProgram::v0($hash160)),
+            $p2wpkh
+        );
+        $utxo3 = new UTXO(
+            "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd123f",
+            0,
+            0,
+            new SegwitAddress(WitnessProgram::v0($hash160)),
+            $p2wpkh
+        );
+
+        $outputs1 = [[
+            "scriptPubKey" => $p2wpkh->getHex(),
+            "value" => 1234,
+        ]];
+
+        $outputs2 = [[
+            "scriptPubKey" => $p2wpkh,
+            "value" => 1234,
+        ]];
+
+        /** @var UTXO[] $utxos */
+        $utxos = [$utxo1, $utxo2, $utxo3];
+        $builder = new TxBuilder();
+        foreach ($utxos as $utxo) {
+            $builder->input($utxo->hash, $utxo->index);
+        }
+        $builder->output(1234, $p2wpkh);
+
+        $signer = new Signer($builder->get());
+        foreach ($utxos as $i => $utxo) {
+            $txOut = new TransactionOutput($utxo->value, $utxo->scriptPubKey);
+            $signer->input(0, $txOut)
+                ->sign($wif);
+        }
+
+        $signed = $signer->get();
+
+        $expectedWeight = 982;
+        $expectedVSize = 246;
+
+        $weight = SizeEstimation::estimateWeight($utxos, $signed->getOutputs());
+        $this->assertEquals($expectedWeight, $weight, "weight (tx.outputs) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs1);
+        $this->assertEquals($expectedWeight, $weight, "weight (outputs array w/ script string) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs2);
+        $this->assertEquals($expectedWeight, $weight, "weight (outputs array w/ ScriptInterface) should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $signed->getOutputs());
+        $this->assertEquals($expectedVSize, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs1);
+        $this->assertEquals($expectedVSize, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs2);
+        $this->assertEquals($expectedVSize, $vsize, "vsize should be the same");
+    }
+
+    public function testTxWeightP2SH_P2WPKH() {
+        $network = NetworkFactory::bitcoin();
+        $wif = PrivateKeyFactory::fromWif("L59Kc7sjZPfKTrWCn4hvs5AUWQJXrn1hCMFkxx7YZGRhAC12k4Kr", null, $network);
+
+        $hash160 = $wif->getPubKeyHash();
+        $wp = WitnessProgram::v0($hash160);
+        $rs = new P2shScript($wp->getScript());
+        $spk = $rs->getOutputScript();
+        $dest = ScriptFactory::fromHex("0020916ff972855bf7589caf8c46a31f7f33b07d0100d953fde95a8354ac36e98165");
+
+        $value = 1234123;
+
+        $utxo = new UTXO(
+            "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+            0,
+            $value,
+            $rs->getAddress(),
+            $spk,
+            null,
+            $rs
+        );
+
+        $outputs1 = [[
+            "scriptPubKey" => $dest->getHex(),
+            "value" => $value,
+        ]];
+
+        $outputs2 = [[
+            "scriptPubKey" => $dest,
+            "value" => $value,
+        ]];
+
+        /** @var UTXO[] $utxos */
+        $utxos = [$utxo];
+        $builder = new TxBuilder();
+        foreach ($utxos as $utxo) {
+            $builder->input($utxo->hash, $utxo->index);
+        }
+        $builder->output($value - 6000, $dest);
+
+        $signer = new Signer($builder->get());
+        foreach ($utxos as $i => $utxo) {
+            $txOut = new TransactionOutput($utxo->value, $utxo->scriptPubKey);
+            $signData = (new SignData())
+                ->p2sh($rs);
+
+            $signer->input(0, $txOut, $signData)
+                ->sign($wif);
+        }
+
+        $signed = $signer->get();
+
+        $weight = SizeEstimation::estimateWeight($utxos, $signed->getOutputs());
+        $this->assertEquals(578, $weight, "weight (tx.outputs) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs1);
+        $this->assertEquals(578, $weight, "weight (outputs array w/ script string) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs2);
+        $this->assertEquals(578, $weight, "weight (outputs array w/ ScriptInterface) should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $signed->getOutputs());
+        $this->assertEquals(145, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs1);
+        $this->assertEquals(145, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs2);
+        $this->assertEquals(145, $vsize, "vsize should be the same");
+    }
+
+    public function testTxWeightMultisig1Of1() {
+        $network = NetworkFactory::bitcoin();
+        $wif = PrivateKeyFactory::fromWif("L58TinpdSF52WNbKx7Jnyj5UohzDWxYupeiBd4FrnuPmPvBkLUzW", null, $network);
+
+        $multisig = ScriptFactory::scriptPubKey()->multisig(1, [$wif->getPublicKey()]);
+        $ws = new WitnessScript($multisig);
+        $spk = $ws->getOutputScript();
+        $dest = ScriptFactory::fromHex("00145d6f02f47dc6c57093df246e3742cfe1e22ab410");
+
+        $value = 100000;
+
+        $utxo = new UTXO(
+            "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+            0,
+            $value,
+            $ws->getAddress(),
+            $spk,
+            null,
+            null,
+            $ws
+        );
+
+        $outputs1 = [[
+            "scriptPubKey" => $dest->getHex(),
+            "value" => $value,
+        ]];
+
+        $outputs2 = [[
+            "scriptPubKey" => $dest,
+            "value" => $value,
+        ]];
+
+        /** @var UTXO[] $utxos */
+        $utxos = [$utxo];
+        $builder = new TxBuilder();
+        foreach ($utxos as $utxo) {
+            $builder->input($utxo->hash, $utxo->index);
+        }
+        $builder->output(73182, $dest);
+
+        $signer = new Signer($builder->get());
+        foreach ($utxos as $i => $utxo) {
+            $txOut = new TransactionOutput($utxo->value, $utxo->scriptPubKey);
+            $signData = (new SignData())
+                ->p2wsh($ws);
+
+            $signer->input(0, $txOut, $signData)
+                ->sign($wif);
+        }
+
+        $signed = $signer->get();
+
+        $expectedWeight = 443;
+        $expectedVsize = 111;
+
+        $weight = SizeEstimation::estimateWeight($utxos, $signed->getOutputs());
+        $this->assertEquals($expectedWeight, $weight, "weight (tx.outputs) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs1);
+        $this->assertEquals($expectedWeight, $weight, "weight (outputs array w/ script string) should be the same");
+
+        $weight = SizeEstimation::estimateWeight($utxos, $outputs2);
+        $this->assertEquals($expectedWeight, $weight, "weight (outputs array w/ ScriptInterface) should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $signed->getOutputs());
+        $this->assertEquals($expectedVsize, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs1);
+        $this->assertEquals($expectedVsize, $vsize, "vsize should be the same");
+
+        $vsize = SizeEstimation::estimateVsize($utxos, $outputs2);
+        $this->assertEquals($expectedVsize, $vsize, "vsize should be the same");
     }
 }
