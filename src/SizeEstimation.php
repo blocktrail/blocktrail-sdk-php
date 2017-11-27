@@ -9,6 +9,7 @@ use \BitWasp\Bitcoin\Script\ScriptInfo\Multisig;
 use \BitWasp\Bitcoin\Script\ScriptInfo\PayToPubKey;
 use \BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
 use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Transaction\TransactionOutputInterface;
 
 class SizeEstimation
 {
@@ -259,17 +260,26 @@ class SizeEstimation
     public static function estimateOutputsSize(array $outputs) {
         $outputSize = 0;
         foreach ($outputs as $output) {
-            if (isset($output['scriptPubKey'])) {
-                $outputSize += 8; // amount
-                if ($output['scriptPubKey'] instanceof ScriptInterface) {
-                    $outputSize += $output['scriptPubKey']->getBuffer()->getSize();
-                } else {
-                    $outputSize += strlen($output['scriptPubKey']) / 2; // asume HEX
-                }
+            $outputSize += 8;
+
+            $scriptSize = null;
+            if ($output instanceof TransactionOutputInterface) {
+                $scriptSize = $output->getScript()->getBuffer()->getSize();
             } else {
-                $outputSize += 34;
+                if (isset($output['scriptPubKey'])) {
+                    if ($output['scriptPubKey'] instanceof ScriptInterface) {
+                        $scriptSize = $output['scriptPubKey']->getBuffer()->getSize();
+                    } else {
+                        $scriptSize = strlen($output['scriptPubKey']) / 2;
+                    }
+                } else {
+                    $scriptSize += 25;
+                }
             }
+
+            $outputSize += SizeEstimation::getLengthOfVarInt($scriptSize) + $scriptSize;
         }
+
         return $outputSize;
     }
 
@@ -289,21 +299,15 @@ class SizeEstimation
      */
     public static function estimateWeight(array $utxos, array $outputs) {
         $outputsSize = SizeEstimation::estimateOutputsSize($outputs);
-        $baseSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, false), $outputsSize);
-        $witnessSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, true), $outputsSize);
+        $baseSize = 4
+            + SizeEstimation::getLengthOfVarInt(count($utxos)) + SizeEstimation::estimateInputsSize($utxos, false)
+            + SizeEstimation::getLengthOfVarInt(count($outputs)) + $outputsSize
+            + 4;
+        $witnessSize = 4
+            + SizeEstimation::getLengthOfVarInt(count($utxos)) + SizeEstimation::estimateInputsSize($utxos, true)
+            + SizeEstimation::getLengthOfVarInt(count($outputs)) + $outputsSize
+            + 4;
 
         return ($baseSize * 3) + $witnessSize;
-    }
-
-    /**
-     * @param UTXO[] $utxos
-     * @param array $outputs
-     * @return int
-     */
-    public static function estimateLegacySize(array $utxos, array $outputs) {
-        $outputsSize = SizeEstimation::estimateOutputsSize($outputs);
-        $baseSize = Wallet::estimateSize(SizeEstimation::estimateInputsSize($utxos, false), $outputsSize);
-
-        return $baseSize;
     }
 }

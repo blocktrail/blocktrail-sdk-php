@@ -871,6 +871,7 @@ abstract class Wallet implements WalletInterface {
 
     /**
      * @todo: variable varint
+     * @todo: deprecate
      * @param int $txinSize
      * @param int $txoutSize
      * @return float
