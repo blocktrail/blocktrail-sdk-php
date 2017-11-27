@@ -63,7 +63,7 @@ class BackupGenerator {
         $this->identifier = $identifier;
         $this->backupInfo = $backupInfo;
         $this->extra = $extra ?: [];
-        $this->options = array_merge($this->options, $options);
+        $this->options = array_merge($this->options, $options ?: []);
     }
 
     /**
@@ -76,21 +76,22 @@ class BackupGenerator {
 
         //create QR codes for each blocktrail pub key
         foreach ($this->backupInfo['blocktrail_public_keys'] as $keyIndex => $key) {
-            $key = $key instanceof BIP32Key ? $key : BIP32Key::create($key);
+            $key = BlocktrailSDK::normalizeBIP32Key($key);
+            list ($xpub, $path) = $key->tuple();
             $qrCode = new QrCode();
             $qrCode
-                ->setText($key->key())
+                ->setText($xpub)
                 ->setSize(self::QR_CODE_SIZE-20)
                 ->setPadding(10)
                 ->setErrorCorrection('high')
                 ->setForegroundColor(array('r' => 0, 'g' => 0, 'b' => 0, 'a' => 0))
                 ->setBackgroundColor(array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 0))
-                ->setLabel("KeyIndex: ".$keyIndex."    Path: ".$key->path())
+                ->setLabel("KeyIndex: {$keyIndex}    Path: {$path}")
                 ->setLabelFontSize(10)
             ;
             $this->blocktrailPubKeyQRs[] = array(
                 'keyIndex'  => $keyIndex,
-                'path'      => $key->path(),
+                'path'      => $path,
                 'qr'        => $qrCode->getDataUri(),
                 'qrImg'     => $qrCode->getImage(),
             );
