@@ -47,7 +47,7 @@ $blocktrailKeys = array(
 
 
 // an instance of the bitcoin data service we want to use to search addresses for unspent outputs
-$utxoFinder = new BlocktrailBatchUnspentOutputFinder("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet */, 'v1');
+$utxoFinder = new BlocktrailBatchUnspentOutputFinder(getenv('BLOCKTRAIL_SDK_APIKEY') ?: "MY_APIKEY", getenv('BLOCKTRAIL_SDK_APISECRET') ?: "MY_APISECRET", "BTC", true /* testnet */, 'v1');
 
 // alternative UTXO finder
 // $utxoFinder = new InsightUnspentOutputFinder(true /* testnet */);

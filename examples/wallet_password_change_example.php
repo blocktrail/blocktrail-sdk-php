@@ -7,7 +7,7 @@ use Blocktrail\SDK\WalletInterface;
 require_once __DIR__ . "/../vendor/autoload.php";
 
 
-$client = new BlocktrailSDK("MY_APIKEY", "MY_APISECRET", "BTC", true /* testnet */, 'v1');
+$client = new BlocktrailSDK(getenv('BLOCKTRAIL_SDK_APIKEY') ?: "MY_APIKEY", getenv('BLOCKTRAIL_SDK_APISECRET') ?: "MY_APISECRET", "BTC", true /* testnet */, 'v1');
 $client->setVerboseErrors(true);
 
 //create a new wallet
