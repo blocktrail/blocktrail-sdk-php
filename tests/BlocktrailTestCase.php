@@ -25,6 +25,8 @@ abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
         $apiSecret = getenv('BLOCKTRAIL_SDK_APISECRET') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APISECRET';
 
         $client = new BlocktrailSDK($apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint);
+        $client->setVerboseErrors(true);
+//        $client->setCurlDebugging(true);
 
         return $client;
     }

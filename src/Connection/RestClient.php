@@ -3,6 +3,7 @@
 namespace Blocktrail\SDK\Connection;
 
 use Blocktrail\SDK\Blocktrail;
+use Blocktrail\SDK\Throttler;
 use GuzzleHttp\Client as Guzzle;
 use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\HandlerStack;
@@ -27,6 +28,11 @@ class RestClient extends BaseRestClient
     protected $guzzle;
 
     /**
+     * @var Throttler
+     */
+    protected $throttler;
+
+    /**
      * GuzzleRestClient constructor.
      * @param $apiEndpoint
      * @param $apiVersion
@@ -36,6 +42,13 @@ class RestClient extends BaseRestClient
     public function __construct($apiEndpoint, $apiVersion, $apiKey, $apiSecret) {
         parent::__construct($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
         $this->guzzle = $this->createGuzzleClient();
+        if ($throttle = \getenv('BLOCKTRAIL_SDK_THROTTLE_BTCCOM')) {
+            $throttle = (float)$throttle;
+        } else {
+            $throttle = 0.3;
+        }
+
+        $this->throttler = Throttler::getInstance($this->apiEndpoint, $throttle);
     }
 
     /**
@@ -55,7 +68,7 @@ class RestClient extends BaseRestClient
 
         $curlHandler = new CurlHandler($curlOptions);
         $handler = HandlerStack::create($curlHandler);
-        $handler->push(GuzzleHttpSignatures::middlewareFromContext($context));
+//        $handler->push(GuzzleHttpSignatures::middlewareFromContext($context));
 
         return new Guzzle($options + array(
             'handler' => $handler,
@@ -128,6 +141,8 @@ class RestClient extends BaseRestClient
      * @return Response
      */
     public function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
+        $this->throttler->waitForThrottle();
+
         $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $auth, $contentMD5Mode, $timeout);
         $response = $this->guzzle->send($request, ['auth' => $auth, 'timeout' => $timeout]);
 

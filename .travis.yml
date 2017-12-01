@@ -12,6 +12,10 @@ branches:
   only:
     - "master"
 
+cache:
+  directories:
+    - $HOME/.composer/cache/files
+
 before_install:
   # disable XDEBUG unless specified to be used
   - sh -c 'if [ "${WITH_XDEBUG}" = "false" ]; then phpenv config-rm xdebug.ini && echo "xdebug disabled" || exit 0; fi'
@@ -62,8 +66,11 @@ notifications:
 
 env:
   global:
+    - BLOCKTRAIL_SDK_THROTTLE_BTCCOM=0.01
     - secure: d4a4n3bdFO/TZGBnEO0zOarL7kTkh4WyH6U+sEQoqe7Wbs1OIN014JXqYZZn2TDQ8kKjxKGi63TiDvh2wvKF+B7dlOo3/WvqNOEA48eVmRI3/LQsAAcmUNIK6YnBN2YgIy0kl8ycDvx0W7hK/A6FFmbnGTJnG6vnQ5NmBe1G3ug=
     - secure: ndOLTmYQgNKnr4qXt9/1TjYUDuGFn7K/v5L4urwIAxwD1jJYLHpntvhjTehQq34VX2uIQeDn0Zd4qyorpJxTI5Pmow51j5ZmtA0lS8TaFTwfWc+GZIG7UT3vcoHC5U0o54KJAlumSSncTMttPPfYsD7+8+8KYEjrOlXg6djq5fI=
+    # BLOCKTRAIL_SDK_BTCCOM_API_ENDPOINT
+    - secure: "hJDN/XyeCJVi86R08zPN/xpI/7U+SU6tWmfnVp4wF6cyZmdDY6UztSa5FaS/RRh0mF2M66PoW00VxyoZ7dj0avZrZWwILYdBpwiIWCg2Ay7rkBGbE/kiWuMfOAVpf8x3zO/ArunJC7spiWW+amTFxk0sutkz84bLxyQahsPmVgE="
   matrix:
     - PHPCS=false WITH_XDEBUG=false  # default disable phpcs run and disable xdebug
 

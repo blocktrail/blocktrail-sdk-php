@@ -11,7 +11,7 @@ class BlocktrailUnspentOutputFinder extends UnspentOutputFinder {
     protected $retryLimit;
     protected $sleepTime;
     protected $retries;
-    protected $paginationLimit = 500;   //max results to retrieve at a time
+    protected $paginationLimit = 50;   //max results to retrieve at a time
 
     /**
      * @param        $apiKey
