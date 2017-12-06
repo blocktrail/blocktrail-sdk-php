@@ -629,7 +629,15 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
-        $data = $this->storeNewWalletV1($options['identifier'], $primaryPublicKey->tuple(), $backupPublicKey->tuple(), $primaryMnemonic, $checksum, $options['key_index']);
+        $data = $this->storeNewWalletV1(
+            $options['identifier'],
+            $primaryPublicKey->tuple(),
+            $backupPublicKey->tuple(),
+            $primaryMnemonic,
+            $checksum,
+            $options['key_index'],
+            array_key_exists('segwit', $options) ? $options['segwit'] : false
+        );
 
         // received the blocktrail public keys
         $blocktrailPublicKeys = Util::arrayMapWithIndex(function ($keyIndex, $pubKeyTuple) {
@@ -747,7 +755,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $storeDataOnServer ? $encryptedSecret : false,
             $storeDataOnServer ? $recoverySecret : false,
             $checksum,
-            $options['key_index']
+            $options['key_index'],
+            array_key_exists('segwit', $options) ? $options['segwit'] : false
         );
 
         // received the blocktrail public keys
@@ -886,7 +895,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $storeDataOnServer ? base64_encode($encryptedSecret->getBinary()) : false,
             $storeDataOnServer ? $recoverySecret->getHex() : false,
             $checksum,
-            $options['key_index']
+            $options['key_index'],
+            array_key_exists('segwit', $options) ? $options['segwit'] : false
         );
 
         // received the blocktrail public keys
@@ -960,20 +970,22 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *
      * @param string    $identifier             the wallet identifier to create
      * @param array     $primaryPublicKey       BIP32 extended public key - [key, path]
-     * @param string    $backupPublicKey        plain public key
+     * @param array     $backupPublicKey        BIP32 extended public key - [backup key, path "M"]
      * @param string    $primaryMnemonic        mnemonic to store
      * @param string    $checksum               checksum to store
      * @param int       $keyIndex               account that we expect to use
+     * @param bool      $segwit                 opt in to segwit
      * @return mixed
      */
-    public function storeNewWalletV1($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex) {
+    public function storeNewWalletV1($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex, $segwit = false) {
         $data = [
             'identifier' => $identifier,
             'primary_public_key' => $primaryPublicKey,
             'backup_public_key' => $backupPublicKey,
             'primary_mnemonic' => $primaryMnemonic,
             'checksum' => $checksum,
-            'key_index' => $keyIndex
+            'key_index' => $keyIndex,
+            'segwit' => $segwit,
         ];
         $this->verifyPublicOnly($data);
         $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
@@ -985,16 +997,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *
      * @param string $identifier       the wallet identifier to create
      * @param array  $primaryPublicKey BIP32 extended public key - [key, path]
-     * @param string $backupPublicKey  plain public key
+     * @param array  $backupPublicKey  BIP32 extended public key - [backup key, path "M"]
      * @param        $encryptedPrimarySeed
      * @param        $encryptedSecret
      * @param        $recoverySecret
      * @param string $checksum         checksum to store
      * @param int    $keyIndex         account that we expect to use
+     * @param bool   $segwit           opt in to segwit
      * @return mixed
      * @throws \Exception
      */
-    public function storeNewWalletV2($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex) {
+    public function storeNewWalletV2($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit = false) {
         $data = [
             'identifier' => $identifier,
             'wallet_version' => Wallet::WALLET_VERSION_V2,
@@ -1004,7 +1017,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'encrypted_secret' => $encryptedSecret,
             'recovery_secret' => $recoverySecret,
             'checksum' => $checksum,
-            'key_index' => $keyIndex
+            'key_index' => $keyIndex,
+            'segwit' => $segwit,
         ];
         $this->verifyPublicOnly($data);
         $response = $this->client->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
@@ -1016,16 +1030,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *
      * @param string $identifier       the wallet identifier to create
      * @param array  $primaryPublicKey BIP32 extended public key - [key, path]
-     * @param string $backupPublicKey  plain public key
+     * @param array  $backupPublicKey  BIP32 extended public key - [backup key, path "M"]
      * @param        $encryptedPrimarySeed
      * @param        $encryptedSecret
      * @param        $recoverySecret
      * @param string $checksum         checksum to store
      * @param int    $keyIndex         account that we expect to use
+     * @param bool   $segwit           opt in to segwit
      * @return mixed
      * @throws \Exception
      */
-    public function storeNewWalletV3($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex) {
+    public function storeNewWalletV3($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit = false) {
 
         $data = [
             'identifier' => $identifier,
@@ -1036,7 +1051,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'encrypted_secret' => $encryptedSecret,
             'recovery_secret' => $recoverySecret,
             'checksum' => $checksum,
-            'key_index' => $keyIndex
+            'key_index' => $keyIndex,
+            'segwit' => $segwit,
         ];
 
         $this->verifyPublicOnly($data);
