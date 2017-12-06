@@ -285,9 +285,10 @@ interface BlocktrailSDKInterface {
      * @param string    $primaryMnemonic        mnemonic to store
      * @param string    $checksum               checksum to store
      * @param int       $keyIndex               account that we expect to use
+     * @param bool      $segwit                 opt in to segwit
      * @return mixed
      */
-    public function storeNewWalletV1($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex);
+    public function storeNewWalletV1($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex, $segwit);
 
     /**
      * create wallet using the API
@@ -300,10 +301,28 @@ interface BlocktrailSDKInterface {
      * @param        $recoverySecret
      * @param string $checksum         checksum to store
      * @param int    $keyIndex         account that we expect to use
+     * @param bool   $segwit           opt in to segwit
      * @return mixed
      * @throws \Exception
      */
-    public function storeNewWalletV2($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex);
+    public function storeNewWalletV2($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit);
+
+    /**
+     * create wallet using the API
+     *
+     * @param string $identifier       the wallet identifier to create
+     * @param array  $primaryPublicKey BIP32 extended public key - [key, path]
+     * @param string $backupPublicKey  plain public key
+     * @param        $encryptedPrimarySeed
+     * @param        $encryptedSecret
+     * @param        $recoverySecret
+     * @param string $checksum         checksum to store
+     * @param int    $keyIndex         account that we expect to use
+     * @param bool   $segwit           opt in to segwit
+     * @return mixed
+     * @throws \Exception
+     */
+    public function storeNewWalletV3($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit);
 
     /**
      * upgrade wallet to use a new account number
