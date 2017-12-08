@@ -201,11 +201,15 @@ abstract class Wallet implements WalletInterface {
     /**
      * @param int|null $chainIndex
      * @return WalletPath
+     * @throws BlocktrailSDKException
      */
     protected function getWalletPath($chainIndex = null) {
         if ($chainIndex === null) {
             return WalletPath::create($this->keyIndex, $this->chainIndex);
         } else {
+            if (!is_int($chainIndex)) {
+                throw new BlocktrailSDKException("Chain index is invalid - should be an integer");
+            }
             return WalletPath::create($this->keyIndex, $chainIndex);
         }
     }
