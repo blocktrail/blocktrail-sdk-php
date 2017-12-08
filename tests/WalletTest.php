@@ -11,7 +11,6 @@ use BitWasp\Bitcoin\Address\SegwitAddress;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
 use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
-use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Script\ScriptType;
 use BitWasp\Bitcoin\Script\WitnessProgram;
@@ -417,6 +416,30 @@ class WalletTest extends BlocktrailTestCase {
         $tx = $this->getTx($client, $txid);
         $this->assertEquals(1, count($tx['inputs']));
 
+    }
+
+    /**
+     * this test requires / asumes that the test wallet it uses contains a balance
+     *
+     * we keep the wallet topped off with some coins,
+     * but if some funny guy ever empties it or if you use your own API key to run the test then it needs to be topped off again
+     *
+     * @throws \Exception
+     */
+    public function testCheckRejectsInvalidChainINdex()
+    {
+        $client = $this->setupBlocktrailSDK();
+
+        $unittestWallet = $client->initWallet([
+            "identifier" => "unittest-transaction",
+            "passphrase" => "password"
+        ]);
+
+        $exception = BlocktrailSDKException::class;
+        $msg = "Chain index is invalid - should be an integer";
+        $this->setExpectedException($exception, $msg);
+
+        $unittestWallet->getNewAddress('');
     }
 
     /**
