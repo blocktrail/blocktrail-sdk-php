@@ -2,6 +2,7 @@
 
 namespace Blocktrail\SDK;
 
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Endroid\QrCode\QrCode;
 
@@ -63,7 +64,7 @@ class BackupGenerator {
         $this->identifier = $identifier;
         $this->backupInfo = $backupInfo;
         $this->extra = $extra ?: [];
-        $this->options = array_merge($this->options, $options);
+        $this->options = array_merge($this->options, $options ?: []);
     }
 
     /**
@@ -76,10 +77,11 @@ class BackupGenerator {
 
         //create QR codes for each blocktrail pub key
         foreach ($this->backupInfo['blocktrail_public_keys'] as $keyIndex => $key) {
-            $key = $key instanceof BIP32Key ? $key : BIP32Key::create($key);
+            $key = $key instanceof BIP32Key ? $key : BIP32Key::create(HierarchicalKeyFactory::fromExtended($key[0]), $key[1]);
+
             $qrCode = new QrCode();
             $qrCode
-                ->setText($key->key())
+                ->setText($key->key()->toExtendedKey())
                 ->setSize(self::QR_CODE_SIZE-20)
                 ->setPadding(10)
                 ->setErrorCorrection('high')
