@@ -707,7 +707,8 @@ abstract class Wallet implements WalletInterface {
         list($fee, $change) = $this->determineFeeAndChange($txBuilder, $this->getOptimalFeePerKB(), $this->getLowPriorityFeePerKB());
 
         if ($txBuilder->getValidateFee() !== null) {
-            if (abs($txBuilder->getValidateFee() - $fee) > Wallet::BASE_FEE) {
+            // sanity check to make sure the API isn't giving us crappy data
+            if (abs($txBuilder->getValidateFee() - $fee) > (Wallet::BASE_FEE * 5)) {
                 throw new \Exception("the fee suggested by the coin selection ({$txBuilder->getValidateFee()}) seems incorrect ({$fee})");
             }
         }
