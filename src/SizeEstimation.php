@@ -299,14 +299,15 @@ class SizeEstimation
      */
     public static function estimateWeight(array $utxos, array $outputs) {
         $outputsSize = SizeEstimation::estimateOutputsSize($outputs);
-        $baseSize = 4
-            + SizeEstimation::getLengthOfVarInt(count($utxos)) + SizeEstimation::estimateInputsSize($utxos, false)
-            + SizeEstimation::getLengthOfVarInt(count($outputs)) + $outputsSize
-            + 4;
-        $witnessSize = 4
-            + SizeEstimation::getLengthOfVarInt(count($utxos)) + SizeEstimation::estimateInputsSize($utxos, true)
-            + SizeEstimation::getLengthOfVarInt(count($outputs)) + $outputsSize
-            + 4;
+        $outputsSize += SizeEstimation::getLengthOfVarInt(count($outputs));
+
+        $baseSize = 4 +
+            SizeEstimation::getLengthOfVarInt(count($utxos)) + SizeEstimation::estimateInputsSize($utxos, false) +
+            $outputsSize + 4;
+
+        $witnessSize = 4 +
+            SizeEstimation::getLengthOfVarInt(count($utxos)) + SizeEstimation::estimateInputsSize($utxos, true) +
+            $outputsSize + 4;
 
         return ($baseSize * 3) + $witnessSize;
     }

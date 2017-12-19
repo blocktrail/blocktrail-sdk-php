@@ -575,4 +575,180 @@ class SizeEstimationTest extends BlocktrailTestCase
         $vsize = SizeEstimation::estimateVsize($utxos, $outputs2);
         $this->assertEquals($expectedVsize, $vsize, "vsize should be the same");
     }
+
+    public function test1P2shInput1P2shOutput()
+    {
+
+        $keys = [
+            "4242424242424242424242424242424242424242424242424242424242424242",
+            "44d42424242424242424242424242424242424242424242424242424242424242",
+            "88d42424242424242424242424242424242424242424242424242424242424242",
+        ];
+
+        $privs = [];
+        $pubs = [];
+        foreach ($keys as $key) {
+            $priv = PrivateKeyFactory::fromHex($key, true);
+            $pubs[] = $priv->getPublicKey();
+            $privs[] = $priv;
+        }
+
+        $multisig = ScriptFactory::scriptPubKey()->multisig(2, $pubs);
+        $redeemScript = new P2shScript($multisig);
+
+        $value = 123123123;
+        $path = "";
+        $utxo = new UTXO(
+            "1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd",
+            0,
+            $value,
+            $redeemScript->getAddress(),
+            $redeemScript->getOutputScript(),
+            $path,
+            $redeemScript,
+            null
+        );
+
+        $outputs = [
+            new TransactionOutput($value, $redeemScript->getOutputScript())
+        ];
+
+        $est = new SizeEstimation();
+        $vsize = $est->estimateVSize([$utxo], $outputs);
+        $weight = $est->estimateWeight([$utxo], $outputs);
+        $this->assertEquals($vsize, 339);
+        $this->assertEquals($weight, 1356);
+
+    }
+
+
+    public function test1P2shInput0P2shOutputs()
+    {
+
+        $keys = [
+            "4242424242424242424242424242424242424242424242424242424242424242",
+            "44d42424242424242424242424242424242424242424242424242424242424242",
+            "88d42424242424242424242424242424242424242424242424242424242424242",
+        ];
+
+        $privs = [];
+        $pubs = [];
+        foreach ($keys as $key) {
+            $priv = PrivateKeyFactory::fromHex($key, true);
+            $pubs[] = $priv->getPublicKey();
+            $privs[] = $priv;
+        }
+
+        $multisig = ScriptFactory::scriptPubKey()->multisig(2, $pubs);
+        $redeemScript = new P2shScript($multisig);
+
+        $value = 123123123;
+        $path = "";
+        $utxo = new UTXO(
+            "1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd",
+            0,
+            $value,
+            $redeemScript->getAddress(),
+            $redeemScript->getOutputScript(),
+            $path,
+            $redeemScript,
+            null
+        );
+
+        $outputs = [];
+
+        $est = new SizeEstimation();
+        $vsize = $est->estimateVSize([$utxo], $outputs);
+        $weight = $est->estimateWeight([$utxo], $outputs);
+        $this->assertEquals($vsize, 307);
+        $this->assertEquals($weight, 1228);
+    }
+
+    public function test1NestedSegwitInput1P2shOutput()
+    {
+        $keys = [
+            "4242424242424242424242424242424242424242424242424242424242424242",
+            "44d42424242424242424242424242424242424242424242424242424242424242",
+            "88d42424242424242424242424242424242424242424242424242424242424242",
+        ];
+
+        $privs = [];
+        $pubs = [];
+        foreach ($keys as $key) {
+            $priv = PrivateKeyFactory::fromHex($key, true);
+            $pubs[] = $priv->getPublicKey();
+            $privs[] = $priv;
+        }
+
+        $multisig = ScriptFactory::scriptPubKey()->multisig(2, $pubs);
+        $witnessScript = new WitnessScript($multisig);
+        $redeemScript = new P2shScript($witnessScript);
+
+        $value = 123123123;
+        $path = "";
+        $utxo = new UTXO(
+            "1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd",
+            0,
+            $value,
+            $redeemScript->getAddress(),
+            $redeemScript->getOutputScript(),
+            $path,
+            $redeemScript,
+            $witnessScript
+        );
+
+        $outputs = [
+            new TransactionOutput($value, $redeemScript->getOutputScript())
+        ];
+
+        $est = new SizeEstimation();
+        $vsize = $est->estimateVSize([$utxo], $outputs);
+
+        $this->assertEquals($vsize, 182);
+        $weight = $est->estimateWeight([$utxo], $outputs);
+        $this->assertEquals($weight, 728);
+    }
+
+
+    public function test1NestedSegwitInput0Outputs()
+    {
+        $keys = [
+            "4242424242424242424242424242424242424242424242424242424242424242",
+            "44d42424242424242424242424242424242424242424242424242424242424242",
+            "88d42424242424242424242424242424242424242424242424242424242424242",
+        ];
+
+        $privs = [];
+        $pubs = [];
+        foreach ($keys as $key) {
+            $priv = PrivateKeyFactory::fromHex($key, true);
+            $pubs[] = $priv->getPublicKey();
+            $privs[] = $priv;
+        }
+
+        $multisig = ScriptFactory::scriptPubKey()->multisig(2, $pubs);
+        $witnessScript = new WitnessScript($multisig);
+        $redeemScript = new P2shScript($witnessScript);
+
+        $value = 123123123;
+        $path = "";
+        $utxo = new UTXO(
+            "1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd",
+            0,
+            $value,
+            $redeemScript->getAddress(),
+            $redeemScript->getOutputScript(),
+            $path,
+            $redeemScript,
+            $witnessScript
+        );
+
+        $outputs = [];
+        $est = new SizeEstimation();
+        $vsize = $est->estimateVSize([$utxo], $outputs);
+
+        $this->assertEquals($vsize, 150);
+        $weight = $est->estimateWeight([$utxo], $outputs);
+        $this->assertEquals($weight, 600);
+    }
 }
