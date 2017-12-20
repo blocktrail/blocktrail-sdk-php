@@ -502,6 +502,15 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
+     * generate a new derived private key and return the new address for it
+     *
+     * @return string
+     */
+    public function getNewChangeAddress() {
+        return $this->getNewAddressPair($this->changeIndex)[1];
+    }
+
+    /**
      * get the balance for the wallet
      *
      * @return int[]            [confirmed, unconfirmed]
@@ -715,7 +724,7 @@ abstract class Wallet implements WalletInterface {
 
         if ($change > 0) {
             $send[] = [
-                'address' => $txBuilder->getChangeAddress() ?: $this->getNewAddress($this->changeIndex),
+                'address' => $txBuilder->getChangeAddress() ?: $this->getNewChangeAddress(),
                 'value' => $change
             ];
         }

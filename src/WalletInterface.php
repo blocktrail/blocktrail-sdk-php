@@ -137,6 +137,13 @@ interface WalletInterface {
     public function getNewAddress($chainIndex = null);
 
     /**
+     * generate a new derived private key and return the new address for it
+     *
+     * @return string
+     */
+    public function getNewChangeAddress();
+
+    /**
      * get the balance for the wallet
      *
      * @return int[]            [confirmed, unconfirmed]
