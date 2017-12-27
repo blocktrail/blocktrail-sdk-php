@@ -146,6 +146,7 @@ abstract class Wallet implements WalletInterface {
      */
     protected $changeIndex;
 
+    protected $highPriorityFeePerKB;
     protected $optimalFeePerKB;
     protected $lowPriorityFeePerKB;
     protected $feePerKBAge;
@@ -713,7 +714,7 @@ abstract class Wallet implements WalletInterface {
             throw new \Exception("Atempting to spend more than sum of UTXOs");
         }
 
-        list($fee, $change) = $this->determineFeeAndChange($txBuilder, $this->getOptimalFeePerKB(), $this->getLowPriorityFeePerKB());
+        list($fee, $change) = $this->determineFeeAndChange($txBuilder, $this->getHighPriorityFeePerKB(), $this->getOptimalFeePerKB(), $this->getLowPriorityFeePerKB());
 
         if ($txBuilder->getValidateFee() !== null) {
             // sanity check to make sure the API isn't giving us crappy data
@@ -753,7 +754,7 @@ abstract class Wallet implements WalletInterface {
         return [$txb->get(), $signInfo];
     }
 
-    public function determineFeeAndChange(TransactionBuilder $txBuilder, $optimalFeePerKB, $lowPriorityFeePerKB) {
+    public function determineFeeAndChange(TransactionBuilder $txBuilder, $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB) {
         $send = $txBuilder->getOutputs();
         $utxos = $txBuilder->getUtxos();
 
@@ -772,7 +773,7 @@ abstract class Wallet implements WalletInterface {
                 $change = 0;
             }
         } else {
-            $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB, $lowPriorityFeePerKB);
+            $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB);
 
             $change = $this->determineChange($utxos, $send, $fee);
 
@@ -782,7 +783,7 @@ abstract class Wallet implements WalletInterface {
                 $send[$changeIdx] = ['address' => 'change', 'value' => $change];
 
                 // recaculate fee now that we know that we have a change output
-                $fee2 = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB, $lowPriorityFeePerKB);
+                $fee2 = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB);
 
                 // unset dummy change output
                 unset($send[$changeIdx]);
@@ -805,7 +806,7 @@ abstract class Wallet implements WalletInterface {
             }
         }
 
-        $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $optimalFeePerKB, $lowPriorityFeePerKB);
+        $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB);
 
         return [$fee, $change];
     }
@@ -954,18 +955,22 @@ abstract class Wallet implements WalletInterface {
      * @param UTXO[]  $utxos
      * @param array[] $outputs
      * @param         $feeStrategy
+     * @param         $highPriorityFeePerKB
      * @param         $optimalFeePerKB
      * @param         $lowPriorityFeePerKB
      * @return int
      * @throws BlocktrailSDKException
      */
-    protected function determineFee($utxos, $outputs, $feeStrategy, $optimalFeePerKB, $lowPriorityFeePerKB) {
+    protected function determineFee($utxos, $outputs, $feeStrategy, $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB) {
 
         $size = SizeEstimation::estimateVsize($utxos, $outputs);
 
         switch ($feeStrategy) {
             case self::FEE_STRATEGY_BASE_FEE:
                 return self::baseFeeForSize($size);
+
+            case self::FEE_STRATEGY_HIGH_PRIORITY:
+                return (int)round(($size / 1000) * $highPriorityFeePerKB);
 
             case self::FEE_STRATEGY_OPTIMAL:
                 return (int)round(($size / 1000) * $optimalFeePerKB);
@@ -1060,11 +1065,20 @@ abstract class Wallet implements WalletInterface {
     public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
         $result = $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
 
+        $this->highPriorityFeePerKB = $result['fees'][self::FEE_STRATEGY_HIGH_PRIORITY];
         $this->optimalFeePerKB = $result['fees'][self::FEE_STRATEGY_OPTIMAL];
         $this->lowPriorityFeePerKB = $result['fees'][self::FEE_STRATEGY_LOW_PRIORITY];
         $this->feePerKBAge = time();
 
         return $result;
+    }
+
+    public function getHighPriorityFeePerKB() {
+        if (!$this->highPriorityFeePerKB || $this->feePerKBAge < time() - 60) {
+            $this->updateFeePerKB();
+        }
+
+        return $this->highPriorityFeePerKB;
     }
 
     public function getOptimalFeePerKB() {
@@ -1086,6 +1100,7 @@ abstract class Wallet implements WalletInterface {
     public function updateFeePerKB() {
         $result = $this->sdk->feePerKB();
 
+        $this->highPriorityFeePerKB = $result[self::FEE_STRATEGY_HIGH_PRIORITY];
         $this->optimalFeePerKB = $result[self::FEE_STRATEGY_OPTIMAL];
         $this->lowPriorityFeePerKB = $result[self::FEE_STRATEGY_LOW_PRIORITY];
 

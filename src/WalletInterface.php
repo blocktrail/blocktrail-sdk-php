@@ -12,6 +12,7 @@ use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 interface WalletInterface {
 
     const FEE_STRATEGY_BASE_FEE = 'base_fee';
+    const FEE_STRATEGY_HIGH_PRIORITY = 'high_priority';
     const FEE_STRATEGY_OPTIMAL = 'optimal';
     const FEE_STRATEGY_LOW_PRIORITY = 'low_priority';
 
