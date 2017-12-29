@@ -2,13 +2,11 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
-use BitWasp\Bitcoin\Address\SegwitAddress;
-use BitWasp\Bitcoin\Script\Script;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Buffertools\Buffer;
+use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 /**
@@ -39,7 +37,17 @@ class TransactionBuilder {
 
     private $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL;
 
-    public function __construct() {
+    /**
+     * @var AddressReaderBase
+     */
+    private $addressReader;
+
+    /**
+     * TransactionBuilder constructor.
+     * @param AddressReaderBase $addressReader
+     */
+    public function __construct(AddressReaderBase $addressReader) {
+        $this->addressReader = $addressReader;
     }
 
     /**
@@ -54,7 +62,7 @@ class TransactionBuilder {
      * @return $this
      */
     public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null, $witnessScript = null, $signMode = SignInfo::MODE_SIGN) {
-        $address = $address instanceof AddressInterface ? $address : AddressFactory::fromString($address);
+        $address = $address instanceof AddressInterface ? $address : $this->addressReader->fromString($address);
         $scriptPubKey = ($scriptPubKey instanceof ScriptInterface)
             ? $scriptPubKey
             : (ctype_xdigit($scriptPubKey) ? ScriptFactory::fromHex($scriptPubKey) : null);
@@ -96,7 +104,7 @@ class TransactionBuilder {
      * @throws \Exception
      */
     public function addRecipient($address, $value) {
-        $object = AddressFactory::fromString($address);
+        $object = $this->addressReader->fromString($address);
         if ($object->getAddress() != $address) {
             throw new \Exception("Invalid address [{$address}]");
         }
@@ -110,17 +118,10 @@ class TransactionBuilder {
             throw new \Exception("Values should be more than dust (" . Blocktrail::DUST . ")");
         }
 
-        if ($object instanceof SegwitAddress) {
-            $this->addOutput([
-                'scriptPubKey' => $object->getScriptPubKey(),
-                'value' => $value
-            ]);
-        } else {
-            $this->addOutput([
-                'address' => $address,
-                'value' => $value
-            ]);
-        }
+        $this->addOutput([
+            'scriptPubKey' => $object->getScriptPubKey(),
+            'value' => $value
+        ]);
 
         return $this;
     }

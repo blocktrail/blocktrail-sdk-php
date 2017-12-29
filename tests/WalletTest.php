@@ -21,6 +21,7 @@ use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
 
 use Blocktrail\CryptoJSAES\CryptoJSAES;
+use Blocktrail\SDK\Address\BitcoinAddressReader;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\BlocktrailSDK;
@@ -161,6 +162,7 @@ class WalletTest extends BlocktrailTestCase {
         $blocktrailPublicKeys = $result['blocktrail_public_keys'];
         $keyIndex = $result['key_index'];
 
+        // todo: this hardcodes bitcoin, and testnet, despite the SDK client being initialized outside this function
         $wallet = new WalletV2(
             $client,
             $identifier,
@@ -173,6 +175,7 @@ class WalletTest extends BlocktrailTestCase {
             'bitcoin',
             $testnet,
             false,
+            new BitcoinAddressReader(),
             $checksum
         );
 
@@ -367,7 +370,7 @@ class WalletTest extends BlocktrailTestCase {
 
         $rand = random_int(1, 3);
 
-        $builder = (new TransactionBuilder())
+        $builder = (new TransactionBuilder($segwitwallet->getAddressReader()))
             ->addRecipient($address, BlocktrailSDK::toSatoshi(0.015) * $rand)
             ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE);
 
@@ -405,7 +408,7 @@ class WalletTest extends BlocktrailTestCase {
 
         $utxo = $tx['outputs'][$utxoIdx];
 
-        $spendSegwit = (new TransactionBuilder())
+        $spendSegwit = (new TransactionBuilder($segwitwallet->getAddressReader()))
             ->addRecipient($segwitwallet->getNewAddress(), BlocktrailSDK::toSatoshi(0.010) * $rand)
             ->spendOutput($tx['hash'], $utxoIdx, $utxo['value'], $utxo['address'], $utxo['script_hex'], $path)
             ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE);
@@ -467,7 +470,7 @@ class WalletTest extends BlocktrailTestCase {
         $random = random_int(1, 4);
         $receiveAmount = BlocktrailSDK::toSatoshi(0.0001) * $random;
 
-        $builder = (new TransactionBuilder())
+        $builder = (new TransactionBuilder($unittestWallet->getAddressReader()))
             ->addRecipient($addr->getAddress(), $receiveAmount)
             ->setFeeStrategy(Wallet::FEE_STRATEGY_OPTIMAL);
 
@@ -533,7 +536,7 @@ class WalletTest extends BlocktrailTestCase {
         $fundTx = [];
         $fundTxOutIdx = [];
 
-        $builder = (new TransactionBuilder())
+        $builder = (new TransactionBuilder($unittestWallet->getAddressReader()))
             ->addRecipient($unittestAddress, BlocktrailSDK::toSatoshi(0.0003))
             ->setFeeStrategy(Wallet::FEE_STRATEGY_OPTIMAL);
 
@@ -743,7 +746,7 @@ class WalletTest extends BlocktrailTestCase {
          */
         $value = BlocktrailSDK::toSatoshi(0.0002);
         $moon = "MOOOOOOOOOOOOON!";
-        $txBuilder = new TransactionBuilder();
+        $txBuilder = new TransactionBuilder($wallet->getAddressReader());
         $txBuilder->randomizeChangeOutput(false);
         $txBuilder->addRecipient($address, $value);
         $txBuilder->addOpReturn($moon);
@@ -1341,7 +1344,7 @@ class WalletTest extends BlocktrailTestCase {
         /** @var Transaction $tx */
         /** @var SignInfo[] $signInfo */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     $txid,
                     $vout,
@@ -1411,7 +1414,7 @@ class WalletTest extends BlocktrailTestCase {
         /** @var Transaction $tx */
         /** @var SignInfo[] $signInfo */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "0d8703ab259b03a757e37f3cdba7fc4543e8d47f7cc3556e46c0aeef6f5e832b",
                     0,
@@ -1487,7 +1490,7 @@ class WalletTest extends BlocktrailTestCase {
         try {
             /** @var Transaction $tx */
             list($tx, $signInfo) = $wallet->buildTx(
-                (new TransactionBuilder())
+                (new TransactionBuilder($wallet->getAddressReader()))
                     ->spendOutput(
                         "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                         0,
@@ -1514,7 +1517,7 @@ class WalletTest extends BlocktrailTestCase {
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,
@@ -1576,7 +1579,7 @@ class WalletTest extends BlocktrailTestCase {
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,
@@ -1646,7 +1649,7 @@ class WalletTest extends BlocktrailTestCase {
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,
@@ -1716,7 +1719,7 @@ class WalletTest extends BlocktrailTestCase {
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,
@@ -1788,7 +1791,7 @@ class WalletTest extends BlocktrailTestCase {
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,
@@ -1846,7 +1849,7 @@ class WalletTest extends BlocktrailTestCase {
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,
@@ -1883,7 +1886,7 @@ class WalletTest extends BlocktrailTestCase {
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
-            (new TransactionBuilder())
+            (new TransactionBuilder($wallet->getAddressReader()))
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,

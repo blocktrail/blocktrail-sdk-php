@@ -2,13 +2,16 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Address\Base58AddressInterface;
+use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
+use BitWasp\Bitcoin\Address\ScriptHashAddress;
 use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\MessageSigner\MessageSigner;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Script\ScriptType;
 use BitWasp\Bitcoin\Script\WitnessScript;
 use BitWasp\Bitcoin\Transaction\Factory\SignData;
 use BitWasp\Bitcoin\Transaction\Factory\Signer;
@@ -18,6 +21,9 @@ use BitWasp\Bitcoin\Transaction\SignatureHash\SigHash;
 use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Buffertools\Buffer;
+use Blocktrail\SDK\Address\AddressReaderBase;
+use Blocktrail\SDK\Address\BitcoinCashAddressReader;
+use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -124,6 +130,9 @@ abstract class Wallet implements WalletInterface {
      */
     protected $derivationsByAddress = [];
 
+    /**
+     * @var string
+     */
     protected $checksum;
 
     /**
@@ -146,6 +155,11 @@ abstract class Wallet implements WalletInterface {
      */
     protected $changeIndex;
 
+    /**
+     * @var AddressReaderBase
+     */
+    protected $addressReader;
+
     protected $highPriorityFeePerKB;
     protected $optimalFeePerKB;
     protected $lowPriorityFeePerKB;
@@ -165,7 +179,7 @@ abstract class Wallet implements WalletInterface {
      * @param string                        $checksum
      * @throws BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, AddressReaderBase $addressReader, $checksum) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
@@ -194,9 +208,17 @@ abstract class Wallet implements WalletInterface {
             $changeIdx = self::CHAIN_BCC_DEFAULT;
         }
 
+        $this->addressReader = $addressReader;
         $this->isSegwit = (bool) $segwit;
         $this->chainIndex = $chainIdx;
         $this->changeIndex = $changeIdx;
+    }
+
+    /**
+     * @return AddressReaderBase
+     */
+    public function getAddressReader() {
+        return $this->addressReader;
     }
 
     /**
@@ -311,12 +333,37 @@ abstract class Wallet implements WalletInterface {
 
             $path = $new['path'];
             $address = $new['address'];
+
+            $serverDecoded = $this->addressReader->fromString($address);
+
             $redeemScript = $new['redeem_script'];
             $witnessScript = array_key_exists('witness_script', $new) ? $new['witness_script'] : null;
 
             /** @var ScriptInterface $checkRedeemScript */
             /** @var ScriptInterface $checkWitnessScript */
             list($checkAddress, $checkRedeemScript, $checkWitnessScript) = $this->getRedeemScriptByPath($path);
+
+            $oursDecoded = $this->addressReader->fromString($checkAddress);
+
+            if ($this->network === "bitcoincash" &&
+                $serverDecoded instanceof Base58AddressInterface &&
+                $oursDecoded instanceof CashAddress
+            ) {
+                // our address is a cashaddr, server gave us base58.
+
+                if (!$oursDecoded->getHash()->equals($serverDecoded->getHash())) {
+                    throw new BlocktrailSDKException("Failed to verify legacy address from server [hash mismatch]");
+                }
+
+                $matchedP2PKH = $serverDecoded instanceof PayToPubKeyHashAddress && $oursDecoded->getType() === ScriptType::P2PKH;
+                $matchedP2SH = $serverDecoded instanceof ScriptHashAddress && $oursDecoded->getType() === ScriptType::P2SH;
+                if (!($matchedP2PKH || $matchedP2SH)) {
+                    throw new BlocktrailSDKException("Failed to verify legacy address from server [prefix mismatch]");
+                }
+
+                // promote the legacy address to our cashaddr, as they are equivalent.
+                $address = $checkAddress;
+            }
 
             if ($checkAddress != $address) {
                 throw new \Exception("Failed to verify that address from API [{$address}] matches address locally [{$checkAddress}]");
@@ -449,7 +496,9 @@ abstract class Wallet implements WalletInterface {
             throw new BlocktrailSDKException("Unsupported chain in path");
         }
 
-        return new WalletScript($path, $scriptPubKey, $redeemScript, $witnessScript);
+        $address = $this->addressReader->fromOutputScript($scriptPubKey);
+
+        return new WalletScript($path, $scriptPubKey, $redeemScript, $witnessScript, $address);
     }
 
     /**
@@ -459,6 +508,11 @@ abstract class Wallet implements WalletInterface {
      * @return array
      */
     public function getPathForAddress($address) {
+        $decoded = $this->addressReader->fromString($address);
+        if ($decoded instanceof CashAddress) {
+            $address = $decoded->getLegacyAddress();
+        }
+
         return $this->sdk->getPathForAddress($this->identifier, $address);
     }
 
@@ -559,7 +613,7 @@ abstract class Wallet implements WalletInterface {
 
         $outputs = self::normalizeOutputsStruct($outputs);
 
-        $txBuilder = new TransactionBuilder();
+        $txBuilder = new TransactionBuilder($this->addressReader);
         $txBuilder->randomizeChangeOutput($randomizeChangeIdx);
         $txBuilder->setFeeStrategy($feeStrategy);
         $txBuilder->setChangeAddress($changeAddress);
@@ -689,7 +743,7 @@ abstract class Wallet implements WalletInterface {
                 $output = $tx['outputs'][$utxo->index];
 
                 if (!$utxo->address) {
-                    $utxo->address = AddressFactory::fromString($output['address']);
+                    $utxo->address = $this->addressReader->fromString($output['address']);
                 }
                 if (!$utxo->value) {
                     $utxo->value = $output['value'];
@@ -752,7 +806,7 @@ abstract class Wallet implements WalletInterface {
             if (isset($out['scriptPubKey'])) {
                 $txb->output($out['value'], $out['scriptPubKey']);
             } elseif (isset($out['address'])) {
-                $txb->payToAddress($out['value'], AddressFactory::fromString($out['address']));
+                $txb->output($out['value'], $this->addressReader->fromString($out['address'])->getScriptPubKey());
             } else {
                 throw new \Exception();
             }

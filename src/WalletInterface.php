@@ -32,6 +32,11 @@ interface WalletInterface {
     public function getBackupKey();
 
     /**
+     * @return mixed
+     */
+    public function getAddressReader();
+
+    /**
      * return list of Blocktrail co-sign extended public keys
      *
      * @return array[]      [ [xpub, path] ]

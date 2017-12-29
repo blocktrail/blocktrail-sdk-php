@@ -43,7 +43,7 @@ $optimalFeePerKB = $wallet->getOptimalFeePerKB();
 $lowPriorityFeePerKB = $wallet->getLowPriorityFeePerKB();
 
 // setup txbuilder
-$txBuilder = new TransactionBuilder();
+$txBuilder = new TransactionBuilder($wallet->getAddressReader());
 // set send info
 $txBuilder->addRecipient($paymentAddress, $amount);
 // set change address to our sending address

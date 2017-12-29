@@ -41,7 +41,7 @@ try {
 // $utxo = $utxos[array_rand($utxos)];
 
 $txBuilder = new TransactionBuilder();
-$txBuilder->addRecipient($wallet->getNewAddress(), Blocktrail::DUST + 1);
+$txBuilder->addRecipient(AddressFactory::fromString($wallet->getNewAddress()), Blocktrail::DUST + 1);
 $txBuilder->addOpReturn("TO DAAAA MOOOON@!的");
 
 $txBuilder = $wallet->coinSelectionForTxBuilder($txBuilder);

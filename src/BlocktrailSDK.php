@@ -2,7 +2,6 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
 use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Crypto\EcAdapter\EcSerializer;
@@ -20,9 +19,12 @@ use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
+use Blocktrail\SDK\Address\BitcoinAddressReader;
+use Blocktrail\SDK\Address\BitcoinCashAddressReader;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+use Blocktrail\SDK\Network\BitcoinCash;
 use Blocktrail\SDK\V3Crypt\Encryption;
 use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 use Blocktrail\SDK\V3Crypt\KeyDerivation;
@@ -91,7 +93,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      */
     protected function setBitcoinLibMagicBytes($network, $testnet) {
         assert($network == "bitcoin" || $network == "bitcoincash");
-        Bitcoin::setNetwork($testnet ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin());
+        if ($network === "bitcoin") {
+            if ($testnet) {
+                $useNetwork = NetworkFactory::bitcoinTestnet();
+            } else {
+                $useNetwork = NetworkFactory::bitcoin();
+            }
+        } else if ($network === "bitcoincash") {
+            $useNetwork = new BitcoinCash((bool) $testnet);
+        }
+
+        Bitcoin::setNetwork($useNetwork);
     }
 
     /**
@@ -626,6 +638,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // create a checksum of our private key which we'll later use to verify we used the right password
         $checksum = $primaryPrivateKey->getPublicKey()->getAddress()->getAddress();
+        $addressReader = $this->makeAddressReader($options);
 
         // send the public keys to the server to store them
         //  and the mnemonic, which is safe because it's useless without the password
@@ -655,6 +668,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $this->network,
             $this->testnet,
             array_key_exists('segwit', $data) ? $data['segwit'] : false,
+            $addressReader,
             $checksum
         );
 
@@ -745,6 +759,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // create a checksum of our private key which we'll later use to verify we used the right password
         $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress();
+        $addressReader = $this->makeAddressReader($options);
 
         // send the public keys and encrypted data to server
         $data = $this->storeNewWalletV2(
@@ -776,6 +791,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $this->network,
             $this->testnet,
             array_key_exists('segwit', $data) ? $data['segwit'] : false,
+            $addressReader,
             $checksum
         );
 
@@ -885,6 +901,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         // create a checksum of our private key which we'll later use to verify we used the right password
         $checksum = $options['primary_private_key']->publicKey()->getAddress()->getAddress();
+        $addressReader = $this->makeAddressReader($options);
 
         // send the public keys and encrypted data to server
         $data = $this->storeNewWalletV3(
@@ -916,6 +933,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $this->network,
             $this->testnet,
             array_key_exists('segwit', $data) ? $data['segwit'] : false,
+            $addressReader,
             $checksum
         );
 
@@ -1080,6 +1098,22 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * @param array $options
+     * @return BitcoinAddressReader|BitcoinCashAddressReader
+     */
+    private function makeAddressReader(array $options) {
+        if ($this->network == "bitcoincash") {
+            $useCashAddress = false;
+            if (array_key_exists("use_cashaddress", $options) && $options['use_cashaddress']) {
+                $useCashAddress = true;
+            }
+            return new BitcoinCashAddressReader($useCashAddress);
+        } else {
+            return new BitcoinAddressReader();
+        }
+    }
+
+    /**
      * initialize a previously created wallet
      *
      * Takes an options object, or accepts identifier/password for backwards compatiblity.
@@ -1132,6 +1166,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             }
         }
 
+        $addressReader = $this->makeAddressReader($options);
+
         switch ($data['wallet_version']) {
             case Wallet::WALLET_VERSION_V1:
                 $wallet = new WalletV1(
@@ -1145,6 +1181,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $this->network,
                     $this->testnet,
                     array_key_exists('segwit', $data) ? $data['segwit'] : false,
+                    $addressReader,
                     $data['checksum']
                 );
                 break;
@@ -1161,6 +1198,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $this->network,
                     $this->testnet,
                     array_key_exists('segwit', $data) ? $data['segwit'] : false,
+                    $addressReader,
                     $data['checksum']
                 );
                 break;
@@ -1196,6 +1234,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     $this->network,
                     $this->testnet,
                     array_key_exists('segwit', $data) ? $data['segwit'] : false,
+                    $addressReader,
                     $data['checksum']
                 );
                 break;
@@ -1715,7 +1754,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         // $this->client->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature])['result'];
 
         $adapter = Bitcoin::getEcAdapter();
-        $addr = AddressFactory::fromString($address);
+        $addr = \BitWasp\Bitcoin\Address\AddressFactory::fromString($address);
         if (!$addr instanceof PayToPubKeyHashAddress) {
             throw new \RuntimeException('Can only verify a message with a pay-to-pubkey-hash address');
         }

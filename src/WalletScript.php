@@ -2,7 +2,6 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
 use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
 use BitWasp\Bitcoin\Script\P2shScript;
@@ -12,6 +11,7 @@ use BitWasp\Bitcoin\Script\WitnessProgram;
 use BitWasp\Bitcoin\Script\WitnessScript;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 class WalletScript
 {
@@ -62,7 +62,13 @@ class WalletScript
      * @param P2shScript|null $redeemScript
      * @param WitnessScript|null $witnessScript
      */
-    public function __construct(BIP32Path $path, ScriptInterface $spk, P2shScript $redeemScript = null, WitnessScript $witnessScript = null) {
+    public function __construct(
+        BIP32Path $path,
+        ScriptInterface $spk,
+        P2shScript $redeemScript = null,
+        WitnessScript $witnessScript = null,
+        AddressInterface $address = null
+    ) {
         if (static::$checkScripts || null === static::$checkScripts && self::DEFAULT_SHOULD_CHECK) {
             $this->checkScript($path[2], $spk, $redeemScript, $witnessScript);
         }
@@ -72,10 +78,11 @@ class WalletScript
         $this->redeemScript = $redeemScript;
         $this->witnessScript = $witnessScript;
 
-        try {
-            $this->address = AddressFactory::fromOutputScript($spk);
-        } catch (\Exception $e) {
-            // doesn't matter
+        if ($address) {
+            if (!$address->getScriptPubKey()->equals($this->getScriptPubKey())) {
+                throw new BlocktrailSDKException("Mismatch between scriptPubKey and address");
+            }
+            $this->address = $address;
         }
     }
 
