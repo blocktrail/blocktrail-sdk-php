@@ -5,6 +5,7 @@ namespace Blocktrail\SDK;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
+use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
@@ -45,9 +46,12 @@ class WalletV3 extends Wallet
      * @param int                    $keyIndex
      * @param string                 $network
      * @param bool                   $testnet
+     * @param bool                   $segwit
+     * @param AddressReaderBase      $addressReader
      * @param string                 $checksum
+     * @throws                       BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, AddressReaderBase $addressReader, $checksum) {
         if ($encryptedPrimarySeed !== null && !($encryptedPrimarySeed instanceof Buffer)) {
             throw new \InvalidArgumentException('Encrypted Primary Seed must be a Buffer or null');
         }
@@ -57,7 +61,7 @@ class WalletV3 extends Wallet
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
-        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum);
+        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $addressReader, $checksum);
     }
 
     /**

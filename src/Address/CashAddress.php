@@ -3,6 +3,9 @@
 namespace Blocktrail\SDK\Address;
 
 use BitWasp\Bitcoin\Address\Address;
+use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
+use BitWasp\Bitcoin\Address\ScriptHashAddress;
+use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptType;
@@ -28,8 +31,7 @@ class CashAddress extends Address implements Base32AddressInterface
      * @param BufferInterface $hash
      * @throws BlocktrailSDKException
      */
-    public function __construct($type, BufferInterface $hash)
-    {
+    public function __construct($type, BufferInterface $hash) {
         if ($type !== ScriptType::P2PKH && $type !== ScriptType::P2SH) {
             throw new BlocktrailSDKException("Invalid type for bitcoin cash address");
         }
@@ -43,16 +45,14 @@ class CashAddress extends Address implements Base32AddressInterface
      * @param BitcoinCashNetworkInterface $network
      * @return string
      */
-    public function getPrefix(BitcoinCashNetworkInterface $network)
-    {
+    public function getPrefix(BitcoinCashNetworkInterface $network) {
         return $network->getCashAddressPrefix();
     }
 
     /**
      * @return string
      */
-    public function getType()
-    {
+    public function getType() {
         return $this->type;
     }
 
@@ -63,10 +63,13 @@ class CashAddress extends Address implements Base32AddressInterface
      * @throws \CashAddr\Exception\Base32Exception
      * @throws \CashAddr\Exception\CashAddressException
      */
-    public function getAddress(NetworkInterface $network = null)
-    {
+    public function getAddress(NetworkInterface $network = null) {
+        if (null === $network) {
+            $network = Bitcoin::getNetwork();
+        }
+
         if (!($network instanceof BitcoinCashNetworkInterface)) {
-            throw new BlocktrailSDKException("Wrong network passed - must implement BitcoinCashNetworkInterface");
+            throw new BlocktrailSDKException("Invalid network - must implement BitcoinCashNetworkInterface");
         }
 
         return \CashAddr\CashAddress::encode(
@@ -77,10 +80,20 @@ class CashAddress extends Address implements Base32AddressInterface
     }
 
     /**
+     * @return PayToPubKeyHashAddress|ScriptHashAddress
+     */
+    public function getLegacyAddress() {
+        if ($this->type === ScriptType::P2PKH) {
+            return new PayToPubKeyHashAddress($this->hash);
+        } else {
+            return new ScriptHashAddress($this->hash);
+        }
+    }
+
+    /**
      * @return \BitWasp\Bitcoin\Script\ScriptInterface
      */
-    public function getScriptPubKey()
-    {
+    public function getScriptPubKey() {
         if ($this->type === ScriptType::P2PKH) {
             return ScriptFactory::scriptPubKey()->p2pkh($this->hash);
         } else {

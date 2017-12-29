@@ -7,6 +7,7 @@ use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
+use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
@@ -34,12 +35,14 @@ class WalletV2 extends Wallet {
      * @param bool                   $testnet
      * @param bool                   $segwit
      * @param string                 $checksum
+     * @param AddressReaderBase      $addressReader
+     * @throws                       BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, AddressReaderBase $addressReader, $checksum) {
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
-        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum);
+        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $addressReader, $checksum);
     }
 
     /**

@@ -5,7 +5,6 @@ use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\UTXO;
 use Blocktrail\SDK\Wallet;
-use Blocktrail\SDK\WalletInterface;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
@@ -29,6 +28,8 @@ try {
     $wallet->doDiscovery();
 }
 
+$addressReader = $wallet->getAddressReader();
+
 /*
  * custom created TX using the TransactionBuilder class,
  *  in this example we substract the fee required from the amount send
@@ -36,7 +37,7 @@ try {
  */
 
 $amount = BlocktrailSDK::toSatoshi(0.001);
-$paymentAddress = $wallet->getNewAddress();
+$paymentAddress = $addressReader->fromString($wallet->getNewAddress());
 
 // uncomment to create a couple of 0.001 BTC UTXOs (and 1 big output remains)
 //  after doing this run the example twice and the 2nd time around you can see it only using a single UTXO
@@ -55,7 +56,7 @@ $paymentAddress = $wallet->getNewAddress();
 $optimalFeePerKB = $wallet->getOptimalFeePerKB();
 $lowPriorityFeePerKB = $wallet->getLowPriorityFeePerKB();
 
-$txBuilder = new TransactionBuilder();
+$txBuilder = new TransactionBuilder($addressReader);
 $txBuilder->addRecipient($paymentAddress, $amount);
 
 // get coinselection for the payment we want to make

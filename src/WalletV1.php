@@ -5,7 +5,9 @@ namespace Blocktrail\SDK;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
+use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\NotImplementedException;
 
 class WalletV1 extends Wallet {
@@ -27,12 +29,15 @@ class WalletV1 extends Wallet {
      * @param int                           $keyIndex
      * @param string                        $network
      * @param bool                          $testnet
+     * @param bool                          $segwit
+     * @param AddressReaderBase             $addressReader
      * @param string                        $checksum
+     * @throws                              BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, AddressReaderBase $addressReader, $checksum) {
         $this->primaryMnemonic = $primaryMnemonic;
 
-        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $checksum);
+        parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $addressReader, $checksum);
     }
 
     /**
