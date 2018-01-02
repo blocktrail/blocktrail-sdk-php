@@ -677,6 +677,9 @@ abstract class Wallet implements WalletInterface {
         return $result;
     }
 
+    private static function convertPayToOutputs() {
+    }
+
     /**
      * 'fund' the txBuilder with UTXOs (modified in place)
      *
@@ -687,6 +690,7 @@ abstract class Wallet implements WalletInterface {
      * @return TransactionBuilder
      */
     public function coinSelectionForTxBuilder(TransactionBuilder $txBuilder, $lockUTXOs = true, $allowZeroConf = false, $forceFee = null) {
+
         // get the data we should use for this transaction
         $coinSelection = $this->coinSelection($txBuilder->getOutputs(/* $json = */true), $lockUTXOs, $allowZeroConf, $txBuilder->getFeeStrategy(), $forceFee);
         
@@ -1128,6 +1132,8 @@ abstract class Wallet implements WalletInterface {
      * @return array
      */
     public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
+
+
         $result = $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
 
         $this->highPriorityFeePerKB = $result['fees'][self::FEE_STRATEGY_HIGH_PRIORITY];

@@ -9,7 +9,9 @@ use BitWasp\Bitcoin\Address\SegwitAddress;
 use BitWasp\Bitcoin\Base58;
 use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\ScriptInterface;
+use BitWasp\Bitcoin\Script\ScriptType;
 use BitWasp\Bitcoin\SegwitBech32;
+use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Network\BitcoinCashNetworkInterface;
 
 abstract class AddressReaderBase
@@ -31,7 +33,6 @@ abstract class AddressReaderBase
             }
         } catch (\Exception $e) {
         }
-
         return null;
     }
 
@@ -61,7 +62,11 @@ abstract class AddressReaderBase
             if ($prefix !== $network->getCashAddressPrefix()) {
                 return null;
             }
-            return new CashAddress($scriptType, $hash);
+            if (!($scriptType === ScriptType::P2PKH || $scriptType === ScriptType::P2SH)) {
+                return null;
+            }
+
+            return new CashAddress($scriptType, new Buffer($hash, 20));
         } catch (\Exception $e) {
             // continue on
         }
