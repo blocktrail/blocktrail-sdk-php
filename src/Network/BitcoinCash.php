@@ -17,7 +17,7 @@ class BitcoinCash extends Network implements BitcoinCashNetworkInterface
      * @param bool $testnet
      * @throws \Exception
      */
-    public function __construct(bool $testnet = false) {
+    public function __construct($testnet = false) {
         if ($testnet) {
             $base = NetworkFactory::bitcoinTestnet();
             $cashAddressPrefix = "bchtest";

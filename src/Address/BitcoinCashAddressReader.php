@@ -37,6 +37,7 @@ class BitcoinCashAddressReader extends AddressReaderBase
      */
     public function fromString($strAddress, NetworkInterface $network = null) {
         $network = $network ?: Bitcoin::getNetwork();
+
         if (($base58Address = $this->readBase58($strAddress, $network))) {
             return $base58Address;
         }
