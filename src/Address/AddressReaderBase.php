@@ -75,10 +75,11 @@ abstract class AddressReaderBase
     }
 
     /**
-     * @param string $strAddress
-     * @return AddressInterface
+     * @param $strAddress
+     * @param NetworkInterface|null $network
+     * @return mixed
      */
-    abstract public function fromString($strAddress);
+    abstract public function fromString($strAddress, NetworkInterface $network = null);
 
     /**
      * @param ScriptInterface $script

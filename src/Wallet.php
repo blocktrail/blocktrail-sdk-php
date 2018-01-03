@@ -610,7 +610,7 @@ abstract class Wallet implements WalletInterface {
             throw new \InvalidArgumentException("feeStrategy should be set to force_fee to set a forced fee");
         }
 
-        $outputs = self::normalizeOutputsStruct($outputs);
+        $outputs = (new OutputsNormalizer($this->getAddressReader()))->normalize($outputs);
 
         $txBuilder = new TransactionBuilder($this->addressReader);
         $txBuilder->randomizeChangeOutput($randomizeChangeIdx);
@@ -618,7 +618,7 @@ abstract class Wallet implements WalletInterface {
         $txBuilder->setChangeAddress($changeAddress);
 
         foreach ($outputs as $output) {
-            $txBuilder->addRecipient($output['address'], $output['value']);
+            $txBuilder->addOutput($output);
         }
 
         $this->coinSelectionForTxBuilder($txBuilder, true, $allowZeroConf, $forceFee);
@@ -675,9 +675,6 @@ abstract class Wallet implements WalletInterface {
         }
 
         return $result;
-    }
-
-    private static function convertPayToOutputs() {
     }
 
     /**
@@ -1132,8 +1129,6 @@ abstract class Wallet implements WalletInterface {
      * @return array
      */
     public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
-
-
         $result = $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
 
         $this->highPriorityFeePerKB = $result['fees'][self::FEE_STRATEGY_HIGH_PRIORITY];
