@@ -552,6 +552,10 @@ abstract class Wallet implements WalletInterface {
             throw new \Exception("Wallet needs to be unlocked to pay");
         }
 
+        if ($forceFee && $feeStrategy !== self::FEE_STRATEGY_FORCE_FEE) {
+            throw new \InvalidArgumentException("feeStrategy should be set to force_fee to set a forced fee");
+        }
+
         $outputs = self::normalizeOutputsStruct($outputs);
 
         $txBuilder = new TransactionBuilder();
@@ -769,9 +773,12 @@ abstract class Wallet implements WalletInterface {
             if ($change > Blocktrail::DUST) {
                 $send[] = ['address' => 'change', 'value' => $change];
             } else {
-                // if change is dust we do nothing (implicitly it's added to the fee)
+                // if change is dust we add it to the fee
+                $fee += $change;
                 $change = 0;
             }
+
+            return [$fee, $change];
         } else {
             $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB);
 
@@ -804,11 +811,12 @@ abstract class Wallet implements WalletInterface {
                     }
                 }
             }
+
+
+            $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB);
+
+            return [$fee, $change];
         }
-
-        $fee = $this->determineFee($utxos, $send, $txBuilder->getFeeStrategy(), $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB);
-
-        return [$fee, $change];
     }
 
     /**
@@ -977,6 +985,9 @@ abstract class Wallet implements WalletInterface {
 
             case self::FEE_STRATEGY_LOW_PRIORITY:
                 return (int)round(($size / 1000) * $lowPriorityFeePerKB);
+
+            case self::FEE_STRATEGY_FORCE_FEE:
+                throw new BlocktrailSDKException("Can't determine when for force_fee");
 
             default:
                 throw new BlocktrailSDKException("Unknown feeStrategy [{$feeStrategy}]");

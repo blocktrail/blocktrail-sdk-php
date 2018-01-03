@@ -721,7 +721,7 @@ class WalletTest extends BlocktrailTestCase {
          */
         $value = BlocktrailSDK::toSatoshi(0.0001);
         $forceFee = BlocktrailSDK::toSatoshi(0.0010);
-        $txHash = $wallet->pay([$address => $value,], null, false, true, Wallet::FEE_STRATEGY_BASE_FEE, $forceFee);
+        $txHash = $wallet->pay([$address => $value,], null, false, true, Wallet::FEE_STRATEGY_FORCE_FEE, $forceFee);
 
         $this->assertTrue(!!$txHash);
 
