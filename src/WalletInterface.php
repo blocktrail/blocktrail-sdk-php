@@ -2,6 +2,7 @@
 
 namespace Blocktrail\SDK;
 
+use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -32,7 +33,7 @@ interface WalletInterface {
     public function getBackupKey();
 
     /**
-     * @return mixed
+     * @return AddressReaderBase
      */
     public function getAddressReader();
 
