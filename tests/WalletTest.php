@@ -1633,16 +1633,16 @@ class WalletTest extends BlocktrailTestCase {
         /*
          * test change output bumps size over 1kb, fee += 0.0001
          *
-         * 1 input (1 * 294b) = 294b
-         * 20 recipients (19 * 34b) = 680b
+         * 1 input (1 * 298b) = 298b
+         * 20 recipients (19 * 33b) = 693b
          *
-         * size = 8b + 294b + 680b = 982b
-         * + change output (34b) = 1006b
+         * size = 8b + 298b + 693b = 999b
+         * + change output (34b) = 1019b
          *
          * fee = 0.0002
          * input = 1.0000
-         * 1.0000 - (20 * 0.0001) = 0.9980
-         * change = 0.9978
+         * 1.0000 - (20 * 0.0001) = 0.9977
+         * change = 0.9977
          */
         $utxos = [
             'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(1)
@@ -1679,6 +1679,7 @@ class WalletTest extends BlocktrailTestCase {
                 ->addRecipient("2NAHY321fSVz4wKnE4eWjyLfRmoauCrQpBD", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2N2anz2GmZdrKNNeEZD7Xym8djepwnTqPXY", BlocktrailSDK::toSatoshi(0.0001))
                 ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
+                ->addRecipient("2Mvs5ik3nC9RBho2kPcgi5Q62xxAE2Aryse", BlocktrailSDK::toSatoshi(0.0001))
                 ->setChangeAddress("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT")
                 ->randomizeChangeOutput(false)
                 ->setFeeStrategy(Wallet::FEE_STRATEGY_BASE_FEE)
@@ -1697,9 +1698,10 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9998), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0002), $fee);
-        $this->assertEquals(21, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(20)->getScript())->getAddress());
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9978), $tx->getOutput(20)->getValue());
+        $this->assertEquals(22, count($tx->getOutputs()));
+        $change = $tx->getOutput(21);
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($change->getScript())->getAddress());
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.9977), $change->getValue());
 
         /*
          * test change
@@ -1773,21 +1775,21 @@ class WalletTest extends BlocktrailTestCase {
          * test change output bumps size over 1kb, fee += 0.0001
          *  but change was < 0.0001 so better to just fee it all
          *
-         * 1 input (1 * 294b) = 294b
-         * 20 recipients (19 * 34b) = 680b
+         * 1 input (1 * 294b) = 298b
+         * 20 recipients (20 * 34b) = 660b
          *
-         * input = 0.00219
+         * input = 0.00212
          *
-         * size = 8b + 294b + 680b = 982b
+         * size = 8b + 298b + 660b = 986b
          * fee = 0.0001
-         * 0.00219 - (20 * 0.0001) = 0.00019
+         * 0.00212 - (20 * 0.0001) = 0.00012
          *
          * + change output (0.00009) (34b) = 1006b
          * fee = 0.0002
-         * 0.00219 - (20 * 0.0001) = 0.00019
+         *
          */
         $utxos = [
-            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.00219)
+            'ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396' => BlocktrailSDK::toSatoshi(0.00212)
         ];
         /** @var Transaction $tx */
         list($tx, $signInfo) = $wallet->buildTx(
@@ -1795,7 +1797,7 @@ class WalletTest extends BlocktrailTestCase {
                 ->spendOutput(
                     "ed6458f2567c3a6847e96ca5244c8eb097efaf19fd8da2d25ec33d54a49b4396",
                     0,
-                    BlocktrailSDK::toSatoshi(0.00219),
+                    BlocktrailSDK::toSatoshi(0.00212),
                     "2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT",
                     "a9148e3c73aaf758dc4f4186cd49c3d523954992a46a87",
                     "M/9999'/0/1537",
@@ -1836,9 +1838,9 @@ class WalletTest extends BlocktrailTestCase {
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.00219), $inputTotal);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.00212), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0020), $outputTotal);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.00019), $fee);
+        $this->assertEquals(BlocktrailSDK::toSatoshi(0.00012), $fee);
         $this->assertEquals(20, count($tx->getOutputs()));
 
         /*
