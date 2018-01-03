@@ -22,6 +22,7 @@ use BitWasp\Buffertools\Buffer;
 
 use Blocktrail\CryptoJSAES\CryptoJSAES;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
+use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\BlocktrailSDKInterface;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
@@ -680,7 +681,6 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
         $this->assertTrue(AddressFactory::fromString($address)->getAddress() == $address);
 
-        ///*
         $value = BlocktrailSDK::toSatoshi(0.0002);
         $txHash = $wallet->pay([$address => $value,], null, false, true, Wallet::FEE_STRATEGY_BASE_FEE);
 
@@ -689,10 +689,17 @@ class WalletTest extends BlocktrailTestCase {
         $tx = $this->getTx($client, $txHash);
 
         $this->assertEquals($txHash, $tx['hash']);
-        $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $tx['total_fee']);
-        $this->assertTrue(count($tx['outputs']) <= 2);
-        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
-        //*/
+        $this->assertTrue(count($tx['outputs']) <= 2, "txId={$txHash}");
+        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')), "txId={$txHash}");
+
+        $baseFee = ceil($tx['size'] / 1000) * BlocktrailSDK::toSatoshi(0.0001);
+
+        // dust was added to fee
+        if (count($tx['outputs']) === 1) {
+            $this->assertTrue(abs($baseFee - $tx['total_fee']) < Blocktrail::DUST, "txId={$txHash}");
+        } else {
+            $this->assertEquals($baseFee, $tx['total_fee'], "txId={$txHash}");
+        }
 
         /*
          * do another TX but with a LOW_PRIORITY_FEE
@@ -720,10 +727,16 @@ class WalletTest extends BlocktrailTestCase {
 
         $tx = $this->getTx($client, $txHash);
 
+
         $this->assertEquals($txHash, $tx['hash']);
-        $this->assertEquals($forceFee, $tx['total_fee']);
-        $this->assertTrue(count($tx['outputs']) <= 2);
-        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
+        $this->assertTrue(count($tx['outputs']) <= 2, "txId={$txHash}");
+        $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')), "txId={$txHash}");
+        // dust was added to fee
+        if (count($tx['outputs']) === 1) {
+            $this->assertTrue(abs($forceFee - $tx['total_fee']) < Blocktrail::DUST, "txId={$txHash}");
+        } else {
+            $this->assertEquals($forceFee, $tx['total_fee'], "txId={$txHash}");
+        }
 
         /*
          * do another TX with OP_RETURN using TxBuilder
