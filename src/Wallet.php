@@ -1132,7 +1132,15 @@ abstract class Wallet implements WalletInterface {
      * @return array
      */
     public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null) {
-        $result = $this->sdk->coinSelection($this->identifier, $outputs, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
+        $send = [];
+        foreach ((new OutputsNormalizer($this->addressReader))->normalize($outputs) as $output) {
+            $send[] = [
+                "value" => $output['value'],
+                "scriptPubKey" => $output['scriptPubKey']->getHex(),
+            ];
+        }
+
+        $result = $this->sdk->coinSelection($this->identifier, $send, $lockUTXO, $allowZeroConf, $feeStrategy, $forceFee);
 
         $this->highPriorityFeePerKB = $result['fees'][self::FEE_STRATEGY_HIGH_PRIORITY];
         $this->optimalFeePerKB = $result['fees'][self::FEE_STRATEGY_OPTIMAL];
