@@ -43,11 +43,17 @@ class TransactionBuilder {
     private $addressReader;
 
     /**
+     * @var OutputsNormalizer
+     */
+    private $outputNormalizer;
+
+    /**
      * TransactionBuilder constructor.
      * @param AddressReaderBase $addressReader
      */
     public function __construct(AddressReaderBase $addressReader) {
         $this->addressReader = $addressReader;
+        $this->outputNormalizer = new OutputsNormalizer($this->addressReader);
     }
 
     /**
@@ -134,6 +140,8 @@ class TransactionBuilder {
      * @return $this
      */
     public function addOutput($output) {
+        $output = $this->outputNormalizer->normalize([$output])[0];
+
         $this->outputs[] = $output;
 
         return $this;

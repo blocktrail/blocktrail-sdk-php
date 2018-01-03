@@ -22,8 +22,7 @@ class OutputsNormalizer
      * OutputsNormalizer constructor.
      * @param AddressReaderBase $reader
      */
-    public function __construct(AddressReaderBase $reader)
-    {
+    public function __construct(AddressReaderBase $reader) {
         $this->reader = $reader;
     }
 

@@ -260,7 +260,7 @@ class SizeEstimation
     public static function estimateOutputsSize(array $outputs) {
         $outputSize = 0;
         foreach ($outputs as $output) {
-            $outputSize += 8;
+            $size = 8;
 
             $scriptSize = null;
             if ($output instanceof TransactionOutputInterface) {
@@ -273,13 +273,13 @@ class SizeEstimation
                         $scriptSize = strlen($output['scriptPubKey']) / 2;
                     }
                 } else {
-                    $scriptSize += 25;
+                    $scriptSize = 25;
                 }
             }
 
-            $outputSize += SizeEstimation::getLengthOfVarInt($scriptSize) + $scriptSize;
+            $size += SizeEstimation::getLengthOfVarInt($scriptSize) + $scriptSize;
+            $outputSize += $size;
         }
-
         return $outputSize;
     }
 

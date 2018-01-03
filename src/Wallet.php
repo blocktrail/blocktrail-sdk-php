@@ -817,7 +817,7 @@ abstract class Wallet implements WalletInterface {
     }
 
     public function determineFeeAndChange(TransactionBuilder $txBuilder, $highPriorityFeePerKB, $optimalFeePerKB, $lowPriorityFeePerKB) {
-        $send = $txBuilder->getOutputs();
+        $send = (new OutputsNormalizer($this->addressReader))->normalize($txBuilder->getOutputs());
         $utxos = $txBuilder->getUtxos();
 
         $fee = $txBuilder->getFee();
