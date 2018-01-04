@@ -19,8 +19,10 @@ use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
+use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Address\BitcoinAddressReader;
 use Blocktrail\SDK\Address\BitcoinCashAddressReader;
+use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Connection\RestClient;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -1099,7 +1101,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
     /**
      * @param array $options
-     * @return BitcoinAddressReader|BitcoinCashAddressReader
+     * @return AddressReaderBase
      */
     private function makeAddressReader(array $options) {
         if ($this->network == "bitcoincash") {
@@ -1765,6 +1767,32 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         $signer = new MessageSigner($adapter);
         return $signer->verify($signedMessage, $addr);
+    }
+
+    /**
+     * Take a base58 or cashaddress, and return only
+     * the cash address.
+     * This function only works on bitcoin cash.
+     * @param string $input
+     * @return string
+     * @throws BlocktrailSDKException
+     */
+    public function getLegacyBitcoinCashAddress($input) {
+        if ($this->network === "bitcoincash") {
+            $address = $this
+                ->makeAddressReader([
+                    "use_cashaddress" => true
+                ])
+                ->fromString($input);
+
+            if ($address instanceof CashAddress) {
+                $address = $address->getLegacyAddress();
+            }
+
+            return $address->getAddress();
+        }
+
+        throw new BlocktrailSDKException("Only request a legacy address when using bitcoin cash");
     }
 
     /**

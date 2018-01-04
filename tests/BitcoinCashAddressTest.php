@@ -19,9 +19,11 @@ class BitcoinCashAddressTest extends BlocktrailTestCase
             "password" => "password"
         ]);
 
+        $legacyAddress = "2N44ThNe8NXHyv4bsX8AoVCXquBRW94Ls7W";
         $this->assertInstanceOf(BitcoinCashAddressReader::class, $legacyAddressWallet->getAddressReader());
-        $this->assertInstanceOf(ScriptHashAddress::class, $legacyAddressWallet->getAddressReader()->fromString("2MsM9zVVyar93CWorEfH6PPW8QQmW3s1uh6", $tbcc));
+        $this->assertInstanceOf(ScriptHashAddress::class, $legacyAddressWallet->getAddressReader()->fromString($legacyAddress, $tbcc));
 
+        $cashAddress = "bchtest:ppm2qsznhks23z7629mms6s4cwef74vcwvhanqgjxu";
         $newAddressWallet = $client->initWallet([
             "identifier" => "unittest-transaction",
             "password" => "password",
@@ -29,7 +31,11 @@ class BitcoinCashAddressTest extends BlocktrailTestCase
         ]);
 
         $this->assertInstanceOf(BitcoinCashAddressReader::class, $newAddressWallet->getAddressReader());
-        $this->assertInstanceOf(CashAddress::class, $newAddressWallet->getAddressReader()->fromString("bchtest:ppm2qsznhks23z7629mms6s4cwef74vcwvhanqgjxu", $tbcc));
+        $this->assertInstanceOf(CashAddress::class, $newAddressWallet->getAddressReader()->fromString($cashAddress, $tbcc));
+
+        $convertedLegacy = $client->getLegacyBitcoinCashAddress($cashAddress);
+
+        $this->assertEquals($legacyAddress, $convertedLegacy);
     }
 
     public function testCurrentDefaultIsOldFormat() {
