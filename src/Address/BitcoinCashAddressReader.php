@@ -10,6 +10,7 @@ use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Script\ScriptType;
+use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Network\BitcoinCashNetworkInterface;
@@ -31,6 +32,29 @@ class BitcoinCashAddressReader extends AddressReaderBase
 
     /**
      * @param string $strAddress
+     * @param BitcoinCashNetworkInterface $network
+     * @return CashAddress|null
+     */
+    protected function readCashAddress($strAddress, BitcoinCashNetworkInterface $network) {
+        try {
+            list ($prefix, $scriptType, $hash) = \CashAddr\CashAddress::decode($strAddress);
+            if ($prefix !== $network->getCashAddressPrefix()) {
+                return null;
+            }
+            if (!($scriptType === ScriptType::P2PKH || $scriptType === ScriptType::P2SH)) {
+                return null;
+            }
+
+            return new CashAddress($scriptType, new Buffer($hash, 20));
+        } catch (\Exception $e) {
+            // continue on
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $strAddress
      * @param NetworkInterface|null $network
      * @return Base58AddressInterface|CashAddress
      * @throws BlocktrailSDKException
@@ -43,7 +67,7 @@ class BitcoinCashAddressReader extends AddressReaderBase
         }
 
         if ($this->useNewCashAddress && $network instanceof BitcoinCashNetworkInterface) {
-            if (($base32Address = $this->readBase32($strAddress, $network))) {
+            if (($base32Address = $this->readCashAddress($strAddress, $network))) {
                 return $base32Address;
             }
         }

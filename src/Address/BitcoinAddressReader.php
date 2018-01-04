@@ -13,11 +13,28 @@ use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Script\ScriptType;
 use BitWasp\Bitcoin\Script\WitnessProgram;
+use BitWasp\Bitcoin\SegwitBech32;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 class BitcoinAddressReader extends AddressReaderBase
 {
+
+    /**
+     * @param string $strAddress
+     * @param NetworkInterface $network
+     * @return SegwitAddress|null
+     */
+    protected function readSegwitAddress($strAddress, NetworkInterface $network) {
+        try {
+            return new SegwitAddress(SegwitBech32::decode($strAddress, $network));
+        } catch (\Exception $e) {
+            // continue on
+        }
+
+        return null;
+    }
+
     /**
      * @param ScriptInterface $outputScript
      * @return AddressInterface|PayToPubKeyHashAddress|ScriptHashAddress|SegwitAddress
@@ -55,7 +72,7 @@ class BitcoinAddressReader extends AddressReaderBase
             return $base58Address;
         }
 
-        if (($bech32Address = $this->readBech32($strAddress, $network))) {
+        if (($bech32Address = $this->readSegwitAddress($strAddress, $network))) {
             return $bech32Address;
         }
 
