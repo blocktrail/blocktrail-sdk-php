@@ -170,9 +170,10 @@ interface WalletInterface {
      * @param bool     $randomizeChangeIdx  randomize the location of the change (for increased privacy / anonimity)
      * @param string   $feeStrategy
      * @param null|int $forceFee            set a fixed fee instead of automatically calculating the correct fee, not recommended!
+     * @param bool     $apiCheckFee         let the API apply sanity checks to the fee
      * @return string the txid / transaction hash
      */
-    public function pay(array $outputs, $changeAddress = null, $allowZeroConf = false, $randomizeChangeIdx = true, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null);
+    public function pay(array $outputs, $changeAddress = null, $allowZeroConf = false, $randomizeChangeIdx = true, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null, $apiCheckFee = true);
 
     /**
      * build inputs and outputs lists for TransactionBuilder
