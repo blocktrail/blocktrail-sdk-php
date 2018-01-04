@@ -33,6 +33,7 @@ abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
         //called after each test
         $this->cleanUp();
     }
+
     protected function onNotSuccessfulTest(\Exception $e) {
         //called when a test fails
         $this->cleanUp();
@@ -41,7 +42,7 @@ abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
 
     protected function cleanUp() {
         //cleanup any records that were created
-        $client = $this->setupBlocktrailSDK();
+        $client = $this->setupBlocktrailSDK("BTC", true);
 
         if (array_key_exists('wallets', $this->cleanupData)) {
             $count = 0;

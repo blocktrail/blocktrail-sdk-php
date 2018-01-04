@@ -3,6 +3,7 @@
 namespace Blocktrail\SDK\Tests\V3Crypt;
 
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\Network\NetworkFactory;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
 use Blocktrail\SDK\V3Crypt\Encryption;
@@ -50,8 +51,9 @@ class FullTest extends AbstractTestCase
         $decodedPrimarySeed = EncryptionMnemonic::decode($encryptedPrimarySeedMnemonic);
         $decryptedPrimarySeed = Encryption::decrypt($decodedPrimarySeed, $decryptedSecret);
 
+        $network = NetworkFactory::bitcoin();
         $hdnode = HierarchicalKeyFactory::fromEntropy($decryptedPrimarySeed);
-        $this->assertEquals($checksum, $hdnode->getPublicKey()->getAddress()->getAddress());
+        $this->assertEquals($checksum, $hdnode->getPublicKey()->getAddress()->getAddress($network));
     }
 
     /**

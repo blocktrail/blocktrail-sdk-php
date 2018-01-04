@@ -2,7 +2,15 @@
 
 namespace Blocktrail\SDK;
 
+use BitWasp\Bitcoin\Network\NetworkFactory;
+
 abstract class Util {
+
+    /**
+     * @param callable $fn
+     * @param array $arr
+     * @return bool
+     */
     public static function all(callable $fn, array $arr) {
         $allvalues = array_map($fn, $arr);
         return count(array_unique($allvalues)) === 1 && end($allvalues) === true;
@@ -49,37 +57,40 @@ abstract class Util {
     /**
      * normalize network string
      *
-     * @param $network
-     * @param $testnet
-     * @return array
+     * @param string $network
+     * @param bool $testnet
+     * @return NetworkParams
      * @throws \Exception
      */
     public static function normalizeNetwork($network, $testnet) {
+        $network = strtolower($network);
+
         switch (strtolower($network)) {
             case 'btc':
-            case 'bitcoin':
-                $network = 'bitcoin';
+                $name = 'bitcoin';
+                $params = NetworkFactory::bitcoin();
                 break;
 
             case 'tbtc':
-            case 'bitcoin-testnet':
-                $network = 'bitcoin';
+                $name = 'bitcoin';
+                $params = NetworkFactory::bitcoinTestnet();
                 $testnet = true;
                 break;
+
             case 'bcc':
-            case 'bitcoincash':
-                $network = 'bitcoincash';
+                $name = 'bitcoincash';
+                $params = NetworkFactory::bitcoin();
                 break;
 
             case 'tbcc':
-            case 'bitcoincash-testnet':
-                $network = 'bitcoincash';
+                $name = 'bitcoincash';
+                $params = NetworkFactory::bitcoinTestnet();
                 $testnet = true;
                 break;
 
             case 'rbtc':
-            case 'bitcoin-regtest':
-                $network = 'bitcoin';
+                $name = 'bitcoin';
+                $params = NetworkFactory::bitcoinRegtest();
                 $testnet = true;
                 break;
 
@@ -88,7 +99,7 @@ abstract class Util {
             // this comment silences a phpcs error.
         }
 
-        return [$network, $testnet];
+        return new NetworkParams($network, $name, $testnet, $params);
     }
 
     public static function arrayMapWithIndex(callable $fn, $arr) {

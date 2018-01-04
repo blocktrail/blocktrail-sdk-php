@@ -28,6 +28,41 @@ class UtilTest extends BlocktrailTestCase
         ];
     }
 
+    private function checkTestnetNormalize($network, $name)
+    {
+        $res = Util::normalizeNetwork($network, true);
+        $this->assertEquals($name, $res->getName());
+        $this->assertEquals($network, $res->getShortCode());
+        $this->assertTrue($res->isTestnet());
+
+        $res = Util::normalizeNetwork($network, false);
+        $this->assertEquals($name, $res->getName());
+        $this->assertEquals($network, $res->getShortCode());
+        $this->assertTrue($res->isTestnet());
+    }
+
+    private function checkTestnetToggle($network, $name)
+    {
+        $res = Util::normalizeNetwork($network, false);
+        $this->assertEquals($name, $res->getName());
+        $this->assertEquals($network, $res->getShortCode());
+        $this->assertFalse($res->isTestnet());
+
+        $res = Util::normalizeNetwork($network, true);
+        $this->assertEquals($name, $res->getName());
+        $this->assertEquals($network, $res->getShortCode());
+        $this->assertTrue($res->isTestnet());
+    }
+
+    public function testNormalizeNetwork() {
+        $this->checkTestnetNormalize("tbtc", "bitcoin");
+        $this->checkTestnetNormalize("tbcc", "bitcoincash");
+        $this->checkTestnetNormalize("rbtc", "bitcoin");
+
+        $this->checkTestnetToggle("btc", "bitcoin");
+        $this->checkTestnetToggle("bcc", "bitcoincash");
+    }
+
     /**
      * @param $network
      * @param $testnet

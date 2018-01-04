@@ -3,6 +3,7 @@
 namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\Network\NetworkInterface;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Endroid\QrCode\QrCode;
 
@@ -27,6 +28,11 @@ class BackupGenerator {
      */
     protected $blocktrailPubKeyQRs = [];
 
+    /**
+     * @var NetworkInterface
+     */
+    protected $network;
+
     protected $identifier;
 
     protected $backupInfo;
@@ -45,7 +51,7 @@ class BackupGenerator {
      * @param array  $extra
      * @param null   $options
      */
-    public function __construct($identifier, $backupInfo, $extra = null, $options = null) {
+    public function __construct(NetworkInterface $network, $identifier, $backupInfo, $extra = null, $options = null) {
         /*
          * if DOMPDF is not already loaded we have to do it
          * they require a config file to be loaded, no autoloading :/
@@ -61,6 +67,7 @@ class BackupGenerator {
         //set the fonts path
         $this->fontsPath = dirname(__FILE__) . '/../resources/fonts';
 
+        $this->network = $network;
         $this->identifier = $identifier;
         $this->backupInfo = $backupInfo;
         $this->extra = $extra ?: [];
@@ -77,7 +84,7 @@ class BackupGenerator {
 
         //create QR codes for each blocktrail pub key
         foreach ($this->backupInfo['blocktrail_public_keys'] as $keyIndex => $key) {
-            $key = $key instanceof BIP32Key ? $key : BIP32Key::create(HierarchicalKeyFactory::fromExtended($key[0]), $key[1]);
+            $key = $key instanceof BIP32Key ? $key : BIP32Key::create(HierarchicalKeyFactory::fromExtended($key[0], $this->network), $key[1]);
 
             $qrCode = new QrCode();
             $qrCode

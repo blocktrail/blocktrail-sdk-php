@@ -58,8 +58,8 @@ if (count($utxos['data']) == 0) {
 // add UTXOs to txbuilder
 foreach ($utxos['data'] as $utxo) {
     $scriptPubKey = ScriptFactory::fromHex($utxo['script_hex']);
-    $address = AddressFactory::fromString($utxo['address']);
-    $path = $wallet->getPathForAddress($address->getAddress());
+    $address = $utxo['address'];
+    $path = $wallet->getPathForAddress($address);
     $scripts = $wallet->getWalletScriptByPath($path);
     $redeemScript = $scripts->getRedeemScript();
     $witnessScript = null;

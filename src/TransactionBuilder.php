@@ -5,6 +5,7 @@ namespace Blocktrail\SDK;
 use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Address\AddressInterface;
 use BitWasp\Bitcoin\Address\SegwitAddress;
+use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\Script;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
@@ -39,7 +40,13 @@ class TransactionBuilder {
 
     private $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL;
 
-    public function __construct() {
+    /**
+     * @var NetworkInterface
+     */
+    private $network;
+
+    public function __construct(NetworkInterface $network) {
+        $this->network = $network;
     }
 
     /**
@@ -54,7 +61,7 @@ class TransactionBuilder {
      * @return $this
      */
     public function spendOutput($txId, $index, $value = null, $address = null, $scriptPubKey = null, $path = null, $redeemScript = null, $witnessScript = null, $signMode = SignInfo::MODE_SIGN) {
-        $address = $address instanceof AddressInterface ? $address : AddressFactory::fromString($address);
+        $address = $address instanceof AddressInterface ? $address : AddressFactory::fromString($address, $this->network);
         $scriptPubKey = ($scriptPubKey instanceof ScriptInterface)
             ? $scriptPubKey
             : (ctype_xdigit($scriptPubKey) ? ScriptFactory::fromHex($scriptPubKey) : null);
@@ -96,8 +103,8 @@ class TransactionBuilder {
      * @throws \Exception
      */
     public function addRecipient($address, $value) {
-        $object = AddressFactory::fromString($address);
-        if ($object->getAddress() != $address) {
+        $object = AddressFactory::fromString($address, $this->network);
+        if ($object->getAddress($this->network) != $address) {
             throw new \Exception("Invalid address [{$address}]");
         }
 

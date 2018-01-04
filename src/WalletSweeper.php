@@ -6,6 +6,7 @@ use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Network\NetworkFactory;
+use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\WitnessScript;
@@ -25,15 +26,9 @@ abstract class WalletSweeper {
 
     /**
      * network to use - currently only supporting 'bitcoin'
-     * @var string
+     * @var NetworkParams
      */
-    protected $network;
-
-    /**
-     * using testnet or not
-     * @var bool
-     */
-    protected $testnet;
+    protected $networkParams;
 
     /**
      * backup private key
@@ -76,26 +71,24 @@ abstract class WalletSweeper {
      * @param BufferInterface     $backupSeed
      * @param array               $blocktrailPublicKeys =
      * @param UnspentOutputFinder $utxoFinder
-     * @param string              $network
-     * @param bool                $testnet
+     * @param string $network
+     * @param bool $testnet
      * @throws \Exception
      */
-    public function __construct(BufferInterface $primarySeed, BufferInterface $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
-        // normalize network and set bitcoinlib to the right magic-bytes
-        list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
+    public function __construct(BufferInterface $primarySeed, BufferInterface $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network, $tesnet = false) {
 
-        assert($this->network == "bitcoin");
-        Bitcoin::setNetwork($this->testnet ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin());
+        $params = Util::normalizeNetwork($network, $tesnet);
+        assert($params->isNetwork("bitcoin") || $params->isNetwork("bitcoincash"));
 
+        $network = $params->getNetwork();
         //create BIP32 keys for the Blocktrail public keys
         foreach ($blocktrailPublicKeys as $blocktrailKey) {
-            $this->blocktrailPublicKeys[$blocktrailKey['keyIndex']] = BlocktrailSDK::normalizeBIP32Key([$blocktrailKey['pubkey'], $blocktrailKey['path']]);
+            $this->blocktrailPublicKeys[$blocktrailKey['keyIndex']] = BlocktrailSDK::normalizeBIP32Key([$blocktrailKey['pubkey'], $blocktrailKey['path']], $network);
         }
 
         $this->utxoFinder = $utxoFinder;
-
-        $this->primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($primarySeed), "m");
-        $this->backupPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($backupSeed), "m");
+        $this->primaryPrivateKey = BIP32Key::create($network, HierarchicalKeyFactory::fromEntropy($primarySeed), "m");
+        $this->backupPrivateKey = BIP32Key::create($network, HierarchicalKeyFactory::fromEntropy($backupSeed), "m");
     }
 
     /**
@@ -114,38 +107,6 @@ abstract class WalletSweeper {
         $this->utxoFinder->disableLogging();
     }
 
-
-    /**
-     * normalize network string
-     *
-     * @param $network
-     * @param $testnet
-     * @return array
-     * @throws \Exception
-     */
-    protected function normalizeNetwork($network, $testnet) {
-        switch (strtolower($network)) {
-            case 'btc':
-            case 'bitcoin':
-                $network = 'bitcoin';
-
-                break;
-
-            case 'tbtc':
-            case 'bitcoin-testnet':
-                $network = 'bitcoin';
-                $testnet = true;
-
-                break;
-
-            default:
-                throw new \Exception("Unknown network [{$network}]");
-        }
-
-        return [$network, $testnet];
-    }
-
-
     /**
      * generate multisig address for given path
      *
@@ -162,14 +123,14 @@ abstract class WalletSweeper {
             $this->getBlocktrailPublicKey($path)->buildKey($path)->publicKey()
         ]), false);
 
-        if ($this->network !== "bitcoincash" && (int) $path[2] === 2) {
+        if ($this->networkParams->getName() !== "bitcoincash" && (int) $path[2] === 2) {
             $witnessScript = new WitnessScript($multisig);
             $redeemScript = new P2shScript($witnessScript);
-            $address = $redeemScript->getAddress()->getAddress();
+            $address = $redeemScript->getAddress()->getAddress($this->networkParams->getNetwork());
         } else {
             $witnessScript = null;
             $redeemScript = new P2shScript($multisig);
-            $address = $redeemScript->getAddress()->getAddress();
+            $address = $redeemScript->getAddress()->getAddress($this->networkParams->getNetwork());
         }
 
         return [$address, $redeemScript, $witnessScript];

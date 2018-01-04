@@ -287,4 +287,9 @@ interface WalletInterface {
      * @return array            associative array containing the response
      */
     public function utxos($page = 1, $limit = 20, $sortDir = 'asc');
+
+    /**
+     * @return TransactionBuilder
+     */
+    public function createTransaction();
 }

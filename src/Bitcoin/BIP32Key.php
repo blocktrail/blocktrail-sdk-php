@@ -2,9 +2,10 @@
 
 namespace Blocktrail\SDK\Bitcoin;
 
-use BitWasp\Bitcoin\Crypto\EcAdapter\Impl\PhpEcc\Key\PublicKey;
 use BitWasp\Bitcoin\Crypto\EcAdapter\Key\PublicKeyInterface;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
+use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
+use BitWasp\Bitcoin\Network\NetworkInterface;
 
 /**
  * Class BIP32Key
@@ -23,6 +24,11 @@ class BIP32Key {
     private $path;
 
     /**
+     * @var NetworkInterface
+     */
+    private $network;
+
+    /**
      * @var string|null
      */
     private $publicKeyHex = null;
@@ -33,13 +39,15 @@ class BIP32Key {
     private $derivations = [];
 
     /**
-     * @param HierarchicalKey $key
-     * @param string|null     $path
+     * @param HierarchicalKey  $key
+     * @param NetworkInterface $network
+     * @param string|null      $path
      * @throws \Exception
      */
-    public function __construct(HierarchicalKey $key, $path = null) {
+    public function __construct(NetworkInterface $network, HierarchicalKey $key, $path = null) {
         $this->key = $key;
         $this->path = BIP32Path::path($path);
+        $this->network = $network;
 
         return;
 
@@ -57,12 +65,30 @@ class BIP32Key {
     /**
      * static method to initialize class
      *
-     * @param HierarchicalKey $key
-     * @param string|null     $path
+     * @param NetworkInterface $network
+     * @param HierarchicalKey  $key
+     * @param string|null      $path
      * @return BIP32Key
      */
-    public static function create(HierarchicalKey $key, $path = null) {
-        return new BIP32Key($key, $path);
+    public static function create(NetworkInterface $network, HierarchicalKey $key, $path = null) {
+        return new BIP32Key($network, $key, $path);
+    }
+
+    /**
+     * @param NetworkInterface $network
+     * @param string $key
+     * @param string|null $path
+     * @return BIP32Key
+     */
+    public static function fromString(NetworkInterface $network, $key, $path = null) {
+        return static::create($network, HierarchicalKeyFactory::fromExtended($key, $network), $path);
+    }
+
+    /**
+     * @return NetworkInterface
+     */
+    public function network() {
+        return $this->network;
     }
 
     /**
@@ -113,7 +139,7 @@ class BIP32Key {
     }
 
     public function tuple() {
-        return [$this->key->toExtendedKey(), (string)$this->path];
+        return [$this->key->toExtendedKey($this->network), (string)$this->path];
     }
 
     /**
@@ -151,7 +177,7 @@ class BIP32Key {
                 $key = $key->toPublic();
             }
 
-            $this->derivations[$originalPath] = BIP32Key::create($key, $originalPath);
+            $this->derivations[$originalPath] = BIP32Key::create($this->network, $key, $originalPath);
         }
 
         return $this->derivations[$originalPath];
