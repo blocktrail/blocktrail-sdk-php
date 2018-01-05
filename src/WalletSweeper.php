@@ -15,11 +15,17 @@ use BitWasp\Bitcoin\Transaction\Factory\TxBuilder;
 use BitWasp\Bitcoin\Transaction\OutPoint;
 use BitWasp\Bitcoin\Transaction\SignatureHash\SigHash;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
+use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
+use Blocktrail\SDK\Address\AddressReaderBase;
+use Blocktrail\SDK\Address\BitcoinAddressReader;
+use Blocktrail\SDK\Address\BitcoinCashAddressReader;
+use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+use Blocktrail\SDK\Network\BitcoinCash;
 
 abstract class WalletSweeper {
 
@@ -66,6 +72,11 @@ abstract class WalletSweeper {
     protected $sweepData;
 
     /**
+     * @var AddressReaderBase
+     */
+    protected $addressReader;
+
+    /**
      * process logging for debugging
      * @var bool
      */
@@ -84,8 +95,10 @@ abstract class WalletSweeper {
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
 
-        assert($this->network == "bitcoin");
-        Bitcoin::setNetwork($this->testnet ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin());
+        $this->setBitcoinLibMagicBytes($this->network, $this->testnet);
+        $this->addressReader = $this->makeAddressReader([
+            "use_cashaddress" => false,
+        ]);
 
         //create BIP32 keys for the Blocktrail public keys
         foreach ($blocktrailPublicKeys as $blocktrailKey) {
@@ -96,6 +109,43 @@ abstract class WalletSweeper {
 
         $this->primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($primarySeed), "m");
         $this->backupPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($backupSeed), "m");
+    }
+
+    /**
+     * @param array $options
+     * @return AddressReaderBase
+     */
+    private function makeAddressReader(array $options) {
+        if ($this->network == "bitcoincash") {
+            $useCashAddress = false;
+            if (array_key_exists("use_cashaddress", $options) && $options['use_cashaddress']) {
+                $useCashAddress = true;
+            }
+            return new BitcoinCashAddressReader($useCashAddress);
+        } else {
+            return new BitcoinAddressReader();
+        }
+    }
+
+    /**
+     * set BitcoinLib to the correct magic-byte defaults for the selected network
+     *
+     * @param $network
+     * @param $testnet
+     */
+    protected function setBitcoinLibMagicBytes($network, $testnet) {
+        assert($network == "bitcoin" || $network == "bitcoincash");
+        if ($network === "bitcoin") {
+            if ($testnet) {
+                $useNetwork = NetworkFactory::bitcoinTestnet();
+            } else {
+                $useNetwork = NetworkFactory::bitcoin();
+            }
+        } else if ($network === "bitcoincash") {
+            $useNetwork = new BitcoinCash((bool) $testnet);
+        }
+
+        Bitcoin::setNetwork($useNetwork);
     }
 
     /**
@@ -114,7 +164,6 @@ abstract class WalletSweeper {
         $this->utxoFinder->disableLogging();
     }
 
-
     /**
      * normalize network string
      *
@@ -124,27 +173,8 @@ abstract class WalletSweeper {
      * @throws \Exception
      */
     protected function normalizeNetwork($network, $testnet) {
-        switch (strtolower($network)) {
-            case 'btc':
-            case 'bitcoin':
-                $network = 'bitcoin';
-
-                break;
-
-            case 'tbtc':
-            case 'bitcoin-testnet':
-                $network = 'bitcoin';
-                $testnet = true;
-
-                break;
-
-            default:
-                throw new \Exception("Unknown network [{$network}]");
-        }
-
-        return [$network, $testnet];
+        return Util::normalizeNetwork($network, $testnet);
     }
-
 
     /**
      * generate multisig address for given path
@@ -165,11 +195,11 @@ abstract class WalletSweeper {
         if ($this->network !== "bitcoincash" && (int) $path[2] === 2) {
             $witnessScript = new WitnessScript($multisig);
             $redeemScript = new P2shScript($witnessScript);
-            $address = $redeemScript->getAddress()->getAddress();
+            $address = $this->addressReader->fromOutputScript($redeemScript->getOutputScript())->getAddress();
         } else {
             $witnessScript = null;
             $redeemScript = new P2shScript($multisig);
-            $address = $redeemScript->getAddress()->getAddress();
+            $address = $this->addressReader->fromOutputScript($redeemScript->getOutputScript())->getAddress();
         }
 
         return [$address, $redeemScript, $witnessScript];
@@ -358,9 +388,21 @@ abstract class WalletSweeper {
             $txb->spendOutPoint(new OutPoint(Buffer::hex($utxo->hash, 32), $utxo->index), $utxo->scriptPubKey);
         }
 
-        $fee = Wallet::estimateFee($this->sweepData['count'], 1);
+        if ($this->network === "bitcoincash") {
+            $tAddress = $this->makeAddressReader(['use_cashaddr' => true])->fromString($destinationAddress);
+            if ($tAddress instanceof CashAddress) {
+                $destinationAddress = $tAddress->getLegacyAddress()->getAddress();
+            }
+        }
 
-        $txb->payToAddress($this->sweepData['balance'] - $fee, AddressFactory::fromString($destinationAddress));
+        $destAddress = $this->addressReader->fromString($destinationAddress);
+        $vsizeEstimation = SizeEstimation::estimateVsize($utxos, [
+            new TransactionOutput(0, $destAddress->getScriptPubKey())
+        ]);
+
+        $fee = Wallet::baseFeeForSize($vsizeEstimation);
+
+        $txb->payToAddress($this->sweepData['balance'] - $fee, $destAddress);
 
         if ($this->debug) {
             echo "\nSigning transaction";
@@ -403,6 +445,10 @@ abstract class WalletSweeper {
 
                 $signData = (new SignData())
                     ->p2sh($redeemScript);
+
+                if ($info->witnessScript) {
+                    $signData->p2wsh($info->witnessScript);
+                }
 
                 $input = $signer->input($idx, $output, $signData);
 

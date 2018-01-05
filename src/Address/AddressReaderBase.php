@@ -34,7 +34,7 @@ abstract class AddressReaderBase
     /**
      * @param $strAddress
      * @param NetworkInterface|null $network
-     * @return mixed
+     * @return AddressInterface
      */
     abstract public function fromString($strAddress, NetworkInterface $network = null);
 
