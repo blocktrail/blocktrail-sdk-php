@@ -620,8 +620,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 $backupPublicKey = [$backupPublicKey, "m"];
             }
         } else {
-            $backupPrivateKey = HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed($backupMnemonic, ""));
-            $backupPublicKey = BIP32Key::create($backupPrivateKey->toPublic(), "M");
+            $backupPublicHK = HierarchicalKeyFactory::fromEntropy((new Bip39SeedGenerator())->getSeed($backupMnemonic, ""))
+                ->toPublic();
+            $backupPublicKey = BIP32Key::create($backupPublicHK, "M");
         }
 
         // create a checksum of our private key which we'll later use to verify we used the right password
