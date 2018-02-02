@@ -37,6 +37,10 @@ abstract class Util {
             // Regtest is magic
             $apiNetwork = "rBTC";
             $testnet = true;
+        } else if ($network === "RBCC") {
+            // Regtest is magic
+            $apiNetwork = "rBCC";
+            $testnet = true;
         } else {
             // Default to bitcoin if they make no sense.
             $apiNetwork = "BTC";
@@ -80,6 +84,12 @@ abstract class Util {
             case 'rbtc':
             case 'bitcoin-regtest':
                 $network = 'bitcoin';
+                $testnet = true;
+                break;
+
+            case 'rbcc':
+            case 'bitcoincash-regtest':
+                $network = 'bitcoincash';
                 $testnet = true;
                 break;
 
