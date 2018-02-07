@@ -19,6 +19,7 @@ class UtilTest extends BlocktrailTestCase
 
             ['RBTC', false, 'rBTC', true],
             ['RBTC', true, 'rBTC', true],
+            ['RBCH', true, 'rBCH', true],
 
             ['TBCC', false, 'tBCC', true],
             ['TBCC', true, 'tBCC', true],
