@@ -37,9 +37,9 @@ abstract class Util {
             // Regtest is magic
             $apiNetwork = "rBTC";
             $testnet = true;
-        } else if ($network === "RBCC") {
+        } else if ($network === "RBCH") {
             // Regtest is magic
-            $apiNetwork = "rBCC";
+            $apiNetwork = "rBCH";
             $testnet = true;
         } else {
             // Default to bitcoin if they make no sense.
@@ -71,10 +71,12 @@ abstract class Util {
                 $testnet = true;
                 break;
             case 'bcc':
+            case 'bch':
             case 'bitcoincash':
                 $network = 'bitcoincash';
                 break;
 
+            case 'tbch':
             case 'tbcc':
             case 'bitcoincash-testnet':
                 $network = 'bitcoincash';
@@ -87,7 +89,7 @@ abstract class Util {
                 $testnet = true;
                 break;
 
-            case 'rbcc':
+            case 'rbch':
             case 'bitcoincash-regtest':
                 $network = 'bitcoincash';
                 $testnet = true;
