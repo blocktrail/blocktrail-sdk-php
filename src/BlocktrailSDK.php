@@ -28,6 +28,8 @@ use Blocktrail\SDK\Connection\RestClient;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Network\BitcoinCash;
 use Blocktrail\SDK\Connection\RestClientInterface;
+use Blocktrail\SDK\Network\BitcoinCashRegtest;
+use Blocktrail\SDK\Network\BitcoinCashTestnet;
 use Blocktrail\SDK\V3Crypt\Encryption;
 use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
 use Blocktrail\SDK\V3Crypt\KeyDerivation;
@@ -70,8 +72,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         }
 
         // normalize network and set bitcoinlib to the right magic-bytes
-        list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
-        $this->setBitcoinLibMagicBytes($this->network, $this->testnet);
+        list($this->network, $this->testnet, $regtest) = $this->normalizeNetwork($network, $testnet);
+        $this->setBitcoinLibMagicBytes($this->network, $this->testnet, $regtest);
 
         $this->client = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
     }
@@ -85,6 +87,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @throws \Exception
      */
     protected function normalizeNetwork($network, $testnet) {
+        // [name, testnet, network]
         return Util::normalizeNetwork($network, $testnet);
     }
 
@@ -92,18 +95,27 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * set BitcoinLib to the correct magic-byte defaults for the selected network
      *
      * @param $network
-     * @param $testnet
+     * @param bool $testnet
+     * @param bool $regtest
      */
-    protected function setBitcoinLibMagicBytes($network, $testnet) {
-        assert($network == "bitcoin" || $network == "bitcoincash");
+    protected function setBitcoinLibMagicBytes($network, $testnet, $regtest) {
+
         if ($network === "bitcoin") {
             if ($testnet) {
                 $useNetwork = NetworkFactory::bitcoinTestnet();
+            } else if ($regtest) {
+                $useNetwork = NetworkFactory::bitcoinRegtest();
             } else {
                 $useNetwork = NetworkFactory::bitcoin();
             }
         } else if ($network === "bitcoincash") {
-            $useNetwork = new BitcoinCash((bool) $testnet);
+            if ($testnet) {
+                $useNetwork = new BitcoinCashTestnet();
+            } else if ($regtest) {
+                $useNetwork = new BitcoinCashRegtest();
+            } else {
+                $useNetwork = new BitcoinCash();
+            }
         }
 
         Bitcoin::setNetwork($useNetwork);

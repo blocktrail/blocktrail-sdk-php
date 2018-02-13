@@ -26,6 +26,7 @@ use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Network\BitcoinCash;
+use Blocktrail\SDK\Network\BitcoinCashRegtest;
 
 abstract class WalletSweeper {
 
@@ -133,16 +134,24 @@ abstract class WalletSweeper {
      * @param $network
      * @param $testnet
      */
-    protected function setBitcoinLibMagicBytes($network, $testnet) {
+    protected function setBitcoinLibMagicBytes($network, $testnet, $regtest) {
         assert($network == "bitcoin" || $network == "bitcoincash");
         if ($network === "bitcoin") {
             if ($testnet) {
                 $useNetwork = NetworkFactory::bitcoinTestnet();
+            } if ($regtest) {
+                $useNetwork = NetworkFactory::bitcoinRegtest();
             } else {
                 $useNetwork = NetworkFactory::bitcoin();
             }
         } else if ($network === "bitcoincash") {
-            $useNetwork = new BitcoinCash((bool) $testnet);
+            if ($testnet) {
+                $useNetwork = new BitcoinCashTestnet();
+            } if ($regtest) {
+                $useNetwork = new BitcoinCashRegtest();
+            } else {
+                $useNetwork = new BitcoinCash();
+            }
         }
 
         Bitcoin::setNetwork($useNetwork);

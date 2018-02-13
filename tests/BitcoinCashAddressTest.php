@@ -4,15 +4,16 @@ namespace Blocktrail\SDK\Tests;
 
 
 use BitWasp\Bitcoin\Address\ScriptHashAddress;
+use BitWasp\Bitcoin\Bitcoin;
 use Blocktrail\SDK\Address\BitcoinCashAddressReader;
 use Blocktrail\SDK\Address\CashAddress;
-use Blocktrail\SDK\Network\BitcoinCash;
+use Blocktrail\SDK\Network\BitcoinCashTestnet;
 
 class BitcoinCashAddressTest extends BlocktrailTestCase
 {
     public function testInitializeWithDefaultFormat() {
         $isTestnet = true;
-        $tbcc = new BitcoinCash($isTestnet);
+        $tbcc = new BitcoinCashTestnet();
         $client = $this->setupBlocktrailSDK("BCC", $isTestnet);
         $legacyAddressWallet = $client->initWallet([
             "identifier" => "unittest-transaction",
@@ -40,7 +41,7 @@ class BitcoinCashAddressTest extends BlocktrailTestCase
 
     public function testCurrentDefaultIsOldFormat() {
         $isTestnet = true;
-        $tbcc = new BitcoinCash($isTestnet);
+        $tbcc = new BitcoinCashTestnet();
 
         $client = $this->setupBlocktrailSDK("BCC", $isTestnet);
         $cashAddrWallet = $client->initWallet([
@@ -57,7 +58,7 @@ class BitcoinCashAddressTest extends BlocktrailTestCase
 
     public function testCanOptIntoNewAddressFormat() {
         $isTestnet = true;
-        $tbcc = new BitcoinCash($isTestnet);
+        $tbcc = new BitcoinCashTestnet();
 
         $client = $this->setupBlocktrailSDK("BCC", $isTestnet);
         $cashAddrWallet = $client->initWallet([
@@ -75,7 +76,7 @@ class BitcoinCashAddressTest extends BlocktrailTestCase
     public function testCanCoinSelectNewCashAddresses()
     {
         $isTestnet = true;
-        $network = new BitcoinCash($isTestnet);
+        $tbcc = new BitcoinCashTestnet();
         $client = $this->setupBlocktrailSDK("BCC", $isTestnet);
         $cashAddrWallet = $client->initWallet([
             "identifier" => "unittest-transaction",
@@ -84,10 +85,10 @@ class BitcoinCashAddressTest extends BlocktrailTestCase
         ]);
 
         $str = "bchtest:ppm2qsznhks23z7629mms6s4cwef74vcwvhanqgjxu";
-        $cashaddr = $cashAddrWallet->getAddressReader()->fromString($str, $network);
+        $cashaddr = $cashAddrWallet->getAddressReader()->fromString($str, $tbcc);
 
         $selection = $cashAddrWallet->coinSelection([
-             $cashaddr->getAddress($network) => 1234123,
+             $cashaddr->getAddress($tbcc) => 1234123,
         ], false);
 
         $this->assertArrayHasKey('utxos', $selection);
