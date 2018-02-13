@@ -101,18 +101,18 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     protected function setBitcoinLibMagicBytes($network, $testnet, $regtest) {
 
         if ($network === "bitcoin") {
-            if ($testnet) {
-                $useNetwork = NetworkFactory::bitcoinTestnet();
-            } else if ($regtest) {
+            if ($regtest) {
                 $useNetwork = NetworkFactory::bitcoinRegtest();
+            } if ($testnet) {
+                $useNetwork = NetworkFactory::bitcoinTestnet();
             } else {
                 $useNetwork = NetworkFactory::bitcoin();
             }
         } else if ($network === "bitcoincash") {
-            if ($testnet) {
-                $useNetwork = new BitcoinCashTestnet();
-            } else if ($regtest) {
+            if ($regtest) {
                 $useNetwork = new BitcoinCashRegtest();
+            } else if ($testnet) {
+                $useNetwork = new BitcoinCashTestnet();
             } else {
                 $useNetwork = new BitcoinCash();
             }
