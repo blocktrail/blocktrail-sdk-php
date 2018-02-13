@@ -6,6 +6,7 @@ use BitWasp\Bitcoin\Network\NetworkFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Network\BitcoinCash;
+use Blocktrail\SDK\Network\BitcoinCashTestnet;
 
 class BitcoinCashTest extends \PHPUnit_Framework_TestCase
 {
@@ -23,7 +24,12 @@ class BitcoinCashTest extends \PHPUnit_Framework_TestCase
      */
     public function testBitcoinCash($testnet, $cashAddrPrefix)
     {
-        $network = new BitcoinCash($testnet);
+        if ($testnet) {
+            $network = new BitcoinCashTestnet();
+        } else {
+            $network = new BitcoinCash();
+        }
+
         $this->assertEquals($testnet, $network->isTestnet());
         $this->assertEquals($cashAddrPrefix, $network->getCashAddressPrefix());
 
@@ -51,7 +57,12 @@ class BitcoinCashTest extends \PHPUnit_Framework_TestCase
      */
     public function testNoBech32($testnet)
     {
-        $network = new BitcoinCash($testnet);
+        if ($testnet) {
+            $network = new BitcoinCashTestnet();
+        } else {
+            $network = new BitcoinCash();
+        }
+
         $network->getSegwitBech32Prefix();
     }
 
@@ -77,7 +88,12 @@ class BitcoinCashTest extends \PHPUnit_Framework_TestCase
      */
     public function testCashAddress($testnet, $type, $hashHex, $expected)
     {
-        $network = new BitcoinCash($testnet);
+        if ($testnet) {
+            $network = new BitcoinCashTestnet();
+        } else {
+            $network = new BitcoinCash();
+        }
+
         $hash = Buffer::hex($hashHex);
         $addr = new CashAddress($type, $hash);
         $this->assertEquals($type, $addr->getType());

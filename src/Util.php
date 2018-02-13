@@ -59,6 +59,7 @@ abstract class Util {
      * @throws \Exception
      */
     public static function normalizeNetwork($network, $testnet) {
+        $regtest = false;
         switch (strtolower($network)) {
             case 'btc':
             case 'bitcoin':
@@ -87,12 +88,14 @@ abstract class Util {
             case 'bitcoin-regtest':
                 $network = 'bitcoin';
                 $testnet = true;
+                $regtest = true;
                 break;
 
             case 'rbch':
             case 'bitcoincash-regtest':
                 $network = 'bitcoincash';
                 $testnet = true;
+                $regtest = true;
                 break;
 
             default:
@@ -100,7 +103,7 @@ abstract class Util {
             // this comment silences a phpcs error.
         }
 
-        return [$network, $testnet];
+        return [$network, $testnet, $regtest];
     }
 
     public static function arrayMapWithIndex(callable $fn, $arr) {

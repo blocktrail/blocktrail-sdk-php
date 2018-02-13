@@ -8,6 +8,7 @@ use Blocktrail\SDK\Address\BitcoinCashAddressReader;
 use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Network\BitcoinCash;
+use Blocktrail\SDK\Network\BitcoinCashTestnet;
 use Blocktrail\SDK\OutputsNormalizer;
 
 class OutputsNormalizerTest extends BlocktrailTestCase
@@ -21,7 +22,13 @@ class OutputsNormalizerTest extends BlocktrailTestCase
                 return [NetworkFactory::bitcoin(), new BitcoinAddressReader()];
                 break;
             case "BCC":
-                return [new BitcoinCash($testnet), new BitcoinCashAddressReader(true)];
+                if ($testnet) {
+                    $network = new BitcoinCashTestnet();
+                } else {
+                    $network = new BitcoinCash();
+                }
+
+                return [$network, new BitcoinCashAddressReader(true)];
                 break;
             default:
                 throw new \RuntimeException("Unknown network");
