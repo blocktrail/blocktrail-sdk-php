@@ -94,9 +94,9 @@ abstract class WalletSweeper {
      */
     public function __construct(BufferInterface $primarySeed, BufferInterface $backupSeed, array $blocktrailPublicKeys, UnspentOutputFinder $utxoFinder, $network = 'btc', $testnet = false) {
         // normalize network and set bitcoinlib to the right magic-bytes
-        list($this->network, $this->testnet) = $this->normalizeNetwork($network, $testnet);
+        list($this->network, $this->testnet, $regtest) = $this->normalizeNetwork($network, $testnet);
 
-        $this->setBitcoinLibMagicBytes($this->network, $this->testnet);
+        $this->setBitcoinLibMagicBytes($this->network, $this->testnet,$regtest);
         $this->addressReader = $this->makeAddressReader([
             "use_cashaddress" => false,
         ]);
@@ -137,18 +137,18 @@ abstract class WalletSweeper {
     protected function setBitcoinLibMagicBytes($network, $testnet, $regtest) {
         assert($network == "bitcoin" || $network == "bitcoincash");
         if ($network === "bitcoin") {
-            if ($testnet) {
-                $useNetwork = NetworkFactory::bitcoinTestnet();
-            } if ($regtest) {
+            if ($regtest) {
                 $useNetwork = NetworkFactory::bitcoinRegtest();
+            } else if ($testnet) {
+                $useNetwork = NetworkFactory::bitcoinTestnet();
             } else {
                 $useNetwork = NetworkFactory::bitcoin();
             }
         } else if ($network === "bitcoincash") {
-            if ($testnet) {
-                $useNetwork = new BitcoinCashTestnet();
-            } if ($regtest) {
+            if ($regtest) {
                 $useNetwork = new BitcoinCashRegtest();
+            } else if ($testnet) {
+                $useNetwork = new BitcoinCashTestnet();
             } else {
                 $useNetwork = new BitcoinCash();
             }
