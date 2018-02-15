@@ -103,7 +103,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         if ($network === "bitcoin") {
             if ($regtest) {
                 $useNetwork = NetworkFactory::bitcoinRegtest();
-            } if ($testnet) {
+            } else if ($testnet) {
                 $useNetwork = NetworkFactory::bitcoinTestnet();
             } else {
                 $useNetwork = NetworkFactory::bitcoin();
