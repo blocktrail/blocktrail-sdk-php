@@ -4,13 +4,32 @@ namespace Blocktrail\SDK\Tests;
 
 
 use BitWasp\Bitcoin\Address\ScriptHashAddress;
-use BitWasp\Bitcoin\Bitcoin;
 use Blocktrail\SDK\Address\BitcoinCashAddressReader;
 use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Network\BitcoinCashTestnet;
+use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
+use Blocktrail\SDK\Network\BitcoinCash;
 
 class BitcoinCashAddressTest extends BlocktrailTestCase
 {
+    /**
+     * @expectedException \Blocktrail\SDK\Exceptions\BlocktrailSDKException
+     * @expectedExceptionMessage Address not recognized
+     */
+    public function testShortCashAddress() {
+        $bch = new BitcoinCash();
+        $tbch = new BitcoinCashTestnet();
+
+        $address = "bchtest:ppm2qsznhks23z7629mms6s4cwef74vcwvhanqgjxu";
+        $short = "ppm2qsznhks23z7629mms6s4cwef74vcwvhanqgjxu";
+        $reader = new BitcoinCashAddressReader(true);
+        $this->assertEquals($address, $reader->fromString($address, $bch)->getAddress($bch));
+        $this->assertEquals($address, $reader->fromString($short, $bch)->getAddress($bch));
+
+        $this->setExpectedException(BlocktrailSDKException::class, "Address not recognized");
+        $reader->fromString($short, $tbch);
+    }
+
     public function testInitializeWithDefaultFormat() {
         $isTestnet = true;
         $tbcc = new BitcoinCashTestnet();
