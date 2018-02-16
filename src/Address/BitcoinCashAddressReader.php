@@ -50,23 +50,6 @@ class BitcoinCashAddressReader extends AddressReaderBase
             // continue on
         }
 
-        try {
-            list ($prefix, $scriptType, $hash) = \CashAddr\CashAddress::decode(
-                sprintf("%s:%s", $network->getCashAddressPrefix(), $strAddress)
-            );
-
-            if ($prefix !== $network->getCashAddressPrefix()) {
-                return null;
-            }
-            if (!($scriptType === ScriptType::P2PKH || $scriptType === ScriptType::P2SH)) {
-                return null;
-            }
-
-            return new CashAddress($scriptType, new Buffer($hash, 20));
-        } catch (\Exception $e) {
-            // continue on
-        }
-
         return null;
     }
 
