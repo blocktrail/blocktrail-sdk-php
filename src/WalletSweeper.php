@@ -96,7 +96,7 @@ abstract class WalletSweeper {
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet, $regtest) = $this->normalizeNetwork($network, $testnet);
 
-        $this->setBitcoinLibMagicBytes($this->network, $this->testnet,$regtest);
+        $this->setBitcoinLibMagicBytes($this->network, $this->testnet, $regtest);
         $this->addressReader = $this->makeAddressReader([
             "use_cashaddress" => false,
         ]);
