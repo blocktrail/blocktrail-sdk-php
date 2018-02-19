@@ -1381,20 +1381,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
-     * do HD wallet discovery for the wallet
-     *
-     * this can be REALLY slow, so we've set the timeout to 120s ...
-     *
-     * @param string    $identifier             the identifier of the wallet
-     * @param int       $gap                    the gap setting to use for discovery
-     * @return mixed
-     */
-    public function doWalletDiscovery($identifier, $gap = 200) {
-        $response = $this->client->get("wallet/{$identifier}/discovery", ['gap' => $gap], RestClient::AUTH_HTTP_SIG, 360.0);
-        return self::jsonDecode($response->body(), true);
-    }
-
-    /**
      * get a new derivation number for specified parent path
      *  eg; m/44'/1'/0/0 results in m/44'/1'/0/0/0 and next time in m/44'/1'/0/0/1 and next time in m/44'/1'/0/0/2
      *
