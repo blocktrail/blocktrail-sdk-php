@@ -29,7 +29,6 @@ try {
         "backup_public_key" => $backupPublicKey,
         "key_index" => 9999
     ]);
-    $wallet->doDiscovery();
 }
 
 // var_dump($wallet->deleteWebhook());

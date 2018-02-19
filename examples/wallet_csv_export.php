@@ -26,7 +26,6 @@ try {
         "passphrase" => "example-strong-password",
         "key_index" => 9999
     ]);
-    $wallet->doDiscovery();
 }
 
 

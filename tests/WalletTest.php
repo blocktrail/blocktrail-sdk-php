@@ -86,25 +86,17 @@ class WalletTest extends BlocktrailTestCase {
         // $client = $this->setupBlocktrailSDK();
 
         // wallet used for testing sending a transaction
-        //  - we reuse this wallet because doing discovery everytime is a pain
+        //  - we reuse this wallet
         // $this->createTransactionTestWallet($client);
 
         // wallet used for
         //  * testing keyIndex upgrade
-        //  * discovery
         //  * bad password
         //  - we recreate this wallet everytime because we need to be able to upgrade it again
-        //  - so it should contain a little bit of BTC to be found by discovery
-        // $this->createDiscoveryTestWallet($client, "unittest-discovery");
-
-        // wallet used for wallet recovery testing
-        //  - we recreate this wallet everytime because we need to be able to upgrade it again
-        //  - so it should contain a little bit of BTC to be found by discovery
-        //    it should be spread across small gaps to test the recovery process
-        // $this->createRecoveryTestWallet($client);
+        // $this->createKeyIndexUpgradeTestWallet($client, "unittest-discovery");
     }
 
-    protected function createDiscoveryTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase = "password") {
+    protected function createKeyIndexUpgradeTestWallet(BlocktrailSDKInterface $client, $identifier, $passphrase = "password") {
         $primaryMnemonic = "give pause forget seed dance crawl situate hole kingdom";
         $backupMnemonic = "give pause forget seed dance crawl situate hole course";
 
@@ -114,14 +106,6 @@ class WalletTest extends BlocktrailTestCase {
     protected function createTransactionTestWallet(BlocktrailSDKInterface $client, $identifier = "unittest-transaction") {
         $primaryMnemonic = "give pause forget seed dance crawl situate hole keen";
         $backupMnemonic = "give pause forget seed dance crawl situate hole give";
-        $passphrase = "password";
-
-        return $this->_createTestWallet($client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic);
-    }
-
-    protected function createRecoveryTestWallet(BlocktrailSDKInterface $client, $identifier = "unittest-wallet-recovery") {
-        $primaryMnemonic = "give pause forget seed dance crawl situate hole join";
-        $backupMnemonic = "give pause forget seed dance crawl situate hole crater";
         $passphrase = "password";
 
         return $this->_createTestWallet($client, $identifier, $passphrase, $primaryMnemonic, $backupMnemonic);
@@ -815,11 +799,11 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertTrue(in_array($value, array_column($tx['outputs'], 'value')));
     }
 
-    public function testDiscoveryAndKeyIndexUpgrade() {
+    public function testKeyIndexUpgrade() {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
-        $wallet = $this->createDiscoveryTestWallet($client, $identifier);
+        $wallet = $this->createKeyIndexUpgradeTestWallet($client, $identifier);
         $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertEquals($identifier, $wallet->getIdentifier());
@@ -837,9 +821,6 @@ class WalletTest extends BlocktrailTestCase {
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/1", $path);
         $this->assertEquals("2NG49GDkm5qCYvDFi4cxAnkSho8qLbEz6C4", $address);
-
-        list($confirmed, $unconfirmed) = $wallet->doDiscovery(50);
-        $this->assertGreaterThan(0, $confirmed + $unconfirmed);
 
         $wallet->upgradeKeyIndex(10000);
 
@@ -882,7 +863,7 @@ class WalletTest extends BlocktrailTestCase {
         $client = $this->setupBlocktrailSDK();
 
         $identifier = $this->getRandomTestIdentifier();
-        $wallet = $this->createDiscoveryTestWallet($client, $identifier, "badpassword");
+        $wallet = $this->createKeyIndexUpgradeTestWallet($client, $identifier, "badpassword");
         $this->cleanupData['wallets'][] = $wallet; // store for cleanup
 
         $this->assertEquals($identifier, $wallet->getIdentifier());
@@ -900,9 +881,6 @@ class WalletTest extends BlocktrailTestCase {
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertEquals("M/9999'/0/1", $path);
         $this->assertEquals("2NDq3DRy9E3YgHDA3haPJj3FtUS6V93avkf", $address);
-
-        list($confirmed, $unconfirmed) = $wallet->doDiscovery(50);
-        $this->assertEquals(0, $confirmed + $unconfirmed);
     }
 
     public function getVersionedWalletVectors()
