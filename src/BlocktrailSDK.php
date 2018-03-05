@@ -1458,16 +1458,18 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     /**
      * send the transaction using the API
      *
-     * @param string         $identifier             the identifier of the wallet
-     * @param string|array   $rawTransaction         raw hex of the transaction (should be partially signed)
-     * @param array          $paths                  list of the paths that were used for the UTXO
-     * @param bool           $checkFee               let the server verify the fee after signing
+     * @param string       $identifier     the identifier of the wallet
+     * @param string|array $rawTransaction raw hex of the transaction (should be partially signed)
+     * @param array        $paths          list of the paths that were used for the UTXO
+     * @param bool         $checkFee       let the server verify the fee after signing
+     * @param null         $twoFactorToken
      * @return string                                the complete raw transaction
      * @throws \Exception
      */
-    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee = false) {
+    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee = false, $twoFactorToken = null) {
         $data = [
-            'paths' => $paths
+            'paths' => $paths,
+            'two_factor_token' => $twoFactorToken,
         ];
 
         if (is_array($rawTransaction)) {

@@ -432,14 +432,14 @@ interface BlocktrailSDKInterface {
     /**
      * send the transaction using the API
      *
-     * @param string        $identifier             the identifier of the wallet
-     * @param string|array  $rawTransaction         raw hex of the transaction (should be partially signed)
-     * @param array         $paths                  list of the paths that were used for the UTXO
-     * @param bool          $checkFee               let the server verify the fee after signing
+     * @param string       $identifier     the identifier of the wallet
+     * @param string|array $rawTransaction raw hex of the transaction (should be partially signed)
+     * @param array        $paths          list of the paths that were used for the UTXO
+     * @param bool         $checkFee       let the server verify the fee after signing
+     * @param null         $twoFactorToken
      * @return string                           the complete raw transaction
-     * @throws \Exception
      */
-    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee);
+    public function sendTransaction($identifier, $rawTransaction, $paths, $checkFee = false, $twoFactorToken = null);
 
     /**
      * use the API to get the best inputs to use based on the outputs
