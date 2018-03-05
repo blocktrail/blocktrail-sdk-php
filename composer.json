@@ -23,6 +23,12 @@
         }
     },
     "license": "MIT",
+    "repositories" : [
+        {
+            "type": "vcs",
+            "url": "https://github.com/blocktrail/bitcoin-php"
+        }
+    ],
     "require": {
         "php-64bit": ">=5.6.0",
 
@@ -33,12 +39,13 @@
         "ext-dom": "*",
         "ext-curl": "*",
 
-        "bitwasp/bitcoin": "v0.0.34.1",
+        "bitwasp/bitcoin": "dev-fork-blocktrail-backend#8355e00e473891795d8ca3fd45396dfaf7606a5f",
         "btccom/cashaddress": "v0.0.3",
         "mdanter/ecc": "v0.4.*",
 
         "guzzlehttp/guzzle": "6.*",
         "99designs/http-signatures-guzzlehttp": "2.0.*",
+        "symfony/http-foundation": "^2.7|^3.0|^4.0",
 
         "rych/hash_pbkdf2-compat": "~1.0",
         "ramsey/array_column": "~1.1",
