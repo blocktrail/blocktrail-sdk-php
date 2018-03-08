@@ -9,8 +9,8 @@ use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
-use Blocktrail\SDK\V3Crypt\Encryption;
-use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
+use Btccom\JustEncrypt\Encryption;
+use Btccom\JustEncrypt\EncryptionMnemonic;
 
 class WalletV3 extends Wallet
 {
@@ -155,7 +155,8 @@ class WalletV3 extends Wallet
             throw new BlocktrailSDKException("No secret");
         }
 
-        $encryptedSecret = Encryption::encrypt($this->secret, new Buffer($newPassword));
+        $encryptedSecret = Encryption::encrypt($this->secret, new Buffer($newPassword))
+            ->getBuffer();
 
         $this->sdk->updateWallet($this->identifier, ['encrypted_secret' => base64_encode($encryptedSecret->getBinary())]);
 
