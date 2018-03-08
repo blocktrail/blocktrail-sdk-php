@@ -22,7 +22,6 @@ use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\Address\AddressReaderBase;
-use Blocktrail\SDK\Address\BitcoinCashAddressReader;
 use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;

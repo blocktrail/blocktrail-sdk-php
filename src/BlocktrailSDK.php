@@ -30,9 +30,9 @@ use Blocktrail\SDK\Network\BitcoinCash;
 use Blocktrail\SDK\Connection\RestClientInterface;
 use Blocktrail\SDK\Network\BitcoinCashRegtest;
 use Blocktrail\SDK\Network\BitcoinCashTestnet;
-use Blocktrail\SDK\V3Crypt\Encryption;
-use Blocktrail\SDK\V3Crypt\EncryptionMnemonic;
-use Blocktrail\SDK\V3Crypt\KeyDerivation;
+use Btccom\JustEncrypt\Encryption;
+use Btccom\JustEncrypt\EncryptionMnemonic;
+use Btccom\JustEncrypt\KeyDerivation;
 
 /**
  * Class BlocktrailSDK
@@ -882,7 +882,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 }
 
                 $secret = new Buffer(self::randomBits(256));
-                $encryptedSecret = Encryption::encrypt($secret, new Buffer($options['passphrase']), KeyDerivation::DEFAULT_ITERATIONS);
+                $encryptedSecret = Encryption::encrypt($secret, new Buffer($options['passphrase']), KeyDerivation::DEFAULT_ITERATIONS)
+                    ->getBuffer();
             } else {
                 if (!$options['secret'] instanceof Buffer) {
                     throw new \RuntimeException('Secret must be provided as a Buffer');
@@ -891,10 +892,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 $secret = $options['secret'];
             }
 
-            $encryptedPrimarySeed = Encryption::encrypt($primarySeed, $secret, KeyDerivation::SUBKEY_ITERATIONS);
+            $encryptedPrimarySeed = Encryption::encrypt($primarySeed, $secret, KeyDerivation::SUBKEY_ITERATIONS)
+                ->getBuffer();
             $recoverySecret = new Buffer(self::randomBits(256));
 
-            $recoveryEncryptedSecret = Encryption::encrypt($secret, $recoverySecret, KeyDerivation::DEFAULT_ITERATIONS);
+            $recoveryEncryptedSecret = Encryption::encrypt($secret, $recoverySecret, KeyDerivation::DEFAULT_ITERATIONS)
+                ->getBuffer();
         }
 
         if (!isset($options['backup_public_key'])) {
