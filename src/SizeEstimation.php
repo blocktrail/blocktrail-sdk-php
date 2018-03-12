@@ -193,14 +193,28 @@ class SizeEstimation
      * @return array
      */
     public static function estimateUtxo(UTXO $utxo) {
+        return self::estimateUtxoFromScripts($utxo->scriptPubKey, $utxo->redeemScript, $utxo->witnessScript);
+    }
+
+    /**
+     * @param ScriptInterface $scriptPubKey
+     * @param ScriptInterface $redeemScript
+     * @param ScriptInterface $witnessScript
+     * @return array
+     */
+    public static function estimateUtxoFromScripts(
+        ScriptInterface $scriptPubKey,
+        ScriptInterface $redeemScript = null,
+        ScriptInterface $witnessScript = null
+    ) {
         $classifier = new OutputClassifier();
-        $decodePK = $classifier->decode($utxo->scriptPubKey);
+        $decodePK = $classifier->decode($scriptPubKey);
         $witness = false;
         if ($decodePK->getType() === ScriptType::P2SH) {
-            if (null === $utxo->redeemScript) {
+            if (null === $redeemScript) {
                 throw new \RuntimeException("Can't estimate, missing redeem script");
             }
-            $decodePK = $classifier->decode($utxo->redeemScript);
+            $decodePK = $classifier->decode($redeemScript);
         }
 
         if ($decodePK->getType() === ScriptType::P2WKH) {
@@ -208,10 +222,10 @@ class SizeEstimation
             $decodePK = $classifier->decode($scriptSitu);
             $witness = true;
         } else if ($decodePK->getType() === ScriptType::P2WSH) {
-            if (null === $utxo->witnessScript) {
+            if (null === $witnessScript) {
                 throw new \RuntimeException("Can't estimate, missing witness script");
             }
-            $decodePK = $classifier->decode($utxo->witnessScript);
+            $decodePK = $classifier->decode($witnessScript);
             $witness = true;
         }
 
@@ -220,7 +234,7 @@ class SizeEstimation
         }
 
         $script = $decodePK->getScript();
-        list ($scriptSig, $witness) = SizeEstimation::estimateInputFromScripts($script, $utxo->redeemScript, $utxo->witnessScript, $witness);
+        list ($scriptSig, $witness) = SizeEstimation::estimateInputFromScripts($script, $redeemScript, $witnessScript, $witness);
 
         return [
             "scriptSig" => $scriptSig,
