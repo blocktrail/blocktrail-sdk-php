@@ -2,12 +2,13 @@
 
 namespace Blocktrail\SDK;
 
+use BitWasp\Bitcoin\Address\AddressCreator;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
-use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\WalletDecryptException;
@@ -35,10 +36,10 @@ class WalletV2 extends Wallet {
      * @param bool                   $testnet
      * @param bool                   $segwit
      * @param string                 $checksum
-     * @param AddressReaderBase      $addressReader
+     * @param BaseAddressCreator     $addressReader
      * @throws                       BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, AddressReaderBase $addressReader, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $encryptedPrimarySeed, $encryptedSecret, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, BaseAddressCreator $addressReader, $checksum) {
         $this->encryptedPrimarySeed = $encryptedPrimarySeed;
         $this->encryptedSecret = $encryptedSecret;
 
@@ -98,7 +99,7 @@ class WalletV2 extends Wallet {
         $this->primaryPrivateKey = $primaryPrivateKey instanceof BIP32Key ? $primaryPrivateKey : BIP32Key::create($primaryPrivateKey, "m");
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum = $this->primaryPrivateKey->publicKey()->getAddress()->getAddress();
+        $checksum = $this->primaryPrivateKey->key()->getAddress(new AddressCreator())->getAddress();
         if ($checksum != $this->checksum) {
             throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
         }

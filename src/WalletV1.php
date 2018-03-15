@@ -2,10 +2,11 @@
 
 namespace Blocktrail\SDK;
 
+use BitWasp\Bitcoin\Address\AddressCreator;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
 use BitWasp\Bitcoin\Mnemonic\Bip39\Bip39SeedGenerator;
-use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Exceptions\NotImplementedException;
@@ -30,11 +31,11 @@ class WalletV1 extends Wallet {
      * @param string                        $network
      * @param bool                          $testnet
      * @param bool                          $segwit
-     * @param AddressReaderBase             $addressReader
+     * @param BaseAddressCreator            $addressReader
      * @param string                        $checksum
      * @throws                              BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, AddressReaderBase $addressReader, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, $primaryMnemonic, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, BaseAddressCreator $addressReader, $checksum) {
         $this->primaryMnemonic = $primaryMnemonic;
 
         parent::__construct($sdk, $identifier, $primaryPublicKeys, $backupPublicKey, $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, $addressReader, $checksum);
@@ -80,7 +81,7 @@ class WalletV1 extends Wallet {
         $this->primaryPrivateKey = BIP32Key::create($primaryPrivateKey, "m");
 
         // create checksum (address) of the primary privatekey to compare to the stored checksum
-        $checksum = $this->primaryPrivateKey->key()->getPublicKey()->getAddress()->getAddress();
+        $checksum = $this->primaryPrivateKey->key()->getAddress(new AddressCreator())->getAddress();
         if ($checksum != $this->checksum) {
             throw new \Exception("Checksum [{$checksum}] does not match [{$this->checksum}], most likely due to incorrect password");
         }

@@ -33,10 +33,12 @@
         "ext-dom": "*",
         "ext-curl": "*",
 
-        "bitwasp/bitcoin": "v0.0.34.1",
+        "bitwasp/bitcoin": "v0.0.35",
+        "btccom/bitwasp-bitcoin-bch-addon": "v0.0.2",
         "btccom/justencrypt": "v0.2.0",
         "btccom/cashaddress": "v0.0.3",
         "mdanter/ecc": "v0.4.*",
+        "symfony/http-foundation": "^2.7|^3.0|^4.0",
 
         "guzzlehttp/guzzle": "6.*",
         "99designs/http-signatures-guzzlehttp": "2.0.*",

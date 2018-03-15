@@ -2,27 +2,27 @@
 
 namespace Blocktrail\SDK;
 
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Network\Network;
 use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\Opcodes;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Buffertools\Buffer;
-use Blocktrail\SDK\Address\AddressReaderBase;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 class OutputsNormalizer
 {
     /**
-     * @var AddressReaderBase
+     * @var BaseAddressCreator
      */
     private $reader;
 
     /**
      * OutputsNormalizer constructor.
-     * @param AddressReaderBase $reader
+     * @param BaseAddressCreator $reader
      */
-    public function __construct(AddressReaderBase $reader) {
+    public function __construct(BaseAddressCreator $reader) {
         $this->reader = $reader;
     }
 
