@@ -148,7 +148,7 @@ class BIP32Key {
             }
 
             if ($toPublic) {
-                $key = $key->toPublic();
+                $key = $key->withoutPrivateKey();
             }
 
             $this->derivations[$originalPath] = BIP32Key::create($key, $originalPath);

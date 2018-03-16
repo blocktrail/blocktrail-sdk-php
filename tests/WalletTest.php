@@ -4,7 +4,7 @@ namespace Blocktrail\SDK\Tests;
 
 \error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
-use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Address\AddressCreator;
 use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
 use BitWasp\Bitcoin\Address\ScriptHashAddress;
 use BitWasp\Bitcoin\Address\SegwitAddress;
@@ -21,7 +21,7 @@ use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
 
 use Blocktrail\CryptoJSAES\CryptoJSAES;
-use Blocktrail\SDK\Address\BitcoinAddressReader;
+use BitWasp\Bitcoin\Address\AddressCreator as BitcoinAddressCreator;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\BlocktrailSDK;
@@ -130,7 +130,7 @@ class WalletTest extends BlocktrailTestCase {
 
         $testnet = true;
 
-        $checksum = $primaryPrivateKey->publicKey()->getAddress()->getAddress();
+        $checksum = $primaryPrivateKey->key()->getAddress(new BitcoinAddressCreator())->getAddress();
 
         $result = $client->storeNewWalletV2(
             $identifier,
@@ -159,7 +159,7 @@ class WalletTest extends BlocktrailTestCase {
             'bitcoin',
             $testnet,
             false,
-            new BitcoinAddressReader(),
+            new BitcoinAddressCreator(),
             $checksum
         );
 
@@ -221,7 +221,8 @@ class WalletTest extends BlocktrailTestCase {
 
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
-        $this->assertEquals($address, AddressFactory::fromString($address)->getAddress());
+        $addrCreator = new AddressCreator();
+        $this->assertEquals($address, $addrCreator->fromString($address)->getAddress());
 
     }
 
@@ -348,7 +349,7 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertTrue($segwitwallet->isSegwit());
 
         list ($path, $address) = $segwitwallet->getNewAddressPair();
-        $addrObj = AddressFactory::fromString($address);
+        $addrObj = $segwitwallet->getAddressReader()->fromString($address);
 
         // Send back to unittest-transaction-sw
 
@@ -666,7 +667,7 @@ class WalletTest extends BlocktrailTestCase {
 
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
-        $this->assertTrue(AddressFactory::fromString($address)->getAddress() == $address);
+        $this->assertTrue($wallet->getAddressReader()->fromString($address)->getAddress() == $address);
 
         $value = BlocktrailSDK::toSatoshi(0.0002);
         $txHash = $wallet->pay([$address => $value,], null, false, true, Wallet::FEE_STRATEGY_BASE_FEE);
@@ -783,7 +784,8 @@ class WalletTest extends BlocktrailTestCase {
         list($path, $address) = $wallet->getNewAddressPair();
         $this->assertTrue(strpos($path, "M/9999'/0/") === 0);
 
-        $this->assertTrue(AddressFactory::fromString($address)->getAddress() == $address);
+        $addrCreator = new AddressCreator();
+        $this->assertTrue($addrCreator->fromString($address)->getAddress() == $address);
 
         $value = BlocktrailSDK::toSatoshi(0.0002);
         $txHash = $wallet->pay([
@@ -997,7 +999,7 @@ class WalletTest extends BlocktrailTestCase {
 
         $identifier = $this->getRandomTestIdentifier();
         $primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::generateMasterKey(), 'm');
-        $backupPublicKey = BIP32Key::create(HierarchicalKeyFactory::generateMasterKey()->toPublic(), 'M');
+        $backupPublicKey = BIP32Key::create(HierarchicalKeyFactory::generateMasterKey()->withoutPrivateKey(), 'M');
 
         /**
          * @var $wallet \Blocktrail\SDK\Wallet
@@ -1352,10 +1354,11 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals($expectfee, $fee);
 
         // assert the input(s)
+        $addrCreator = new AddressCreator();
         $this->assertEquals(1, count($tx->getInputs()));
         $this->assertEquals($txid, $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
         $this->assertEquals(0, $tx->getInput(0)->getOutPoint()->getVout());
-        $this->assertEquals($address, AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
+        $this->assertEquals($address, $addrCreator->fromOutputScript($signInfo[0]->output->getScript())->getAddress());
         $this->assertEquals($scriptPubKey, $signInfo[0]->output->getScript()->getHex());
         $this->assertEquals($value, $signInfo[0]->output->getValue());
         $this->assertEquals($path, $signInfo[0]->path);
@@ -1370,7 +1373,7 @@ class WalletTest extends BlocktrailTestCase {
 
         // assert the output(s)
         $this->assertEquals(1, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $addrCreator->fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
         $this->assertEquals($outValue, $tx->getOutput(0)->getValue());
     }
 
@@ -1430,10 +1433,11 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
 
         // assert the input(s)
+        $addrCreator = new AddressCreator();
         $this->assertEquals(2, count($tx->getInputs()));
         $this->assertEquals("0d8703ab259b03a757e37f3cdba7fc4543e8d47f7cc3556e46c0aeef6f5e832b", $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
         $this->assertEquals(0, $tx->getInput(0)->getOutPoint()->getVout());
-        $this->assertEquals("2N9os1eAZXrWwKWgo7ppDRsY778PyxbScYH", AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
+        $this->assertEquals("2N9os1eAZXrWwKWgo7ppDRsY778PyxbScYH", $addrCreator->fromOutputScript($signInfo[0]->output->getScript())->getAddress());
         $this->assertEquals("a914b5ae3a9950fa66efa4aab2c21ce4a4275e7c95b487", $signInfo[0]->output->getScript()->getHex());
         $this->assertEquals(10000, $signInfo[0]->output->getValue());
         $this->assertEquals("M/9999'/0/5", $signInfo[0]->path);
@@ -1444,7 +1448,7 @@ class WalletTest extends BlocktrailTestCase {
 
         $this->assertEquals("be837cd8f04911f3ee10d010823a26665980f7bb6c9ed307d798cb968ca00128", $tx->getInput(1)->getOutPoint()->getTxId()->getHex());
         $this->assertEquals(0, $tx->getInput(1)->getOutPoint()->getVout());
-        $this->assertEquals("2NBV4sxQMYNyBbUeZkmPTZYtpdmKcuZ4Cyw", AddressFactory::fromOutputScript($signInfo[1]->output->getScript())->getAddress());
+        $this->assertEquals("2NBV4sxQMYNyBbUeZkmPTZYtpdmKcuZ4Cyw", $addrCreator->fromOutputScript($signInfo[1]->output->getScript())->getAddress());
         $this->assertEquals("a914c8107bd24bae2c521a5a9f56c9b72e047eafa1f587", $signInfo[1]->output->getScript()->getHex());
         $this->assertEquals(100000, $signInfo[1]->output->getValue());
         $this->assertEquals("M/9999'/0/12", $signInfo[1]->path);
@@ -1455,7 +1459,7 @@ class WalletTest extends BlocktrailTestCase {
 
         // assert the output(s)
         $this->assertEquals(1, count($tx->getOutputs()));
-        $this->assertEquals("2N7C5Jn1LasbEK9mvHetBYXaDnQACXkarJe", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals("2N7C5Jn1LasbEK9mvHetBYXaDnQACXkarJe", $addrCreator->fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
         $this->assertEquals(100000, $tx->getOutput(0)->getValue());
 
         /*
@@ -1537,7 +1541,8 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
         $this->assertEquals(14, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(13)->getScript())->getAddress());
+        $addrCreator = new AddressCreator();
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $addrCreator->fromOutputScript($tx->getOutput(13)->getScript())->getAddress());
         $this->assertEquals(99860000, $tx->getOutput(13)->getValue());
 
         /*
@@ -1605,7 +1610,8 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
         $this->assertEquals(20, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(19)->getScript())->getAddress());
+        $addrCreator = new AddressCreator();
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $addrCreator->fromOutputScript($tx->getOutput(19)->getScript())->getAddress());
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $tx->getOutput(19)->getValue());
 
         /*
@@ -1678,7 +1684,8 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0002), $fee);
         $this->assertEquals(22, count($tx->getOutputs()));
         $change = $tx->getOutput(21);
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($change->getScript())->getAddress());
+        $addrCreator = new AddressCreator();
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $addrCreator->fromOutputScript($change->getScript())->getAddress());
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9977), $change->getValue());
 
         /*
@@ -1897,8 +1904,9 @@ class WalletTest extends BlocktrailTestCase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0019), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
 
-        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
-        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", AddressFactory::fromOutputScript($tx->getOutput(1)->getScript())->getAddress());
+        $addrCreator = new AddressCreator();
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $addrCreator->fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $addrCreator->fromOutputScript($tx->getOutput(1)->getScript())->getAddress());
     }
 
     protected function getTx(BlocktrailSDK $client, $txId, $retries = 3) {
