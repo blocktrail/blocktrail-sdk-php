@@ -18,16 +18,22 @@ read in
 
 if [ "${in}" != "y" ] && [ "${in}" != "Y" ]; then
     echo "don't proceed with release"
-    exit -1
+    exit 1
 fi
-
-exit 0;
 
 # commit the updated version number
 git commit -am "release v${TAG}"
 
 # tag the version
-git tag v$TAG -s
+git tag -s -m "v$TAG" v$TAG
+
+echo "push? (y/N): ";
+read in
+
+if [ "${in}" != "y" ] && [ "${in}" != "Y" ]; then
+    echo "don't push"
+    exit 1
+fi
 
 # push
 git push
