@@ -11,7 +11,7 @@ fi
 TAG=$(echo $TAG | sed 's/^v//g')
 
 # update version number in src/Blocktrail.php
-sed -i 's/const SDK_VERSION = "[0-9].[0-9].[0-9]";/const SDK_VERSION = "'$TAG'";/g' $(git rev-parse --show-toplevel)/src/Blocktrail.php
+sed -ri 's/const SDK_VERSION = "[0-9]+\.[0-9]+\.[0-9]+";/const SDK_VERSION = "'$TAG'";/g' $(git rev-parse --show-toplevel)/src/Blocktrail.php
 
 echo "tag with v$TAG? (y/N): ";
 read in
