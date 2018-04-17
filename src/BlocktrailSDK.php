@@ -84,12 +84,15 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$apiNetwork}/";
         }
 
-        $btccomEndpoint = getenv('BLOCKTRAIL_SDK_BTCCOM_API_ENDPOINT') ?: "https://chain.api.btc.com";
-        $btccomEndpoint = "{$btccomEndpoint}/v3/";
-
         // normalize network and set bitcoinlib to the right magic-bytes
         list($this->network, $this->testnet, $regtest) = $this->normalizeNetwork($network, $testnet);
         $this->setBitcoinLibMagicBytes($this->network, $this->testnet, $regtest);
+
+        $btccomEndpoint = getenv('BLOCKTRAIL_SDK_BTCCOM_API_ENDPOINT');
+        if (!$btccomEndpoint) {
+            $btccomEndpoint = "https://" . ($this->network === "BCC" ? "bch-chain" : "chain") . ".api.btc.com";
+        }
+        $btccomEndpoint = "{$btccomEndpoint}/v3/";
 
         if ($this->testnet && strpos($btccomEndpoint, "tchain") === false) {
             $btccomEndpoint = \str_replace("chain", "tchain", $btccomEndpoint);
