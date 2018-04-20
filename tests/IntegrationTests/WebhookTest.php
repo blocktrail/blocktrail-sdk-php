@@ -6,9 +6,9 @@
  * Time: 3:13 PM
  */
 
-namespace Blocktrail\SDK\Tests;
+namespace Blocktrail\SDK\Tests\IntegrationTests;
 
-class WebhookTest extends BlocktrailTestCase
+class WebhookTest extends IntegrationTestBase
 {
     public function testWebhooks() {
         $client = $this->setupBlocktrailSDK('BTC', false);
@@ -66,12 +66,8 @@ class WebhookTest extends BlocktrailTestCase
         $newIdentifier = bin2hex($bytes);
         $newUrl = "https://www.blocktrail.com/new-webhook-url";
         $response = $client->updateWebhook($webhookID2, $newUrl, $newIdentifier);
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertArrayHasKey('url', $response, "'url' key not in response");
-        $this->assertArrayHasKey('identifier', $response, "'identifier' key not in response");
-        $this->assertEquals($newIdentifier, $response['identifier'], "identifier does not match expected value");
-        $this->assertEquals($newUrl, $response['url'], "Webhook url does not match expected value when updating when updating");
-        $webhookID2 = $response['identifier'];
+        $this->assertTrue($response);
+        $webhookID2 = $newIdentifier;
         $this->cleanupData['webhooks'][] = $webhookID2;
 
         //add webhook event subscription (address-transactions)
