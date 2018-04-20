@@ -201,7 +201,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param RestClientInterface $restClient
      */
     public function setRestClient(RestClientInterface $restClient) {
-        $this->client = $restClient;
+        $this->blocktrailClient = $restClient;
     }
 
     /**
