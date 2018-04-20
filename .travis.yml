@@ -15,6 +15,8 @@ cache:
 before_install:
   # disable XDEBUG unless specified to be used
   - sh -c 'if [ "${WITH_XDEBUG}" = "false" ]; then phpenv config-rm xdebug.ini && echo "xdebug disabled" || exit 0; fi'
+  - wget https://curl.haxx.se/ca/cacert.pem -O /tmp/cacert.pem
+  - echo "curl.cainfo=/tmp/cacert.pem" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini;
 
 install:
   - composer update
