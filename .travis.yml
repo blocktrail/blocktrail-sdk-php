@@ -25,10 +25,11 @@ script:
   - if [[ "${RUN_PHPUNIT}" != "false" ]]; then
       export RUN_PHPUNIT="true";
     fi
-  - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
-  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit --stop-on-failure -c ./phpunit.xml; fi'
 
   - curl -v 'https://api.blocktrail.com/v1/BTC/price?api_key=MY_APIKEY'
+  
+  - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
+  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit --stop-on-failure -c ./phpunit.xml; fi'
 
   # run phpcs when enabled
   - sh -c 'if [ "${PHPCS}" = "true" ]; then ./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/ && echo "PHPCS OK"; fi'
