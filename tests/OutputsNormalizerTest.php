@@ -11,7 +11,7 @@ use Blocktrail\SDK\Network\BitcoinCash;
 use Blocktrail\SDK\Network\BitcoinCashTestnet;
 use Blocktrail\SDK\OutputsNormalizer;
 
-class OutputsNormalizerTest extends BlocktrailTestCase
+class OutputsNormalizerTest extends \PHPUnit_Framework_TestCase
 {
     private function loadAddressReader($network, $testnet) {
         switch ($network) {

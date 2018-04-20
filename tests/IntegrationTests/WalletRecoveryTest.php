@@ -1,6 +1,6 @@
 <?php
 
-namespace Blocktrail\SDK\Tests;
+namespace Blocktrail\SDK\Tests\IntegrationTests;
 
 \error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
@@ -20,11 +20,11 @@ use Blocktrail\SDK\WalletV1Sweeper;
  *
  * @package Blocktrail\SDK\Tests
  */
-class WalletRecoveryTest extends BlocktrailTestCase {
+class WalletRecoveryTest extends IntegrationTestBase {
 
     protected $wallets = [];
 
-    protected function onNotSuccessfulTest(\Exception $e) {
+    protected function onNotSuccessfulTest($e) {
         //called when a test fails
         $this->cleanUp();
         throw $e;
