@@ -12,7 +12,10 @@
         <testsuite name="Tests">
             <directory>./tests/</directory>
             <directory>./tests/V3Crypt/</directory>
-            <exclude>./tests/WalletRecoveryTest.php</exclude>
+            <directory>./tests/Wallet/</directory>
+            <directory>./tests/Network/</directory>
+            <directory>./tests/IntegrationTests/</directory>
+            <exclude>./tests/IntegrationTests/WalletRecoveryTest.php</exclude>
         </testsuite>
     </testsuites>
 
