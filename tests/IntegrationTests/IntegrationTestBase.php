@@ -26,7 +26,7 @@ abstract class IntegrationTestBase extends \PHPUnit_Framework_TestCase {
 
         $client = new BlocktrailSDK($apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint);
         $client->setVerboseErrors(true);
-//        $client->setCurlDebugging(true);
+        $client->setCurlDebugging(true);
 
         return $client;
     }

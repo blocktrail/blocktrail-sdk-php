@@ -27,7 +27,7 @@ script:
     fi
 
   - curl -v 'https://api.blocktrail.com/v1/BTC/price?api_key=MY_APIKEY'
-  
+
   - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
   - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit --stop-on-failure -c ./phpunit.xml; fi'
 
