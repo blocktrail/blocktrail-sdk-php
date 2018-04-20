@@ -15,8 +15,6 @@ cache:
 before_install:
   # disable XDEBUG unless specified to be used
   - sh -c 'if [ "${WITH_XDEBUG}" = "false" ]; then phpenv config-rm xdebug.ini && echo "xdebug disabled" || exit 0; fi'
-  - wget https://curl.haxx.se/ca/cacert.pem -O /tmp/cacert.pem
-  - echo "curl.cainfo=/tmp/cacert.pem" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini;
 
 install:
   - composer update
@@ -63,6 +61,7 @@ notifications:
 
 env:
   global:
+    - BLOCKTRAIL_SDK_NO_SSL_VERIFY=1
     - BLOCKTRAIL_SDK_THROTTLE_BTCCOM=0.01
     - secure: d4a4n3bdFO/TZGBnEO0zOarL7kTkh4WyH6U+sEQoqe7Wbs1OIN014JXqYZZn2TDQ8kKjxKGi63TiDvh2wvKF+B7dlOo3/WvqNOEA48eVmRI3/LQsAAcmUNIK6YnBN2YgIy0kl8ycDvx0W7hK/A6FFmbnGTJnG6vnQ5NmBe1G3ug=
     - secure: ndOLTmYQgNKnr4qXt9/1TjYUDuGFn7K/v5L4urwIAxwD1jJYLHpntvhjTehQq34VX2uIQeDn0Zd4qyorpJxTI5Pmow51j5ZmtA0lS8TaFTwfWc+GZIG7UT3vcoHC5U0o54KJAlumSSncTMttPPfYsD7+8+8KYEjrOlXg6djq5fI=
