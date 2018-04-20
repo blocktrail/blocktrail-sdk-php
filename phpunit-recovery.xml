@@ -10,7 +10,7 @@
         >
     <testsuites>
         <testsuite name="Tests">
-            <file>./tests/WalletRecoveryTest.php</file>
+            <file>./tests/IntegrationTests/WalletRecoveryTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>
