@@ -26,7 +26,7 @@ script:
       export RUN_PHPUNIT="true";
     fi
   - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
-  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit.xml; fi'
+  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit --stop-on-failure -c ./phpunit.xml; fi'
 
   # run phpcs when enabled
   - sh -c 'if [ "${PHPCS}" = "true" ]; then ./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/ && echo "PHPCS OK"; fi'
