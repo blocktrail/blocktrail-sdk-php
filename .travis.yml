@@ -12,4 +12,4 @@ script:
   # DEBUG
   - php -i
   - curl -v 'https://api.blocktrail.com/v1/BTC/price?api_key=MY_APIKEY'
-  - php -dopenssl.capath=/etc/ssl/certs/ curl.php
+  - php -dopenssl.capath=/etc/ssl/certs/ -dcurl.capath=/etc/ssl/certs/ -dcapath=/etc/ssl/certs/ curl.php
