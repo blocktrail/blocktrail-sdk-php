@@ -14,6 +14,7 @@ $sslVersions = [
 var_dump(curl_version());
 
 foreach ($sslVersions as $sslVersion) {
+    var_dump($sslVersion);
     $ch = curl_init("https://api.blocktrail.com/v1/BTC/price?api_key=MY_APIKEY");
 
     curl_setopt_array($ch, [
