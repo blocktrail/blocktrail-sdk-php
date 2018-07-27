@@ -106,7 +106,15 @@ class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase
 
     public function testWalletBlockLatest()
     {
-        $client = $this->setupBlocktrailSDK();
+        $client = $this->mockSDK();
+        $blocktrailClient = $client->setBlocktrailClient(\Mockery::mock(RestClientInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('{"hash":"000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f","height":0}'));
+
+        $blocktrailClient->shouldReceive('get')
+            ->withArgs(["block/latest"])
+            ->andReturn($res)
+            ->once();
+
         $walletTip = $client->getWalletBlockLatest();
         $this->assertArrayHasKey("hash", $walletTip);
         $this->assertArrayHasKey("height", $walletTip);

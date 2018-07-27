@@ -2,12 +2,8 @@
 
 namespace Blocktrail\SDK\Tests\Wallet;
 
-use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\BlocktrailSDK;
-use Blocktrail\SDK\Tests\MockBlocktrailSDK;
 use Blocktrail\SDK\Wallet;
-use Btccom\JustEncrypt\Encryption;
-use Btccom\JustEncrypt\KeyDerivation;
 use Mockery\Mock;
 
 class InitWalletCheckBackupKeyTest extends WalletTestBase {

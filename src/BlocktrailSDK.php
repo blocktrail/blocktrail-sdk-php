@@ -80,7 +80,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         list ($apiNetwork, $testnet) = Util::parseApiNetwork($network, $testnet);
 
         if (is_null($apiEndpoint)) {
-            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
+            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://wallet-api.btc.com";
             $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$apiNetwork}/";
         }
 
@@ -100,7 +100,6 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         $this->blocktrailClient = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
         $this->dataClient = new RestClient($btccomEndpoint, $apiVersion, $apiKey, $apiSecret);
-
         $this->converter = new BtccomConverter();
     }
 
@@ -226,7 +225,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $queryString = [
             'page' => $page,
             'limit' => $limit,
-            'sort_dir' => $sortDir
+            'sort_dir' => $sortDir,
         ];
         $response = $this->dataClient->get($this->converter->getUrlForAddressTransactions($address), $this->converter->paginationParams($queryString));
         return $this->converter->convertAddressTxs($response->body());
