@@ -15,7 +15,7 @@ use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 class WalletScript
 {
-    const DEFAULT_SHOULD_CHECK = false;
+    const DEFAULT_SHOULD_CHECK = true;
 
     /**
      * @var null|bool
@@ -127,7 +127,7 @@ class WalletScript
             throw new \RuntimeException("Missing witnessScript for $errSuffix");
         }
 
-        if (null === $witnessScript || !$wp->getProgram()->equals($witnessScript->getScriptHash())) {
+        if (!$wp->getProgram()->equals($witnessScript->getWitnessScriptHash())) {
             throw new \RuntimeException("Invalid witnessScript for p2sh v0_scripthash");
         }
     }
@@ -193,9 +193,6 @@ class WalletScript
      * @return P2shScript|null
      */
     public function getRedeemScript() {
-        if (null === $this->redeemScript) {
-            throw new \RuntimeException("RedeemScript not set");
-        }
         return $this->redeemScript;
     }
 

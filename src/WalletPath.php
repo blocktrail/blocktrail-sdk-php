@@ -102,10 +102,6 @@ class WalletPath {
      * @throws \Exception
      */
     public static function fromBIP32Path(BIP32Path $path) {
-        if (strtolower($path[0]) != "m") {
-            throw new \Exception("Path should be absolute [{$path}]");
-        }
-
         return static::create($path[1], $path[2], $path[3]);
     }
 

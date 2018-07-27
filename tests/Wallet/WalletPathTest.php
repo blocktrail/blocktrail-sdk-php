@@ -6,7 +6,6 @@ use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\WalletPath;
 
 class WalletPathTest extends \PHPUnit_Framework_TestCase {
-
     public function testWalletPath() {
         $this->assertEquals(new WalletPath(), WalletPath::create());
 
@@ -18,26 +17,33 @@ class WalletPathTest extends \PHPUnit_Framework_TestCase {
 
         $w = WalletPath::create();
         $this->assertEquals("m/0'/0/0", (string)$w->path());
+        $this->assertEquals("m/0'/0/0", (string)$w);
         $this->assertEquals("m/0'", (string)$w->keyIndexPath());
         $this->assertEquals("m/0/0/0", (string)$w->backupPath());
         $this->assertEquals("m/0", (string)$w->keyIndexBackupPath());
 
         $w = $w->address(1);
         $this->assertEquals("m/0'/0/1", (string)$w->path());
+        $this->assertEquals("m/0'/0/1", (string)$w);
         $this->assertEquals("m/0'", (string)$w->keyIndexPath());
         $this->assertEquals("m/0/0/1", (string)$w->backupPath());
         $this->assertEquals("m/0", (string)$w->keyIndexBackupPath());
 
         $w = WalletPath::create(1, 1, 1);
         $this->assertEquals("m/1'/1/1", (string)$w->path());
+        $this->assertEquals("m/1'/1/1", (string)$w);
         $this->assertEquals("m/1'", (string)$w->keyIndexPath());
         $this->assertEquals("m/1/1/1", (string)$w->backupPath());
         $this->assertEquals("m/1", (string)$w->keyIndexBackupPath());
 
         $w = $w->address(2);
         $this->assertEquals("m/1'/1/2", (string)$w->path());
+        $this->assertEquals("m/1'/1/2", (string)$w);
         $this->assertEquals("m/1'", (string)$w->keyIndexPath());
         $this->assertEquals("m/1/1/2", (string)$w->backupPath());
         $this->assertEquals("m/1", (string)$w->keyIndexBackupPath());
+
+        $w = WalletPath::fromBIP32Path($w->path());
+        $this->assertEquals("m/1'/1/2", (string)$w->path());
     }
 }
