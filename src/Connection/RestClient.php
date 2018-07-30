@@ -142,7 +142,7 @@ class RestClient extends BaseRestClient
      */
     public function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
         $this->throttler->waitForThrottle();
-
+        echo "Fired request at " . microtime(true) . PHP_EOL;
         $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $auth, $contentMD5Mode, $timeout);
         $response = $this->guzzle->send($request, ['auth' => $auth, 'timeout' => $timeout]);
 
