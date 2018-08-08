@@ -21,6 +21,7 @@ install:
   - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then composer global require fxp/composer-asset-plugin; fi'
 
 script:
+  - ls -lsaht /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
   # run tests when phpcs is not enabled
   - if [[ "${RUN_PHPUNIT}" != "false" ]]; then
       export RUN_PHPUNIT="true";
