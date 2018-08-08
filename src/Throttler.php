@@ -64,7 +64,7 @@ class Throttler {
         $now = \microtime(true);
         $diff = $this->interval - ($now - $this->lastTime);
 
-        echo "Throttle routine\n";
+        echo "Throttle routine \n";
         echo "* interval is {$this->interval}\n";
         echo "* now is {$now}\n";
         echo "* lastTime is {$this->lastTime}\n";
