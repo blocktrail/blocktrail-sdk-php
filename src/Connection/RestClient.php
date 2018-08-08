@@ -80,9 +80,9 @@ class RestClient extends BaseRestClient
             'http_errors' => false,
             'connect_timeout' => 3,
             'timeout' => 20.0, // tmp until we have a good matrix of all the requests and their expect min/max time
-            'verify' => CaBundle::getBundledCaBundlePath(),
+            //'verify' => CaBundle::getBundledCaBundlePath(),
             'proxy' => '',
-            'debug' => false,
+            'debug' => true,
             'config' => array(),
             'auth' => '',
         ));
