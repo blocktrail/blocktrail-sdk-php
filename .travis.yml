@@ -22,7 +22,6 @@ install:
 
 script:
   - ls -lsaht /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
-  - cat /etc/ssl/certs/ca-certificates.crt
   - echo -n | openssl s_client -showcerts -connect api.blocktrail.com:443 2>/dev/null  | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p'
   # run tests when phpcs is not enabled
   - if [[ "${RUN_PHPUNIT}" != "false" ]]; then
