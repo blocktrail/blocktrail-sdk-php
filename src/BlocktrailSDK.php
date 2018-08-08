@@ -80,7 +80,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         list ($apiNetwork, $testnet) = Util::parseApiNetwork($network, $testnet);
 
         if (is_null($apiEndpoint)) {
-            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
+            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://wallet-api.btc.com";
             $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$apiNetwork}/";
         }
 
