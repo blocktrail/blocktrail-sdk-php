@@ -226,7 +226,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $queryString = [
             'page' => $page,
             'limit' => $limit,
-            'sort_dir' => $sortDir
+            'sort_dir' => $sortDir,
         ];
         $response = $this->dataClient->get($this->converter->getUrlForAddressTransactions($address), $this->converter->paginationParams($queryString));
         return $this->converter->convertAddressTxs($response->body());

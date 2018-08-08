@@ -47,7 +47,7 @@ class RestClient extends BaseRestClient
         if ($throttle = \getenv('BLOCKTRAIL_SDK_THROTTLE_BTCCOM')) {
             $throttle = (float)$throttle;
         } else {
-            $throttle = 0.3;
+            $throttle = 0.33;
         }
 
         $this->throttler = Throttler::getInstance($this->apiEndpoint, $throttle);
@@ -83,7 +83,7 @@ class RestClient extends BaseRestClient
             'timeout' => 20.0, // tmp until we have a good matrix of all the requests and their expect min/max time
             //'verify' => CaBundle::getBundledCaBundlePath(),
             'proxy' => '',
-            'debug' => true,
+            'debug' => false,
             'config' => array(),
             'auth' => '',
         ));
