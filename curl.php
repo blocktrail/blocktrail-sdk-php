@@ -4,12 +4,12 @@ $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, "https://wallet-api.btc.com");
 curl_setopt($ch, CURLOPT_VERBOSE, true);
 $verbose = fopen('php://temp', 'w+');
-curl_setopt($handle, CURLOPT_STDERR, $verbose);
+curl_setopt($ch, CURLOPT_STDERR, $verbose);
 
 $output = curl_exec($ch);
-if ($result === FALSE) {
-    printf("cUrl error (#%d): %s<br>\n", curl_errno($handle),
-           htmlspecialchars(curl_error($handle)));
+if ($output === FALSE) {
+    printf("cUrl error (#%d): %s<br>\n", curl_errno($ch),
+           htmlspecialchars(curl_error($ch)));
 } else {
     echo $output;
 }
