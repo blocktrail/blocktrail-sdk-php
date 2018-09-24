@@ -98,9 +98,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $btccomEndpoint = \str_replace("chain", "tchain", $btccomEndpoint);
         }
 
+        echo $apiEndpoint.PHP_EOL;
         $this->blocktrailClient = new RestClient($apiEndpoint, $apiVersion, $apiKey, $apiSecret);
-        $this->dataClient = new RestClient($btccomEndpoint, $apiVersion, $apiKey, $apiSecret);
+        $this->blocktrailClient->setVerboseErrors(true);
+        $this->blocktrailClient->setCurlDebugging(true);
 
+        $this->dataClient = new RestClient($btccomEndpoint, $apiVersion, $apiKey, $apiSecret);
         $this->converter = new BtccomConverter();
     }
 
