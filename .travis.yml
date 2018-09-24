@@ -27,6 +27,7 @@ script:
   - curl -l -1  https://wallet-api.btc.com/
   - ls /etc/ssl/certs/*.pem | grep Go
   - sudo cp ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+  - sudo cp Go_Daddy_Root_Certificate_Authority_-_G2.pem /etc/ssl/certs/Go_Daddy_Root_Certificate_Authority_-_G2.pem
   - php curl.php
   - sudo update-ca-certificates
   - php curl.php
