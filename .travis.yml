@@ -25,6 +25,7 @@ script:
   - echo -n | openssl s_client -showcerts -connect api.blocktrail.com:443
   - echo -n | openssl s_client -showcerts -connect wallet-api.btc.com:443
   - curl -l -1  https://wallet-api.btc.com/
+  - php curl.php
   # run tests when phpcs is not enabled
   - if [[ "${RUN_PHPUNIT}" != "false" ]]; then
       export RUN_PHPUNIT="true";
