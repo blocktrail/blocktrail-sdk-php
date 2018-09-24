@@ -22,12 +22,9 @@ install:
 
 script:
   - ls -lsaht /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
-  - echo -n | openssl s_client -showcerts -connect api.blocktrail.com:443
-  - echo -n | openssl s_client -showcerts -connect wallet-api.btc.com:443
+  - echo -n | openssl s_client -showcerts -connect api.blocktrail.com:443 -CAfile /etc/ssl/certs/ca-certificates.crt -CApath /etc/ssl/certs
+  - echo -n | openssl s_client -showcerts -connect wallet-api.btc.com:443 -CAfile /etc/ssl/certs/ca-certificates.crt -CApath /etc/ssl/certs
   - curl -l -1  https://wallet-api.btc.com/
-  - ls /etc/ssl/certs/*.pem | grep Go
-  - sudo cp ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-  - sudo cp Go_Daddy_Root_Certificate_Authority_-_G2.pem /etc/ssl/certs/Go_Daddy_Root_Certificate_Authority_-_G2.pem
   - php curl.php
   - sudo update-ca-certificates
   - php curl.php
