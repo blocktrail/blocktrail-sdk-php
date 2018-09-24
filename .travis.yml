@@ -26,7 +26,8 @@ script:
   - echo -n | openssl s_client -showcerts -connect wallet-api.btc.com:443 -CAfile /etc/ssl/certs/ca-certificates.crt -CApath /etc/ssl/certs
   - curl -l -1  https://wallet-api.btc.com/
   - php curl.php
-  - sudo update-ca-certificates
+  - echo "curl.capath=/etc/ssl/certs" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - echo "curl.cafile=/etc/ssl/certs/ca-certificates.crt" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
   - php curl.php
   # run tests when phpcs is not enabled
   - if [[ "${RUN_PHPUNIT}" != "false" ]]; then
