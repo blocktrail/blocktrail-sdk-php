@@ -18,7 +18,7 @@ abstract class Blocktrail {
     const DUST = 2730;
     const BASE_FEE = 10000;
 
-    const SDK_VERSION = "3.2.2";
+    const SDK_VERSION = "3.2.3";
     const SDK_USER_AGENT = "blocktrail-sdk-php";
     const DEFAULT_TIME_ZONE = "UTC";
 
