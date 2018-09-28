@@ -91,6 +91,16 @@ class BlocktrailSDKTest extends BlocktrailTestCase
         }
     }
 
+    public function testWalletBlockLatest()
+    {
+        $client = $this->setupBlocktrailSDK();
+        $walletTip = $client->getWalletBlockLatest();
+        $this->assertArrayHasKey("hash", $walletTip);
+        $this->assertArrayHasKey("height", $walletTip);
+        $this->assertInternalType('string', $walletTip['hash']);
+        $this->assertEquals(64, strlen($walletTip['hash']));
+        $this->assertInternalType('int', $walletTip['height']);
+    }
     public function testAddress() {
         $client = $this->setupBlocktrailSDK();
 
