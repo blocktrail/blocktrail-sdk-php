@@ -344,6 +344,15 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
     }
 
     /**
+     * get the wallet API's latest block ['hash' => x, 'height' => y]
+     * @return array            associative array containing the response
+     */
+    public function getWalletBlockLatest() {
+        $response = $this->blocktrailClient->get("block/latest");
+        return BlocktrailSDK::jsonDecode($response->body(), true);
+    }
+
+    /**
      * get an individual block
      * @param  string|integer $block    a block hash or a block height
      * @return array                    associative array containing the response
