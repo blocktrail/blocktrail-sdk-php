@@ -2,6 +2,7 @@ dist: trusty # fix for travis not updating their HHVM images
 language: php
 php:
   - 7.1.18
+  - 7.2
 
 # only build master branch (and PRs)
 branches:
@@ -21,20 +22,13 @@ install:
   - sh -c 'if [ "${TEST_FRAMEWORK}" != "" ]; then composer global require fxp/composer-asset-plugin; fi'
 
 script:
-  - ls -lsaht /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
-  - echo -n | openssl s_client -showcerts -connect api.blocktrail.com:443 -CAfile /etc/ssl/certs/ca-certificates.crt -CApath /etc/ssl/certs
-  - echo -n | openssl s_client -showcerts -connect wallet-api.btc.com:443 -CAfile /etc/ssl/certs/ca-certificates.crt -CApath /etc/ssl/certs
-  - curl -l -1  https://wallet-api.btc.com/
-  - php curl.php
-  - echo "curl.capath=/etc/ssl/certs" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-  - echo "curl.cafile=/etc/ssl/certs/ca-certificates.crt" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-  - php curl.php
   # run tests when phpcs is not enabled
   - if [[ "${RUN_PHPUNIT}" != "false" ]]; then
       export RUN_PHPUNIT="true";
     fi
   - sh -c 'if [ "${PHPCS}" = "true" ]; then export RUN_PHPUNIT=false; fi'
-  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit --stop-on-failure -c ./phpunit.xml; fi'
+  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit.xml; fi'
+  - sh -c 'if [ "${RUN_PHPUNIT}" = "true" ]; then ./vendor/bin/phpunit -c ./phpunit-recovery.xml; fi'
 
   # run phpcs when enabled
   - sh -c 'if [ "${PHPCS}" = "true" ]; then ./vendor/bin/phpcs --standard=./phpcs.xml -n ./src/ && echo "PHPCS OK"; fi'
@@ -49,6 +43,8 @@ script:
       fi
     fi
 
+  # check coverage if report was generated (requires xdebug enabled)
+  - sh -c 'if [ -e clover.xml ]; then php coverage-checker.php clover.xml 70; fi'
 after_script:
   - |
       if [ "${WITH_XDEBUG}" = "true" ]; then 
@@ -72,4 +68,17 @@ env:
     # BLOCKTRAIL_SDK_BTCCOM_API_ENDPOINT
     - secure: "hJDN/XyeCJVi86R08zPN/xpI/7U+SU6tWmfnVp4wF6cyZmdDY6UztSa5FaS/RRh0mF2M66PoW00VxyoZ7dj0avZrZWwILYdBpwiIWCg2Ay7rkBGbE/kiWuMfOAVpf8x3zO/ArunJC7spiWW+amTFxk0sutkz84bLxyQahsPmVgE="
   matrix:
-    - PHPCS=false WITH_XDEBUG=true  # default disable phpcs run and disable xdebug
+    - PHPCS=false WITH_XDEBUG=false  # default disable phpcs run and disable xdebug
+
+matrix:
+  exclude:
+    # exclude the php7.0 job without xdebug so we can add one with xdebug
+    - php: 7.2
+      env: PHPCS=false WITH_XDEBUG=false
+  include:
+    # php7.2 run with xdebug for code coverage (slooooow)
+    - php: 7.2
+      env: PHPCS=false WITH_XDEBUG=true
+    # php7.2 run with phpcs (won't run tests, only phpcs)
+    - php: 7.2
+      env: PHPCS=true WITH_XDEBUG=false

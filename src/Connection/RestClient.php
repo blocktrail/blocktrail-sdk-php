@@ -81,9 +81,8 @@ class RestClient extends BaseRestClient
             'http_errors' => false,
             'connect_timeout' => 3,
             'timeout' => 20.0, // tmp until we have a good matrix of all the requests and their expect min/max time
-            //'verify' => CaBundle::getBundledCaBundlePath(),
             'proxy' => '',
-            'debug' => true,
+            'debug' => false,
             'config' => array(),
             'auth' => '',
         ));
@@ -145,18 +144,7 @@ class RestClient extends BaseRestClient
     public function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
         $this->throttler->waitForThrottle();
         $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $auth, $contentMD5Mode, $timeout);
-        try {
-            $response = $this->guzzle->send($request, ['auth' => $auth, 'timeout' => $timeout]);
-        } catch (RequestException $e) {
-            $debugR = $e->getRequest();
-            print_r($debugR->getMethod());
-            print_r($debugR->getUri());
-            print_r($debugR->getRequestTarget());
-            print_r($debugR->getHeaders());
-            print_r($debugR->getBody());
-            throw $e;
-        }
-
+        $response = $this->guzzle->send($request, ['auth' => $auth, 'timeout' => $timeout]);
 
         return $this->responseHandler($response);
     }
