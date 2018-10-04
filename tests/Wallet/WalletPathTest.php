@@ -1,6 +1,6 @@
 <?php
 
-namespace Blocktrail\SDK\Tests;
+namespace Blocktrail\SDK\Tests\Wallet;
 
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\WalletPath;

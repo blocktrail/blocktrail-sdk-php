@@ -2,22 +2,35 @@
 
 namespace Blocktrail\SDK\Tests;
 
+use Blocktrail\SDK\Backend\ConverterInterface;
+use Blocktrail\SDK\Connection\Response;
 use Blocktrail\SDK\Connection\RestClientInterface;
 use Blocktrail\SDK\BlocktrailSDK;
-use Blocktrail\SDK\Connection\Exceptions\InvalidCredentials;
+use Mockery\Mock;
 
-class BlocktrailSDKTest extends BlocktrailTestCase
+class BlocktrailSDKTest extends \PHPUnit_Framework_TestCase
 {
-    protected static $txExceptFields = [
-        '.data.confirmations', '.data.estimated_value', '.data.estimated_change', '.data.estimated_change_address',
-        '.data.time', '.data.block_time', '.data.block_hash',
-        '.data.inputs.multisig', '.data.inputs.multisig_addresses',
-        '.data.outputs.multisig', '.data.outputs.multisig_addresses', '.data.outputs.spent_index',
-    ];
 
-    public function testRestClient() {
-        $client = $this->setupBlocktrailSDK();
-        $this->assertTrue($client->getRestClient() instanceof RestClientInterface);
+    public function tearDown() {
+        parent::tearDown();
+
+        \Mockery::close();
+    }
+
+    /**
+     * @param string $network
+     * @return MockBlocktrailSDK|Mock
+     */
+    protected function mockSDK($network = 'rBTC') {
+        $apiKey = getenv('BLOCKTRAIL_SDK_APIKEY') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APIKEY';
+        $apiSecret = getenv('BLOCKTRAIL_SDK_APISECRET') ?: 'EXAMPLE_BLOCKTRAIL_SDK_PHP_APISECRET';
+        $testnet = substr($network, 0, 1) === 'r' || substr($network, 0, 1) === 't';
+        $apiVersion = 'v1';
+        $apiEndpoint = null;
+
+        $client = \Mockery::mock(MockBlocktrailSDK::class, [$apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint])->makePartial();
+
+        return $client;
     }
 
     public function testSatoshiConversion() {
@@ -102,230 +115,288 @@ class BlocktrailSDKTest extends BlocktrailTestCase
         $this->assertInternalType('int', $walletTip['height']);
     }
     public function testAddress() {
-        $client = $this->setupBlocktrailSDK();
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('addrresponse'));
 
-        //address info
-        $address = $client->address("3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief");
-        $this->assertEqualsExceptKeys(\json_decode(\file_get_contents(__DIR__ . "/data/address.3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief.json"), true), $address,
-            []);
+        $converter->shouldReceive('getUrlForAddress')
+            ->withArgs(["3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief"])
+            ->andReturn("address/3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief")
+            ->once();
 
-        //address transactions
-        $response = $client->addressTransactions("3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief", $page = 1, $limit = 20);
-        $expectedResponse = \json_decode(\file_get_contents(__DIR__ . "/data/addressTxs.3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief.json"), true);
-        self::sortByHash($expectedResponse['data']);
-        self::sortByHash($response['data']);
-        $this->assertEqualsExceptKeys($expectedResponse, $response,
-            self::$txExceptFields);
+        $dataClient->shouldReceive('get')
+            ->withArgs(["address/3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertAddress')
+            ->withArgs(['addrresponse'])
+            ->andReturn("addrresult")
+            ->once();
+
+        $this->assertEquals("addrresult", $client->address("3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief"));
+    }
+
+    public function testAddressTransactions() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('addrtxsresponse'));
+
+        $converter->shouldReceive('getUrlForAddressTransactions')
+            ->withArgs(["3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief"])
+            ->andReturn("address/3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief/transactions")
+            ->once();
+
+        $converter->shouldReceive('paginationParams')
+            ->withArgs([['page' => 1, 'limit' => 2, 'sort_dir' => 'asc']])
+            ->andReturn("pagination")
+            ->once();
+
+        $dataClient->shouldReceive('get')
+            ->withArgs(["address/3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief/transactions", "pagination"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertAddressTxs')
+            ->withArgs(['addrtxsresponse'])
+            ->andReturn("addrtxsresult")
+            ->once();
+
+        $this->assertEquals("addrtxsresult", $client->addressTransactions("3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief", 1, 2));
+    }
+
+    public function testAddressUnspent() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('addrunspentresponse'));
+
+        $converter->shouldReceive('getUrlForAddressUnspent')
+            ->withArgs(["3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief"])
+            ->andReturn("address/3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief/unspent")
+            ->once();
+
+        $converter->shouldReceive('paginationParams')
+            ->withArgs([['page' => 1, 'limit' => 2, 'sort_dir' => 'asc']])
+            ->andReturn("pagination")
+            ->once();
+
+        $dataClient->shouldReceive('get')
+            ->withArgs(["address/3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief/unspent", "pagination"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertAddressUnspentOutputs')
+            ->withArgs(['addrunspentresponse', "3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief"])
+            ->andReturn("addrunspentresult")
+            ->once();
+
+        $this->assertEquals("addrunspentresult", $client->addressUnspentOutputs("3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief", 1, 2));
+    }
+
+    public function testVerifyAddress() {
+        $client = $this->mockSDK('BTC');
 
         //address verification
         $response = $client->verifyAddress("16dwJmR4mX5RguGrocMfN9Q9FR2kZcLw2z", "HPMOHRgPSMKdXrU6AqQs/i9S7alOakkHsJiqLGmInt05Cxj6b/WhS7kJxbIQxKmDW08YKzoFnbVZIoTI2qofEzk=");
         $this->assertTrue(is_array($response), "Default response is not an array");
         $this->assertArrayHasKey('result', $response, "'result' key not in response");
-
-        //address unconfirmed transactions
-        $response = $client->addressUnspentOutputs("3EU8LRmo5PgcSwnkn6Msbqc8BKNoQ7Xief");
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertArrayHasKey('total', $response, "'total' key not in response");
-        $this->assertArrayHasKey('data', $response, "'data' key not in response");
     }
 
-    public function testBlock() {
-        $client = $this->setupBlocktrailSDK();
+    public function testBlockByHash() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('blockresponse'));
 
-        //block info
-        $response = $client->block("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf");
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertArrayHasKey('hash', $response, "'hash' key not in response");
-        $this->assertEquals("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf", $response['hash'], "Block hash returned does not match expected value");
-//        file_put_contents(__DIR__ . "/data/block.000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf.json", \json_encode($response));
-        $this->assertEqualsExceptKeys(\json_decode(file_get_contents(__DIR__ . "/data/block.000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf.json"), true), $response,
-            ['confirmations', 'value']);
+        $converter->shouldReceive('getUrlForBlock')
+            ->withArgs(["000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf"])
+            ->andReturn("block/000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf")
+            ->once();
 
-        //block info by height
-        $response = $client->block(200000);
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertArrayHasKey('hash', $response, "'hash' key not in response");
-        $this->assertEquals("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf", $response['hash'], "Block hash returned does not match expected value");
-//        file_put_contents(__DIR__ . "/data/block.000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf.json", \json_encode($response));
-        $this->assertEqualsExceptKeys(\json_decode(file_get_contents(__DIR__ . "/data/block.000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf.json"), true), $response,
-            ['confirmations', 'value']);
+        $dataClient->shouldReceive('get')
+            ->withArgs(["block/000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf"])
+            ->andReturn($res)
+            ->once();
 
-        //all blocks
-        $response = $client->allBlocks($page = 2, $limit = 23);
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertArrayHasKey('total', $response, "'total' key not in response");
-        $this->assertArrayHasKey('data', $response, "'data' key not in response");
-        $this->assertEquals(23, count($response['data']), "Count of blocks returned is not equal to 23");
+        $converter->shouldReceive('convertBlock')
+            ->withArgs(['blockresponse'])
+            ->andReturn("blockresult")
+            ->once();
 
-        $this->assertArrayHasKey('hash', $response['data'][0], "'hash' key not in first block of response");
-        $this->assertArrayHasKey('hash', $response['data'][1], "'hash' key not in second block of response");
+        $this->assertEquals("blockresult", $client->block("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf"));
+    }
 
-        //latest block
-        $response = $client->blockLatest();
-        $this->assertTrue(is_array($response), "Default response is not an array for latest block");
-        $this->assertArrayHasKey('hash', $response, "'hash' key not in response");
+    public function testBlockByHeight() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('blockresponse'));
+
+        $converter->shouldReceive('getUrlForBlock')
+            ->withArgs(["123321"])
+            ->andReturn("block/123321")
+            ->once();
+
+        $dataClient->shouldReceive('get')
+            ->withArgs(["block/123321"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertBlock')
+            ->withArgs(['blockresponse'])
+            ->andReturn("blockresult")
+            ->once();
+
+        $this->assertEquals("blockresult", $client->block("123321"));
+    }
+
+    public function testBlockLatest() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('blockresponse'));
+
+        $converter->shouldReceive('getUrlForBlock')
+            ->withArgs(["latest"])
+            ->andReturn("block/latest")
+            ->once();
+
+        $dataClient->shouldReceive('get')
+            ->withArgs(["block/latest"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertBlock')
+            ->withArgs(['blockresponse'])
+            ->andReturn("blockresult")
+            ->once();
+
+        $this->assertEquals("blockresult", $client->block("latest"));
+    }
+
+    public function testBlockTransactions() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('blocktxsresponse'));
+
+        $converter->shouldReceive('getUrlForBlockTransaction')
+            ->withArgs(["000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf"])
+            ->andReturn("block/000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf/transactions")
+            ->once();
+
+        $converter->shouldReceive('paginationParams')
+            ->withArgs([['page' => 1, 'limit' => 2, 'sort_dir' => 'asc']])
+            ->andReturn("pagination")
+            ->once();
+
+        $dataClient->shouldReceive('get')
+            ->withArgs(["block/000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf/transactions", "pagination"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertBlockTxs')
+            ->withArgs(['blocktxsresponse'])
+            ->andReturn("blocktxsresult")
+            ->once();
+
+        $this->assertEquals("blocktxsresult", $client->blockTransactions("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf", 1, 2));
+    }
+
+    public function testAllBlocks() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('allblocksresponse'));
+
+        $converter->shouldReceive('getUrlForAllBlocks')
+            ->withArgs([])
+            ->andReturn("all-blocks")
+            ->once();
+
+        $converter->shouldReceive('paginationParams')
+            ->withArgs([['page' => 1, 'limit' => 2, 'sort_dir' => 'asc']])
+            ->andReturn("pagination")
+            ->once();
+
+        $dataClient->shouldReceive('get')
+            ->withArgs(["all-blocks", "pagination"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertBlocks')
+            ->withArgs(['allblocksresponse'])
+            ->andReturn("allblocksresult")
+            ->once();
+
+        $this->assertEquals("allblocksresult", $client->allBlocks(1, 2));
     }
 
     public function testTransaction() {
-        $client = $this->setupBlocktrailSDK();
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('txresponse'));
 
-        $response = $client->transaction("95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615");
+        $converter->shouldReceive('getUrlForTransaction')
+            ->withArgs(["95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615"])
+            ->andReturn("tx/95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615")
+            ->once();
 
-        foreach ($response['outputs'] as &$output) {
-            if ($output['spent_hash'] === null) {
-                $output['spent_index'] = 0;
-            }
-        }
+        $dataClient->shouldReceive('get')
+            ->withArgs(["tx/95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615"])
+            ->andReturn($res)
+            ->once();
 
-        $this->assertEqualsExceptKeys(\json_decode(file_get_contents(__DIR__ . "/data/tx.95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615.json"), true), $response,
-            ['confirmations', 'value', 'first_seen_at', 'last_seen_at', 'estimated_value', 'estimated_change', 'estimated_change_address',
-                'high_priority', 'enough_fee', 'contains_dust', 'double_spend_in']);
+        $converter->shouldReceive('convertTx')
+            ->withArgs(['txresponse', null])
+            ->andReturn("txresult")
+            ->once();
 
-        //coinbase TX
-        $response = $client->transaction("0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098");
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertArrayHasKey('hash', $response, "'hash' key not in response");
-        $this->assertArrayHasKey('confirmations', $response, "'confirmations' key not in response");
-        $this->assertEquals("0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098", $response['hash'], "Transaction hash does not match expected value");
+        $this->assertEquals("txresult", $client->transaction("95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615"));
+    }
 
-        //random TX 1
-        $response = $client->transaction("c791b82ed9af681b73eadb7a05b67294c1c3003e52d01e03775bfb79d4ac58d1");
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertArrayHasKey('hash', $response, "'hash' key not in response");
-        $this->assertArrayHasKey('confirmations', $response, "'confirmations' key not in response");
-        $this->assertEquals("c791b82ed9af681b73eadb7a05b67294c1c3003e52d01e03775bfb79d4ac58d1", $response['hash'], "Transaction hash does not match expected value");
+    public function testTransactions() {
+        $client = $this->mockSDK();
+        $dataClient = $client->setDataClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('txsresponse'));
 
-        //coinbase TX
-        $response = $client->transactions(["0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098", "c791b82ed9af681b73eadb7a05b67294c1c3003e52d01e03775bfb79d4ac58d1"]);
-        $this->assertTrue(is_array($response), "Default response is not an array");
-        $this->assertEquals("0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098", $response['data'][0]['hash']);
-        $this->assertEquals("c791b82ed9af681b73eadb7a05b67294c1c3003e52d01e03775bfb79d4ac58d1", $response['data'][1]['hash']);
+        $converter->shouldReceive('getUrlForTransactions')
+            ->withArgs([["95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615", "0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098"]])
+            ->andReturn("txs/95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615,0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098")
+            ->once();
+
+        $dataClient->shouldReceive('get')
+            ->withArgs(["txs/95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615,0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098"])
+            ->andReturn($res)
+            ->once();
+
+        $converter->shouldReceive('convertTxs')
+            ->withArgs(['txsresponse'])
+            ->andReturn("txsresult")
+            ->once();
+
+        $this->assertEquals("txsresult", $client->transactions([
+            "95740451ac22f63c42c0d1b17392a0bf02983176d6de8dd05d6f06944d93e615",
+            "0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098"
+        ]));
     }
 
     public function testPrice() {
-        $price = $this->setupBlocktrailSDK()->price();
+        $client = $this->mockSDK();
+        $blocktrailClient = $client->setBlocktrailClient(\Mockery::mock(RestClientInterface::class));
+        $converter = $client->setConverter(\Mockery::mock(ConverterInterface::class));
+        $res = new Response(200, \GuzzleHttp\Psr7\stream_for('{"USD": 1}'));
 
-        $this->assertTrue(is_float($price['USD']) || is_int($price['USD']), "is float or int [{$price['USD']}]");
-        $this->assertTrue($price['USD'] > 0, "is above 0 [{$price['USD']}]");
-    }
+        $blocktrailClient->shouldReceive('get')
+            ->withArgs(["price"])
+            ->andReturn($res)
+            ->once();
 
-    public function testVerifyMessage() {
-        $client = $this->setupBlocktrailSDK();
-
-
-        $address = "1F26pNMrywyZJdr22jErtKcjF8R3Ttt55G";
-        $message = $address;
-        $signature = "H85WKpqtNZDrajOnYDgUY+abh0KCAcOsAIOQwx2PftAbLEPRA7mzXA/CjXRxzz0MC225pR/hx02Vf2Ag2x33kU4=";
-
-        // test locally
-        $this->assertTrue($client->verifyMessage($message, $address, $signature));
-
-        // test using the API for it
-        $response = $client->getRestClient()->post("verify_message", null, ['message' => $message, 'address' => $address, 'signature' => $signature]);
-        $this->assertTrue(json_decode($response->body(), true)['result']);
-    }
-
-    private function assertEqualsExceptKeys($expected, $actual, $keys) {
-        $expected1 = $expected;
-        $actual1 = $actual;
-
-        foreach (array_keys($actual1) as $key) {
-            if (!array_key_exists($key, $expected1)) {
-                unset($actual1[$key]);
-            }
-        }
-
-        foreach ($keys as $key) {
-            unset($expected1[$key]);
-            unset($actual1[$key]);
-        }
-
-        if (isset($actual1['data'])) {
-            $this->assertEquals(count($expected1['data']), count($actual1['data']));
-
-            foreach ($actual1['data'] as $idx => $row) {
-                foreach ($row as $key => $value) {
-                    if (!array_key_exists($key, $expected1['data'][0])) {
-                        unset($actual1['data'][$idx][$key]);
-                    }
-                }
-            }
-
-            if (isset($actual1['data'][0]['inputs'])) {
-                foreach ($actual1['data'] as $idx => $row) {
-                    foreach ($row['inputs'] as $inputIdx => $input) {
-                        foreach ($input as $key => $value) {
-                            if (!array_key_exists($key, $expected1['data'][$idx]['inputs'][$inputIdx])) {
-                                unset($actual1['data'][$idx]['inputs'][$inputIdx][$key]);
-                            }
-                        }
-                    }
-                    foreach ($row['outputs'] as $outputIdx => $output) {
-                        foreach ($output as $key => $value) {
-                            if (!array_key_exists($key, $expected1['data'][$idx]['outputs'][$outputIdx])) {
-                                unset($actual1['data'][$idx]['outputs'][$outputIdx][$key]);
-                            }
-                        }
-                    }
-                }
-            }
-
-            foreach ($keys as $key) {
-                if (strpos($key, ".data.inputs.") === 0) {
-                    $key1 = substr($key, strlen(".data.inputs."));
-
-                    foreach ($expected1['data'] as &$expectedRow) {
-                        foreach ($expectedRow['inputs'] as &$expectedInput) {
-                            unset($expectedInput[$key1]);
-                        }
-                    }
-                    foreach ($actual1['data'] as &$actualRow) {
-                        foreach ($actualRow['inputs'] as &$actualInput) {
-                            unset($actualInput[$key1]);
-                        }
-                    }
-                } else if (strpos($key, ".data.outputs.") === 0) {
-                    $key1 = substr($key, strlen(".data.outputs."));
-                    foreach ($expected1['data'] as &$expectedRow) {
-                        foreach ($expectedRow['outputs'] as &$expectedOutput) {
-                            unset($expectedOutput[$key1]);
-                        }
-                    }
-                    foreach ($actual1['data'] as &$actualRow) {
-                        foreach ($actualRow['outputs'] as &$actualOutput) {
-                            unset($actualOutput[$key1]);
-                        }
-                    }
-                } else if (strpos($key, ".data.") === 0) {
-                    $key1 = substr($key, strlen(".data."));
-                    foreach ($expected1['data'] as &$expectedRow) {
-                        unset($expectedRow[$key1]);
-                    }
-                    foreach ($actual1['data'] as &$actualRow) {
-                        unset($actualRow[$key1]);
-                    }
-                }
-            }
-        }
-
-        $this->assertEquals($expected1, $actual1);
-    }
-
-    public static function sortByHash(&$array) {
-        \usort($array, function($a, $b) {
-            return self::compareByHash($a, $b);
-        });
-
-        return $array;
-    }
-
-    public static function compareByHash($a, $b) {
-        if ($a['hash'] == $b['hash']) {
-            return 0;
-        } else if ($a['hash'] > $b['hash']) {
-            return -1;
-        } else {
-            return 1;
-        }
+        $this->assertEquals(["USD" => 1], $client->price());
     }
 }

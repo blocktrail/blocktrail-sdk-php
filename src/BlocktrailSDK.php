@@ -80,7 +80,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         list ($apiNetwork, $testnet) = Util::parseApiNetwork($network, $testnet);
 
         if (is_null($apiEndpoint)) {
-            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://api.blocktrail.com";
+            $apiEndpoint = getenv('BLOCKTRAIL_SDK_API_ENDPOINT') ?: "https://wallet-api.btc.com";
             $apiEndpoint = "{$apiEndpoint}/{$apiVersion}/{$apiNetwork}/";
         }
 
@@ -201,7 +201,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param RestClientInterface $restClient
      */
     public function setRestClient(RestClientInterface $restClient) {
-        $this->client = $restClient;
+        $this->blocktrailClient = $restClient;
     }
 
     /**
@@ -226,7 +226,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $queryString = [
             'page' => $page,
             'limit' => $limit,
-            'sort_dir' => $sortDir
+            'sort_dir' => $sortDir,
         ];
         $response = $this->dataClient->get($this->converter->getUrlForAddressTransactions($address), $this->converter->paginationParams($queryString));
         return $this->converter->convertAddressTxs($response->body());
@@ -669,7 +669,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             } else {
                 // create new primary seed
                 /** @var HierarchicalKey $primaryPrivateKey */
-                list($primaryMnemonic, , $primaryPrivateKey) = $this->newPrimarySeed($options['passphrase']);
+                list($primaryMnemonic, , $primaryPrivateKey) = $this->newV1PrimarySeed($options['passphrase']);
                 if ($storePrimaryMnemonic !== false) {
                     $storePrimaryMnemonic = true;
                 }
@@ -708,7 +708,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $backupPublicKey = null;
         if (!isset($options['backup_mnemonic']) && !isset($options['backup_public_key'])) {
             /** @var HierarchicalKey $backupPrivateKey */
-            list($backupMnemonic, , ) = $this->newBackupSeed();
+            list($backupMnemonic, , ) = $this->newV1BackupSeed();
         } else if (isset($options['backup_mnemonic'])) {
             $backupMnemonic = $options['backup_mnemonic'];
         } elseif (isset($options['backup_public_key'])) {
@@ -773,11 +773,11 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         ];
     }
 
-    public static function randomBits($bits) {
-        return self::randomBytes($bits / 8);
+    public function randomBits($bits) {
+        return $this->randomBytes($bits / 8);
     }
 
-    public static function randomBytes($bytes) {
+    public function randomBytes($bytes) {
         return (new Random())->bytes($bytes)->getBinary();
     }
 
@@ -807,7 +807,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $backupSeed = null;
 
         if (!isset($options['primary_private_key'])) {
-            $primarySeed = isset($options['primary_seed']) ? $options['primary_seed'] : self::randomBits(256);
+            $primarySeed = isset($options['primary_seed']) ? $options['primary_seed'] : $this->newV2PrimarySeed();
         }
 
         if ($storeDataOnServer) {
@@ -816,20 +816,17 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     throw new \InvalidArgumentException("Can't encrypt data without a passphrase");
                 }
 
-                $secret = bin2hex(self::randomBits(256)); // string because we use it as passphrase
-                $encryptedSecret = CryptoJSAES::encrypt($secret, $options['passphrase']);
+                list($secret, $encryptedSecret) = $this->newV2Secret($options['passphrase']);
             } else {
                 $secret = $options['secret'];
             }
 
-            $encryptedPrimarySeed = CryptoJSAES::encrypt(base64_encode($primarySeed), $secret);
-            $recoverySecret = bin2hex(self::randomBits(256));
-
-            $recoveryEncryptedSecret = CryptoJSAES::encrypt($secret, $recoverySecret);
+            $encryptedPrimarySeed = $this->newV2EncryptedPrimarySeed($primarySeed, $secret);
+            list($recoverySecret, $recoveryEncryptedSecret) = $this->newV2RecoverySecret($secret);
         }
 
         if (!isset($options['backup_public_key'])) {
-            $backupSeed = isset($options['backup_seed']) ? $options['backup_seed'] : self::randomBits(256);
+            $backupSeed = isset($options['backup_seed']) ? $options['backup_seed'] : $this->newV2BackupSeed();
         }
 
         if (isset($options['primary_private_key'])) {
@@ -937,7 +934,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 }
                 $primarySeed = $options['primary_seed'];
             } else {
-                $primarySeed = new Buffer(self::randomBits(256));
+                $primarySeed = $this->newV3PrimarySeed();
             }
         }
 
@@ -947,33 +944,27 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                     throw new \InvalidArgumentException("Can't encrypt data without a passphrase");
                 }
 
-                $secret = new Buffer(self::randomBits(256));
-                $encryptedSecret = Encryption::encrypt($secret, new Buffer($options['passphrase']), KeyDerivation::DEFAULT_ITERATIONS)
-                    ->getBuffer();
+                list($secret, $encryptedSecret) = $this->newV3Secret($options['passphrase']);
             } else {
                 if (!$options['secret'] instanceof Buffer) {
-                    throw new \RuntimeException('Secret must be provided as a Buffer');
+                    throw new \InvalidArgumentException('Secret must be provided as a Buffer');
                 }
 
                 $secret = $options['secret'];
             }
 
-            $encryptedPrimarySeed = Encryption::encrypt($primarySeed, $secret, KeyDerivation::SUBKEY_ITERATIONS)
-                ->getBuffer();
-            $recoverySecret = new Buffer(self::randomBits(256));
-
-            $recoveryEncryptedSecret = Encryption::encrypt($secret, $recoverySecret, KeyDerivation::DEFAULT_ITERATIONS)
-                ->getBuffer();
+            $encryptedPrimarySeed = $this->newV3EncryptedPrimarySeed($primarySeed, $secret);
+            list($recoverySecret, $recoveryEncryptedSecret) = $this->newV3RecoverySecret($secret);
         }
 
         if (!isset($options['backup_public_key'])) {
             if (isset($options['backup_seed'])) {
                 if (!$options['backup_seed'] instanceof Buffer) {
-                    throw new \RuntimeException('Backup seed must be an instance of Buffer');
+                    throw new \InvalidArgumentException('Backup seed must be an instance of Buffer');
                 }
                 $backupSeed = $options['backup_seed'];
             } else {
-                $backupSeed = new Buffer(self::randomBits(256));
+                $backupSeed = $this->newV3BackupSeed();
             }
         }
 
@@ -1048,6 +1039,61 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 }, $blocktrailPublicKeys),
             ]
         ];
+    }
+
+    public function newV2PrimarySeed() {
+        return $this->randomBits(256);
+    }
+
+    public function newV2BackupSeed() {
+        return $this->randomBits(256);
+    }
+
+    public function newV2Secret($passphrase) {
+        $secret = bin2hex($this->randomBits(256)); // string because we use it as passphrase
+        $encryptedSecret = CryptoJSAES::encrypt($secret, $passphrase);
+
+        return [$secret, $encryptedSecret];
+    }
+
+    public function newV2EncryptedPrimarySeed($primarySeed, $secret) {
+        return CryptoJSAES::encrypt(base64_encode($primarySeed), $secret);
+    }
+
+    public function newV2RecoverySecret($secret) {
+        $recoverySecret = bin2hex($this->randomBits(256));
+        $recoveryEncryptedSecret = CryptoJSAES::encrypt($secret, $recoverySecret);
+
+        return [$recoverySecret, $recoveryEncryptedSecret];
+    }
+
+    public function newV3PrimarySeed() {
+        return new Buffer($this->randomBits(256));
+    }
+
+    public function newV3BackupSeed() {
+        return new Buffer($this->randomBits(256));
+    }
+
+    public function newV3Secret($passphrase) {
+        $secret = new Buffer($this->randomBits(256));
+        $encryptedSecret = Encryption::encrypt($secret, new Buffer($passphrase), KeyDerivation::DEFAULT_ITERATIONS)
+            ->getBuffer();
+
+        return [$secret, $encryptedSecret];
+    }
+
+    public function newV3EncryptedPrimarySeed(Buffer $primarySeed, Buffer $secret) {
+        return Encryption::encrypt($primarySeed, $secret, KeyDerivation::SUBKEY_ITERATIONS)
+            ->getBuffer();
+    }
+
+    public function newV3RecoverySecret(Buffer $secret) {
+        $recoverySecret = new Buffer($this->randomBits(256));
+        $recoveryEncryptedSecret = Encryption::encrypt($secret, $recoverySecret, KeyDerivation::DEFAULT_ITERATIONS)
+            ->getBuffer();
+
+        return [$recoverySecret, $recoveryEncryptedSecret];
     }
 
     /**
@@ -1250,10 +1296,10 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         if (array_key_exists('check_backup_key', $options)) {
             if (!is_string($options['check_backup_key'])) {
-                throw new \RuntimeException("check_backup_key should be a string (the xpub)");
+                throw new \InvalidArgumentException("check_backup_key should be a string (the xpub)");
             }
             if ($options['check_backup_key'] !== $data['backup_public_key'][0]) {
-                throw new \RuntimeException("Backup key returned from server didn't match our own");
+                throw new \InvalidArgumentException("Backup key returned from server didn't match our own");
             }
         }
 
@@ -1390,7 +1436,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      *
      * @return array [mnemonic, seed, key]
      */
-    protected function newBackupSeed() {
+    protected function newV1BackupSeed() {
         list($backupMnemonic, $backupSeed, $backupPrivateKey) = $this->generateNewSeed("");
 
         return [$backupMnemonic, $backupSeed, $backupPrivateKey];
@@ -1406,7 +1452,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @return array [mnemonic, seed, key]
      * @TODO: require a strong password?
      */
-    protected function newPrimarySeed($passphrase) {
+    protected function newV1PrimarySeed($passphrase) {
         list($primaryMnemonic, $primarySeed, $primaryPrivateKey) = $this->generateNewSeed($passphrase);
 
         return [$primaryMnemonic, $primarySeed, $primaryPrivateKey];
@@ -1447,7 +1493,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @return string
      * @throws \Exception
      */
-    protected function generateNewMnemonic($forceEntropy = null) {
+    public function generateNewMnemonic($forceEntropy = null) {
         if ($forceEntropy === null) {
             $random = new Random();
             $entropy = $random->bytes(512 / 8);
@@ -1533,7 +1579,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
                 $data['base_transaction'] = $rawTransaction['base_transaction'];
                 $data['signed_transaction'] = $rawTransaction['signed_transaction'];
             } else {
-                throw new \RuntimeException("Invalid value for transaction. For segwit transactions, pass ['base_transaction' => '...', 'signed_transaction' => '...']");
+                throw new \InvalidArgumentException("Invalid value for transaction. For segwit transactions, pass ['base_transaction' => '...', 'signed_transaction' => '...']");
             }
         } else {
             $data['raw_transaction'] = $rawTransaction;
@@ -1600,6 +1646,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $outputs,
             RestClient::AUTH_HTTP_SIG
         );
+
+        \var_export(self::jsonDecode($response->body(), true));
 
         return self::jsonDecode($response->body(), true);
     }
@@ -1832,7 +1880,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         $adapter = Bitcoin::getEcAdapter();
         $addr = \BitWasp\Bitcoin\Address\AddressFactory::fromString($address);
         if (!$addr instanceof PayToPubKeyHashAddress) {
-            throw new \RuntimeException('Can only verify a message with a pay-to-pubkey-hash address');
+            throw new \InvalidArgumentException('Can only verify a message with a pay-to-pubkey-hash address');
         }
 
         /** @var CompactSignatureSerializerInterface $csSerializer */
@@ -1992,5 +2040,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
         } else {
             throw new \Exception("Bad Input");
         }
+    }
+
+    public function shuffle($arr) {
+        \shuffle($arr);
     }
 }

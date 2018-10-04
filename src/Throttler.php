@@ -61,12 +61,24 @@ class Throttler {
             return;
         }
 
-        $diff = $this->interval - (\microtime(true) - $this->lastTime);
+        $now = \microtime(true);
+        $diff = $this->interval - ($now - $this->lastTime);
+
+        echo "Throttle routine \n";
+        echo "* interval is {$this->interval}\n";
+        echo "* now is {$now}\n";
+        echo "* lastTime is {$this->lastTime}\n";
+        echo "* wait time should be $diff\n";
 
         if ($diff > 0) {
-            usleep((int)ceil($diff * 1000 * 1000));
+            $usleep = (int)ceil($diff * 1000 * 1000);
+            echo "do sleep ($diff, $usleep)\n";
+            usleep($usleep);
         }
 
+        if ($this->lastTime) {
+            echo "Real diff ".(microtime(true)-$this->lastTime).PHP_EOL;
+        }
         $this->lastTime = \microtime(true);
     }
 

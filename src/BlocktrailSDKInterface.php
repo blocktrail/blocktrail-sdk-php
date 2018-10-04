@@ -9,8 +9,6 @@ use Blocktrail\SDK\Connection\BaseRestClient;
  */
 interface BlocktrailSDKInterface {
 
-    public function __construct($apiKey, $apiSecret, $network = 'BTC', $testnet = false, $apiVersion = 'v1', $apiEndpoint = null);
-
     /**
      * enable CURL debugging output
      *
@@ -640,4 +638,6 @@ interface BlocktrailSDKInterface {
      * @return string[]
      */
     public static function sortMultisigKeys(array $pubKeys);
+
+    public function shuffle($arr);
 }
