@@ -4,7 +4,9 @@ namespace Blocktrail\SDK\Connection;
 
 use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\Throttler;
+use Composer\CaBundle\CaBundle;
 use GuzzleHttp\Client as Guzzle;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\HandlerStack;
 use HttpSignatures\Context;
@@ -45,7 +47,7 @@ class RestClient extends BaseRestClient
         if ($throttle = \getenv('BLOCKTRAIL_SDK_THROTTLE_BTCCOM')) {
             $throttle = (float)$throttle;
         } else {
-            $throttle = 0.3;
+            $throttle = 0.33;
         }
 
         $this->throttler = Throttler::getInstance($this->apiEndpoint, $throttle);
@@ -79,7 +81,6 @@ class RestClient extends BaseRestClient
             'http_errors' => false,
             'connect_timeout' => 3,
             'timeout' => 20.0, // tmp until we have a good matrix of all the requests and their expect min/max time
-            'verify' => true,
             'proxy' => '',
             'debug' => false,
             'config' => array(),
@@ -142,7 +143,6 @@ class RestClient extends BaseRestClient
      */
     public function request($method, $endpointUrl, $queryString = null, $body = null, $auth = null, $contentMD5Mode = null, $timeout = null) {
         $this->throttler->waitForThrottle();
-
         $request = $this->buildRequest($method, $endpointUrl, $queryString, $body, $auth, $contentMD5Mode, $timeout);
         $response = $this->guzzle->send($request, ['auth' => $auth, 'timeout' => $timeout]);
 

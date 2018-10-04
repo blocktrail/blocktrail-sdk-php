@@ -3,6 +3,7 @@
 namespace Blocktrail\SDK\Tests;
 
 use BitWasp\Bitcoin\Address\SegwitAddress;
+use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Network\NetworkFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Script\ScriptFactory;
@@ -23,8 +24,14 @@ use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Wallet;
 use Mdanter\Ecc\Crypto\Key\PrivateKeyInterface;
 
-class SizeEstimationTest extends BlocktrailTestCase
+class SizeEstimationTest extends \PHPUnit_Framework_TestCase
 {
+    public function setUp() {
+        parent::setUp();
+
+        Bitcoin::setNetwork(NetworkFactory::bitcoin());
+    }
+
     /**
      * @return array
      */
@@ -265,7 +272,8 @@ class SizeEstimationTest extends BlocktrailTestCase
     }
 
     public function testEquivalentWithOld() {
-        $c = ['L1Tr4rPUi81XN1Dp48iuva5U9sWxU1eipgiAu8BhnB3xnSfGV5rd',
+        $c = [
+            'L1Tr4rPUi81XN1Dp48iuva5U9sWxU1eipgiAu8BhnB3xnSfGV5rd',
             'KwUZpCvpAkUe1SZj3k3P2acta1V1jY8Dpuj71bEAukEKVrg8NEym',
             'Kz2Lm2hzjPWhv3WW9Na5HUKi4qBxoTfv8fNYAU6KV6TZYVGdK5HW',
         ];

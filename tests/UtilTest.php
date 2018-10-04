@@ -4,7 +4,7 @@ namespace Blocktrail\SDK\Tests;
 
 use Blocktrail\SDK\Util;
 
-class UtilTest extends BlocktrailTestCase
+class UtilTest extends \PHPUnit_Framework_TestCase
 {
     public function parseApiNetworkProvider() {
         return [

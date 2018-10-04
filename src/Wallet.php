@@ -785,7 +785,7 @@ abstract class Wallet implements WalletInterface {
 
         // outputs should be randomized to make the change harder to detect
         if ($txBuilder->shouldRandomizeChangeOuput()) {
-            shuffle($send);
+            $this->sdk->shuffle($send);
         }
 
         foreach ($send as $out) {
