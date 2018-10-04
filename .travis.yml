@@ -1,7 +1,6 @@
 dist: trusty # fix for travis not updating their HHVM images
 language: php
 php:
-  - 7.1
   - 7.1.18
 
 # only build master branch (and PRs)

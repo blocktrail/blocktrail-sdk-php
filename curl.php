@@ -1,7 +1,11 @@
 <?php
 
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, "https://wallet-api.btc.com");
+if (!$argv[1]) {
+   curl_setopt($ch, CURLOPT_URL, "https://wallet-api.btc.com");
+} else {
+   curl_setopt($ch, CURLOPT_URL, $argv[1]);
+}
 curl_setopt($ch, CURLOPT_VERBOSE, true);
 $verbose = fopen('php://temp', 'w+');
 curl_setopt($ch, CURLOPT_STDERR, $verbose);
