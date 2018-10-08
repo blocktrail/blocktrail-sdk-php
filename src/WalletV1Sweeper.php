@@ -9,7 +9,7 @@ class WalletV1Sweeper extends WalletSweeper {
     /**
      * @param string              $primaryMnemonic
      * @param string              $primaryPassphrase
-     * @param array               $backupMnemonic
+     * @param string              $backupMnemonic
      * @param array               $blocktrailPublicKeys
      * @param UnspentOutputFinder $unspentOutputFinder
      * @param string              $network

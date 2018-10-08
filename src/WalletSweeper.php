@@ -287,7 +287,6 @@ abstract class WalletSweeper {
                 }
                 $addresses = $this->createBatchAddresses($i, $increment, $keyIndex);
                 $totalAddressesGenerated += count($addresses);
-
                 if ($this->debug) {
                     echo "\nstarting fund discovery for $increment addresses";
                 }
@@ -403,7 +402,6 @@ abstract class WalletSweeper {
                 $destinationAddress = $tAddress->getLegacyAddress()->getAddress();
             }
         }
-
         $destAddress = $this->addressReader->fromString($destinationAddress);
         $vsizeEstimation = SizeEstimation::estimateVsize($utxos, [
             new TransactionOutput(0, $destAddress->getScriptPubKey())
