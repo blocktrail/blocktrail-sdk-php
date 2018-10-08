@@ -90,7 +90,7 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
 
         $btccomEndpoint = getenv('BLOCKTRAIL_SDK_BTCCOM_API_ENDPOINT');
         if (!$btccomEndpoint) {
-            $btccomEndpoint = "https://" . ($this->network === "BCC" ? "bch-chain" : "chain") . ".api.btc.com";
+            $btccomEndpoint = "https://" . ($this->network === "bitcoincash" ? "bch-chain" : "chain") . ".api.btc.com";
         }
         $btccomEndpoint = "{$btccomEndpoint}/v3/";
 
