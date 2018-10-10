@@ -179,10 +179,11 @@ class WalletScript
     }
 
     /**
+     * @param bool $allowNull
      * @return WitnessScript|null
      */
-    public function getWitnessScript() {
-        if (null === $this->witnessScript) {
+    public function getWitnessScript($allowNull = false) {
+        if (!$allowNull && null === $this->witnessScript) {
             throw new \RuntimeException("WitnessScript not set");
         }
         return $this->witnessScript;

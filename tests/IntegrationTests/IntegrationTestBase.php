@@ -1,12 +1,12 @@
 <?php
 
-namespace Blocktrail\SDK\Tests;
+namespace Blocktrail\SDK\Tests\IntegrationTests;
 
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 use Blocktrail\SDK\WalletInterface;
 
-abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
+abstract class IntegrationTestBase extends \PHPUnit_Framework_TestCase {
 
     /**
      * stores arrays of data to be deleted on cleanup
@@ -26,16 +26,23 @@ abstract class BlocktrailTestCase extends \PHPUnit_Framework_TestCase {
 
         $client = new BlocktrailSDK($apiKey, $apiSecret, $network, $testnet, $apiVersion, $apiEndpoint);
         $client->setVerboseErrors(true);
-//        $client->setCurlDebugging(true);
+        $client->setCurlDebugging(true);
 
         return $client;
+    }
+
+    protected function setUp() {
+        parent::setUp();
+
+        // stupid sleep to avoid rate limits
+        usleep(0.4 * 1000 * 1000);
     }
 
     protected function tearDown() {
         //called after each test
         $this->cleanUp();
     }
-    protected function onNotSuccessfulTest(\Exception $e) {
+    protected function onNotSuccessfulTest($e) {
         //called when a test fails
         $this->cleanUp();
         throw $e;
