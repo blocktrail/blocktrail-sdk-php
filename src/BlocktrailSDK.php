@@ -737,7 +737,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $primaryMnemonic,
             $checksum,
             $options['key_index'],
-            array_key_exists('segwit', $options) ? $options['segwit'] : false
+            array_key_exists('segwit', $options) ? $options['segwit'] : false,
+            array_key_exists('require_activation', $options) ? $options['require_activation'] : false
         );
 
         // received the blocktrail public keys
@@ -859,7 +860,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $storeDataOnServer ? $recoverySecret : false,
             $checksum,
             $options['key_index'],
-            array_key_exists('segwit', $options) ? $options['segwit'] : false
+            array_key_exists('segwit', $options) ? $options['segwit'] : false,
+            array_key_exists('require_activation', $options) ? $options['require_activation'] : false
         );
 
         // received the blocktrail public keys
@@ -1004,7 +1006,8 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             $storeDataOnServer ? $recoverySecret->getHex() : false,
             $checksum,
             $options['key_index'],
-            array_key_exists('segwit', $options) ? $options['segwit'] : false
+            array_key_exists('segwit', $options) ? $options['segwit'] : false,
+            array_key_exists('require_activation', $options) ? $options['require_activation'] : false
         );
 
         // received the blocktrail public keys
@@ -1084,9 +1087,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param string    $checksum               checksum to store
      * @param int       $keyIndex               account that we expect to use
      * @param bool      $segwit                 opt in to segwit
+     * @param bool      $requireActivation      require wallet to be activated by another endpoint
      * @return mixed
+     * @throws BlocktrailSDKException
+     * @throws \Exception
      */
-    public function storeNewWalletV1($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex, $segwit = false) {
+    public function storeNewWalletV1($identifier, $primaryPublicKey, $backupPublicKey, $primaryMnemonic, $checksum, $keyIndex, $segwit = false, $requireActivation = false) {
         $data = [
             'identifier' => $identifier,
             'primary_public_key' => $primaryPublicKey,
@@ -1096,6 +1102,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'key_index' => $keyIndex,
             'segwit' => $segwit,
         ];
+        if ($requireActivation) {
+            $data['require_activation'] = true;
+        }
         $this->verifyPublicOnly($data);
         $response = $this->blocktrailClient->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
@@ -1113,10 +1122,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param string $checksum         checksum to store
      * @param int    $keyIndex         account that we expect to use
      * @param bool   $segwit           opt in to segwit
+     * @param bool      $requireActivation      require wallet to be activated by another endpoint
      * @return mixed
+     * @throws BlocktrailSDKException
      * @throws \Exception
      */
-    public function storeNewWalletV2($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit = false) {
+    public function storeNewWalletV2($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit = false, $requireActivation = false) {
         $data = [
             'identifier' => $identifier,
             'wallet_version' => Wallet::WALLET_VERSION_V2,
@@ -1129,6 +1140,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'key_index' => $keyIndex,
             'segwit' => $segwit,
         ];
+        if ($requireActivation) {
+            $data['require_activation'] = true;
+        }
         $this->verifyPublicOnly($data);
         $response = $this->blocktrailClient->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
@@ -1146,11 +1160,12 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
      * @param string $checksum         checksum to store
      * @param int    $keyIndex         account that we expect to use
      * @param bool   $segwit           opt in to segwit
+     * @param bool      $requireActivation      require wallet to be activated by another endpoint
      * @return mixed
+     * @throws BlocktrailSDKException
      * @throws \Exception
      */
-    public function storeNewWalletV3($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit = false) {
-
+    public function storeNewWalletV3($identifier, $primaryPublicKey, $backupPublicKey, $encryptedPrimarySeed, $encryptedSecret, $recoverySecret, $checksum, $keyIndex, $segwit = false, $requireActivation = false) {
         $data = [
             'identifier' => $identifier,
             'wallet_version' => Wallet::WALLET_VERSION_V3,
@@ -1163,7 +1178,9 @@ class BlocktrailSDK implements BlocktrailSDKInterface {
             'key_index' => $keyIndex,
             'segwit' => $segwit,
         ];
-
+        if ($requireActivation) {
+            $data['require_activation'] = true;
+        }
         $this->verifyPublicOnly($data);
         $response = $this->blocktrailClient->post("wallet", null, $data, RestClient::AUTH_HTTP_SIG);
         return self::jsonDecode($response->body(), true);
