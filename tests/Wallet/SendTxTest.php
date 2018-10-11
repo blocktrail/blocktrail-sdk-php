@@ -4,6 +4,7 @@ namespace Blocktrail\SDK\Tests\Wallet;
 
 use BitWasp\Bitcoin\Address\SegwitAddress;
 use BitWasp\Bitcoin\Script\WitnessProgram;
+use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\SDK\BlocktrailSDK;
@@ -13,7 +14,41 @@ use Blocktrail\SDK\Wallet;
 use Mockery\Mock;
 
 class SendTxTest extends WalletTestBase {
+    /**
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage feeStrategy should be set to force_fee to set a forced fee
+     */
+    public function testForcedFeeInvalidStrategy() {
+        $client = $this->mockSDK();
 
+        $identifier = self::WALLET_IDENTIFIER;
+        /** @var Wallet $wallet */
+        /** @var BlocktrailSDK|Mock $client */
+        list($wallet, $client) = $this->initWallet($client, $identifier);
+
+        $addr = "2MxYE3e7R2e1NBLDicBMXMy9FRUygeTyEGa";
+        $spk = "a9143a0fbfa2f446af8d76ac7f174618e7448674606987";
+        $value = BlocktrailSDK::toSatoshi(1.0);
+        $pay = [$addr => $value];
+
+        $wallet->pay($pay, $addr, false, false, Wallet::FEE_STRATEGY_OPTIMAL, 4096);
+    }
+    /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage Wallet needs to be unlocked to pay
+     */
+    public function test_sendTxRequiresUnlockedWallet() {
+        $client = $this->mockSDK();
+
+        $identifier = self::WALLET_IDENTIFIER;
+        /** @var Wallet $wallet */
+        /** @var BlocktrailSDK|Mock $client */
+        list($wallet, $client) = $this->initWallet($client, $identifier);
+
+        $wallet->lock();
+
+        $wallet->_sendTx(new Transaction(), [], true);
+    }
     public function testSendTx() {
         $client = $this->mockSDK();
 

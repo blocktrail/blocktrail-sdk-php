@@ -83,14 +83,11 @@ class WalletV2 extends Wallet {
             if (!($this->secret = CryptoJSAES::decrypt($encryptedSecret, $password))) {
                 throw new WalletDecryptException("Failed to decrypt secret with password");
             }
-
             // convert the mnemonic to a seed using BIP39 standard
             if (!($this->primarySeed = CryptoJSAES::decrypt($encryptedPrimarySeed, $this->secret))) {
                 throw new WalletDecryptException("Failed to decrypt primary seed with secret");
             }
-
-            $seedBuffer = new Buffer(base64_decode($this->primarySeed));
-
+            $seedBuffer = new Buffer($this->primarySeed, 32);
             // create BIP32 private key from the seed
             $primaryPrivateKey = HierarchicalKeyFactory::fromEntropy($seedBuffer);
         }

@@ -5,7 +5,9 @@ namespace Blocktrail\SDK\Tests\Wallet;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
+use Blocktrail\SDK\Address\BitcoinAddressReader;
 use Blocktrail\SDK\Wallet;
+use Blocktrail\SDK\WalletV3;
 use Btccom\JustEncrypt\Encryption;
 use Btccom\JustEncrypt\KeyDerivation;
 
@@ -96,6 +98,8 @@ class CreateWalletTest extends WalletTestBase {
         $wallet = $res[0];
 
         $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M", $wallet->getBackupKey()[1]);
+        $this->assertEquals("tpubD6NzVbkrYhZ4WTekiCroqzjETeQbxvQy8azRH4MT3tKhzZvf8G2QWWFdrTaiTHdYJVNPJJ85nvHjhP9dP7CZAkKsBEJ95DuY7bNZH1Gvw4w", $wallet->getBackupKey()[0]);
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
@@ -139,6 +143,32 @@ class CreateWalletTest extends WalletTestBase {
         // get some more addresses
         $this->assertEquals("2NDeL5p8sX89QE2FAxTvuiZdNbk6Jv2vRVs", $wallet->getAddressByPath("M/9999'/0/6"));
         $this->assertEquals("2NBP1aarake1UfiTU6aPrtdyooSQY7Dgm4T", $wallet->getAddressByPath("M/9999'/0/44"));
+
+        return $wallet;
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV3
+     */
+    public function testCreateWalletV3Lock(Wallet $wallet) {
+        $this->assertFalse($wallet->isLocked());
+
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ]);
+        $this->assertFalse($wallet->isLocked());
+
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ]);
+        $this->assertFalse($wallet->isLocked());
     }
 
     public function testCreateWalletV3CustomPrimary() {
@@ -244,6 +274,8 @@ class CreateWalletTest extends WalletTestBase {
         $wallet = $res[0];
 
         $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M", $wallet->getBackupKey()[1]);
+        $this->assertEquals("tpubD6NzVbkrYhZ4WTekiCroqzjETeQbxvQy8azRH4MT3tKhzZvf8G2QWWFdrTaiTHdYJVNPJJ85nvHjhP9dP7CZAkKsBEJ95DuY7bNZH1Gvw4w", $wallet->getBackupKey()[0]);
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
@@ -287,6 +319,32 @@ class CreateWalletTest extends WalletTestBase {
         // get some more addresses
         $this->assertEquals("2NDeL5p8sX89QE2FAxTvuiZdNbk6Jv2vRVs", $wallet->getAddressByPath("M/9999'/0/6"));
         $this->assertEquals("2NBP1aarake1UfiTU6aPrtdyooSQY7Dgm4T", $wallet->getAddressByPath("M/9999'/0/44"));
+
+        return $wallet;
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV2
+     */
+    public function testCreateWalletV2Lock(Wallet $wallet) {
+        $this->assertFalse($wallet->isLocked());
+
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ]);
+        $this->assertFalse($wallet->isLocked());
+
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ]);
+        $this->assertFalse($wallet->isLocked());
     }
 
     public function testCreateWalletV1() {
@@ -335,6 +393,8 @@ class CreateWalletTest extends WalletTestBase {
         $wallet = $res[0];
 
         $this->assertEquals($identifier, $wallet->getIdentifier());
+        $this->assertEquals("M", $wallet->getBackupKey()[1]);
+        $this->assertEquals("tpubD6NzVbkrYhZ4Wg9K1EjgX5F9rCi3nMjpMsyMZGyketABh8Y2Cfn92dfHAWEffZB3VJAZS2rd5iYTGfyiW32dEzWCnxubrDbbLHig3JGcvEZ", $wallet->getBackupKey()[0]);
         $this->assertEquals("M/9999'", $wallet->getBlocktrailPublicKeys()[9999][1]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKeys()[9999][0]);
         $this->assertEquals("tpubD9q6vq9zdP3gbhpjs7n2TRvT7h4PeBhxg1Kv9jEc1XAss7429VenxvQTsJaZhzTk54gnsHRpgeeNMbm1QTag4Wf1QpQ3gy221GDuUCxgfeZ", $wallet->getBlocktrailPublicKey("m/9999'")->key()->toExtendedKey());
@@ -379,5 +439,48 @@ class CreateWalletTest extends WalletTestBase {
         // get some more addresses
         $this->assertEquals("2NBz1n7vHdrtCJKtKUeQipRd8rBxsoKv39M", $wallet->getAddressByPath("M/9999'/0/6"));
         $this->assertEquals("2MzEv48F5qkhpaEFwDVcNUa595NJJZjqb6C", $wallet->getAddressByPath("M/9999'/0/44"));
+
+        return $wallet;
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV1
+     */
+    public function testCreateWalletV1Lock(Wallet $wallet) {
+        $this->assertFalse($wallet->isLocked());
+
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ]);
+        $this->assertFalse($wallet->isLocked());
+
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ]);
+        $this->assertFalse($wallet->isLocked());
+    }
+
+    public function testV3EncryptedPrimarySeedNullOrBuffer() {
+        $sdk = $this->mockSDK();
+        $reader = new BitcoinAddressReader();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Encrypted Primary Seed must be a Buffer or null");
+
+        new WalletV3($sdk, "walletIdentifier", "", new Buffer(''), [], [], [], 0, "btc", false, false, $reader, "");
+    }
+    public function testV3EncryptedSecretNullOrBuffer() {
+        $sdk = $this->mockSDK();
+        $reader = new BitcoinAddressReader();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Encrypted Secret must be a Buffer or null");
+
+        new WalletV3($sdk, "walletIdentifier", new Buffer(), "", [], [], [], 0, "btc", false, false, $reader, "");
     }
 }
