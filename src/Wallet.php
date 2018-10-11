@@ -431,8 +431,6 @@ abstract class Wallet implements WalletInterface {
      */
     public function getWalletScriptByPath($path) {
         $path = BIP32Path::path($path);
-
-        // optimization to avoid doing BitcoinLib::private_key_to_public_key too much
         if ($pubKey = $this->getParentPublicKey($path)) {
             $key = $pubKey->buildKey($path->publicPath());
         } else {
