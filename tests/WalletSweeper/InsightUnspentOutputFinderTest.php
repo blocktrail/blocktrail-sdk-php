@@ -45,7 +45,7 @@ class InsightUnspentOutputFinderTest extends WalletTestBase
         $clientMock = \Mockery::mock('overload:' . "\GuzzleHttp\Client");
         $clientMock->shouldReceive('post')
             ->times(1)
-            ->withArgs(function (string $url, array $options) use ($testnet, $address1, $address2): bool {
+            ->withArgs(function ($url, array $options) use ($testnet, $address1, $address2) {
                 $ok = true;
                 $ok = $ok && $url == 'https://' . ($testnet ? 'test-' : '') . 'insight.bitpay.com/api/addrs/utxo';
                 $ok = $ok && $options == [
