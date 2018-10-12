@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class ThrottlerTest extends TestCase
 {
-    private function runThrottlerCheckTime(int $time) {
+    private function runThrottlerCheckTime($time) {
         $t = new Throttler($time);
         $t->waitForThrottle();
         $then = microtime(true);

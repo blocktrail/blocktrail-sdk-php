@@ -648,4 +648,39 @@ class CreateWalletTest extends WalletTestBase {
 
         new WalletV3($sdk, "walletIdentifier", new Buffer(), "", [], [], [], 0, "btc", false, false, $reader, "");
     }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Invalid wallet version
+     */
+    public function testCreateWalletInvalidVersion() {
+        $client = $this->mockSDK();
+
+        $identifier = self::WALLET_IDENTIFIER;
+        $password = self::WALLET_PASSWORD;
+
+        $client->createNewWallet([
+            'wallet_version' => "v9912312",
+            "password" => $password,
+            "identifier" => $identifier,
+        ]);
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Can only provide either passphrase or password
+     */
+    public function testCreateWalletBothPasswordAndPassphraseIsInvalid() {
+        $client = $this->mockSDK();
+
+        $identifier = self::WALLET_IDENTIFIER;
+        $password = self::WALLET_PASSWORD;
+
+        $client->createNewWallet([
+            'wallet_version' => "v1",
+            "password" => $password,
+            "passphrase" => $password."...",
+            "identifier" => $identifier,
+        ]);
+    }
 }
