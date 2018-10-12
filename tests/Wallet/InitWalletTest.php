@@ -149,7 +149,7 @@ class InitWalletTest extends WalletTestBase {
 
     /**
      * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Unable to decrypt or to verify the tag.
+     * @expectedExceptionMessage Failed to decrypt secret with password
      */
     public function testBadPassword() {
         $client = $this->mockSDK();

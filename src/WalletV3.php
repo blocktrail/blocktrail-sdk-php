@@ -96,12 +96,17 @@ class WalletV3 extends Wallet
             if (!$password instanceof Buffer) {
                 $password = new Buffer($password);
             }
-            if (!($this->secret = Encryption::decrypt($encryptedSecret, $password))) {
-                throw new WalletDecryptException("Failed to decrypt secret with password");
+
+            try {
+                $this->secret = Encryption::decrypt($encryptedSecret, $password);
+            } catch (\Exception $e) {
+                throw new \InvalidArgumentException("Failed to decrypt secret with password", 0, $e);
             }
 
-            if (!($this->primarySeed = Encryption::decrypt($encryptedPrimarySeed, $this->secret))) {
-                throw new WalletDecryptException("Failed to decrypt primary seed with secret");
+            try {
+                $this->primarySeed = Encryption::decrypt($encryptedPrimarySeed, $this->secret);
+            } catch (\Exception $e) {
+                throw new \InvalidArgumentException("Failed to decrypt primary seed with secret", 0, $e);
             }
         }
         $this->primaryPrivateKey = BIP32Key::create(HierarchicalKeyFactory::fromEntropy($this->primarySeed), "m");
