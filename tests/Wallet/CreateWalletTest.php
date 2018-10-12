@@ -171,6 +171,75 @@ class CreateWalletTest extends WalletTestBase {
         $this->assertFalse($wallet->isLocked());
     }
 
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV3
+     */
+    public function testCreateWalletV3UnlockWithCallback(Wallet $wallet) {
+        $this->assertFalse($wallet->isLocked());
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ], function () {
+
+        });
+        $this->assertTrue($wallet->isLocked());
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV3
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Primary Seed must be a BufferInterface
+     */
+    public function testCreateWalletV3UnlockWithPrimarySeedMustBeBuffer(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+            "primary_seed" => "abc..",
+        ]);
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV3
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Can't init wallet with Primary Seed without a passphrase
+     */
+    public function testCreateWalletV3UnlockWithoutPrimarySeedRequiresPassword(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([]);
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV3
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Failed to decrypt secret with password
+     */
+    public function testCreateWalletV3UnlockWithoutPrimarySeedInvalidPassword(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([
+            "password" => "not the password",
+        ]);
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV3
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Can't init wallet with Primary Seed without a passphrase
+     */
+    public function testCreateWalletV3Unlock(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([]);
+    }
     public function testCreateWalletV3CustomPrimary() {
         $client = $this->mockSDK();
 
@@ -347,6 +416,49 @@ class CreateWalletTest extends WalletTestBase {
         $this->assertFalse($wallet->isLocked());
     }
 
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV2
+     */
+    public function testCreateWalletV2UnlockWithCallback(Wallet $wallet) {
+        $this->assertFalse($wallet->isLocked());
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ], function () {
+
+        });
+        $this->assertTrue($wallet->isLocked());
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV2
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Can't init wallet with Primary Seed without a passphrase
+     */
+    public function testCreateWalletV2UnlockWithoutPrimarySeedRequiresPassword(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([]);
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV2
+     * @expectedException \Blocktrail\SDK\Exceptions\WalletDecryptException
+     * @expectedExceptionMessage Failed to decrypt secret with password
+     */
+    public function testCreateWalletV2UnlockWithoutPrimarySeedInvalidPassword(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([
+            "password" => "not the password",
+        ]);
+    }
+
     public function testCreateWalletV1() {
         $client = $this->mockSDK();
 
@@ -465,6 +577,59 @@ class CreateWalletTest extends WalletTestBase {
             "password" => self::WALLET_PASSWORD,
         ]);
         $this->assertFalse($wallet->isLocked());
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV1
+     */
+    public function testCreateWalletV1UnlockWithCallback(Wallet $wallet) {
+        $this->assertFalse($wallet->isLocked());
+        $wallet->lock();
+        $this->assertTrue($wallet->isLocked());
+
+        $wallet->unlock([
+            "password" => self::WALLET_PASSWORD,
+        ], function () {
+
+        });
+        $this->assertTrue($wallet->isLocked());
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV1
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Can't init wallet with Primary Mnemonic without a passphrase
+     */
+    public function testCreateWalletV1UnlockWithoutPrimarySeedRequiresPassword(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([]);
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV1
+     * @expectedException \Exception
+     * @expectedExceptionMessage Checksum [mgk849xjromxGQdJfHSohGUdhMtNUp49ct] does not match [n3yffrKj4xReaWjt5pdLoe7ZoBwe1UGTm8], most likely due to incorrect password
+     */
+    public function testCreateWalletV1UnlockWithoutPrimarySeedInvalidPassword(Wallet $wallet) {
+        $wallet->lock();
+
+        $wallet->unlock([
+            "password" => "not the password",
+        ]);
+    }
+
+    /**
+     * @param Wallet $wallet
+     * @depends testCreateWalletV1
+     * @expectedException \Blocktrail\SDK\Exceptions\NotImplementedException
+
+     */
+    public function testCreateWalletV1PasswordChangeNotPossible(Wallet $wallet) {
+        $wallet->passwordChange('');
     }
 
     public function testV3EncryptedPrimarySeedNullOrBuffer() {
