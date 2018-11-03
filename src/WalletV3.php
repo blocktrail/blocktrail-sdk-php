@@ -120,8 +120,8 @@ class WalletV3 extends Wallet
         $this->locked = false;
 
         // if the response suggests we should upgrade to a different blocktrail cosigning key then we should
-        if (isset($data['upgrade_key_index'])) {
-            $this->upgradeKeyIndex($data['upgrade_key_index']);
+        if (array_key_exists('upgrade_key_index', $options)) {
+            $this->upgradeKeyIndex($options['upgrade_key_index']);
         }
 
         if ($fn) {
