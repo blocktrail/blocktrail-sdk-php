@@ -4,67 +4,14 @@ namespace Blocktrail\SDK\Tests\Network;
 
 use BitWasp\Bitcoin\Network\NetworkFactory;
 use BitWasp\Buffertools\Buffer;
-use Blocktrail\SDK\Address\CashAddress;
+use Btccom\BitcoinCash\Address\CashAddress;
+use Btccom\BitcoinCash\Network\NetworkFactory as BchNetworkFactory;
+
 use Blocktrail\SDK\Network\BitcoinCash;
 use Blocktrail\SDK\Network\BitcoinCashTestnet;
 
 class BitcoinCashTest extends \PHPUnit_Framework_TestCase
 {
-    public function testnetProvider()
-    {
-        return [
-            [true, "bchtest",],
-            [false, "bitcoincash",],
-        ];
-    }
-
-    /**
-     * @param bool $testnet
-     * @dataProvider testnetProvider
-     */
-    public function testBitcoinCash($testnet, $cashAddrPrefix)
-    {
-        if ($testnet) {
-            $network = new BitcoinCashTestnet();
-        } else {
-            $network = new BitcoinCash();
-        }
-
-        $this->assertEquals($testnet, $network->isTestnet());
-        $this->assertEquals($cashAddrPrefix, $network->getCashAddressPrefix());
-
-        if ($testnet) {
-            $cmp = NetworkFactory::bitcoinTestnet();
-        } else {
-            $cmp = NetworkFactory::bitcoin();
-        }
-
-        $this->assertEquals($cmp->getAddressByte(), $network->getAddressByte());
-        $this->assertEquals($cmp->getP2shByte(), $network->getP2shByte());
-        $this->assertEquals($cmp->getPrivByte(), $network->getPrivByte());
-        $this->assertEquals($cmp->isTestnet(), $network->isTestnet());
-        $this->assertEquals($cmp->getNetMagicBytes(), $network->getNetMagicBytes());
-        $this->assertEquals($cmp->getHDPrivByte(), $network->getHDPrivByte());
-        $this->assertEquals($cmp->getHDPubByte(), $network->getHDPubByte());
-    }
-
-    /**
-     * @param $testnet
-     * @throws \Exception
-     * @dataProvider testnetProvider
-     * @expectedException \Exception
-     * @expectedExceptionMessage No bech32 prefix for segwit addresses set
-     */
-    public function testNoBech32($testnet)
-    {
-        if ($testnet) {
-            $network = new BitcoinCashTestnet();
-        } else {
-            $network = new BitcoinCash();
-        }
-
-        $network->getSegwitBech32Prefix();
-    }
 
     public function getCashAddressFixture()
     {
@@ -89,9 +36,9 @@ class BitcoinCashTest extends \PHPUnit_Framework_TestCase
     public function testCashAddress($testnet, $type, $hashHex, $expected)
     {
         if ($testnet) {
-            $network = new BitcoinCashTestnet();
+            $network = BchNetworkFactory::bitcoinCashTestnet();
         } else {
-            $network = new BitcoinCash();
+            $network = BchNetworkFactory::bitcoinCash();
         }
 
         $hash = Buffer::hex($hashHex);

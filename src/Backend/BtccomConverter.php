@@ -2,15 +2,27 @@
 
 namespace Blocktrail\SDK\Backend;
 
-use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
+use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
+use BitWasp\Bitcoin\Address\ScriptHashAddress;
 use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
 use BitWasp\Bitcoin\Script\ScriptType;
-use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInput;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Connection\Exceptions\EndpointSpecificError;
+use Btccom\BitcoinCash\Address\CashAddress;
 
 class BtccomConverter implements ConverterInterface {
+
+    /**
+     * @var BaseAddressCreator
+     */
+    private $addrReader;
+
+    public function __construct(BaseAddressCreator $addrReader) {
+        $this->addrReader = $addrReader;
+    }
+
     public function paginationParams($params) {
         if (!$params) {
             return $params;
@@ -183,7 +195,7 @@ class BtccomConverter implements ConverterInterface {
         $data = BlocktrailSDK::jsonDecode($res, true);
         $this->handleErros($data);
 
-        $spk = AddressFactory::fromString($address)->getScriptPubKey();
+        $spk = $this->addrReader->fromString($address)->getScriptPubKey();
         $type = (new OutputClassifier())->classify($spk);
         $scriptAsm = $spk->getScriptParser()->getHumanReadable();
         $scriptHex = $spk->getHex();
@@ -211,7 +223,7 @@ class BtccomConverter implements ConverterInterface {
                 continue;
             }
 
-            $spk = AddressFactory::fromString($row['address'])->getScriptPubKey();
+            $spk = $this->addrReader->fromString($row['address'])->getScriptPubKey();
             $type = (new OutputClassifier())->classify($spk);
             $scriptAsm = $spk->getScriptParser()->getHumanReadable();
             $scriptHex = $spk->getHex();
@@ -406,11 +418,19 @@ class BtccomConverter implements ConverterInterface {
         return (new \DateTime("@{$time}"))->format(\DATE_ISO8601);
     }
 
-    protected static function getBase58AddressHash160($addr) {
+    private function getBase58AddressHash160($addr) {
         try {
-            return \strtoupper(AddressFactory::fromString($addr)->getHash()->getHex());
+            $obj = $this->addrReader->fromString($addr);
+            if ($obj instanceof PayToPubKeyHashAddress || $obj instanceof ScriptHashAddress) {
+                return \strtoupper($obj->getHash()->getHex());
+            }
+            if ($obj instanceof CashAddress && ($obj->getType() == ScriptType::P2PKH || $obj->getType() == ScriptType::P2SH)) {
+                return \strtoupper($obj->getHash()->getHex());
+            }
         } catch (\Exception $e) {
-            return null;
+            // allow fallthrough, don't know this address type
         }
+
+        return null;
     }
 }

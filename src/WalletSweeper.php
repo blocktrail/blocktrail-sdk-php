@@ -2,10 +2,16 @@
 
 namespace Blocktrail\SDK;
 
-use BitWasp\Bitcoin\Address\AddressFactory;
+use Btccom\BitcoinCash\Address\CashAddress;
+use Btccom\BitcoinCash\Address\AddressCreator as BitcoinCashAddressCreator;
+use Btccom\BitcoinCash\Network\NetworkFactory as BitcoinCashNetworkFactory;
+use Btccom\BitcoinCash\Transaction\Factory\Checker\CheckerCreator as BchCheckerCreator;
+use Btccom\BitcoinCash\Transaction\SignatureHash\SigHash as BchSigHash;
+use BitWasp\Bitcoin\Address\AddressCreator as BitcoinAddressCreator;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use BitWasp\Bitcoin\Bitcoin;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKeyFactory;
-use BitWasp\Bitcoin\Network\NetworkFactory;
+use BitWasp\Bitcoin\Network\NetworkFactory as BitcoinNetworkFactory;
 use BitWasp\Bitcoin\Script\P2shScript;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\WitnessScript;
@@ -18,15 +24,9 @@ use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
 use BitWasp\Buffertools\Buffer;
 use BitWasp\Buffertools\BufferInterface;
-use Blocktrail\SDK\Address\AddressReaderBase;
-use Blocktrail\SDK\Address\BitcoinAddressReader;
-use Blocktrail\SDK\Address\BitcoinCashAddressReader;
-use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
-use Blocktrail\SDK\Network\BitcoinCash;
-use Blocktrail\SDK\Network\BitcoinCashRegtest;
 
 abstract class WalletSweeper {
 
@@ -73,7 +73,7 @@ abstract class WalletSweeper {
     protected $sweepData;
 
     /**
-     * @var AddressReaderBase
+     * @var BaseAddressCreator
      */
     protected $addressReader;
 
@@ -114,7 +114,7 @@ abstract class WalletSweeper {
 
     /**
      * @param array $options
-     * @return AddressReaderBase
+     * @return BaseAddressCreator
      */
     private function makeAddressReader(array $options) {
         if ($this->network == "bitcoincash") {
@@ -122,9 +122,9 @@ abstract class WalletSweeper {
             if (array_key_exists("use_cashaddress", $options) && $options['use_cashaddress']) {
                 $useCashAddress = true;
             }
-            return new BitcoinCashAddressReader($useCashAddress);
+            return new BitcoinCashAddressCreator($useCashAddress);
         } else {
-            return new BitcoinAddressReader();
+            return new BitcoinAddressCreator();
         }
     }
 
@@ -138,19 +138,19 @@ abstract class WalletSweeper {
         assert($network == "bitcoin" || $network == "bitcoincash");
         if ($network === "bitcoin") {
             if ($regtest) {
-                $useNetwork = NetworkFactory::bitcoinRegtest();
+                $useNetwork = BitcoinNetworkFactory::bitcoinRegtest();
             } else if ($testnet) {
-                $useNetwork = NetworkFactory::bitcoinTestnet();
+                $useNetwork = BitcoinNetworkFactory::bitcoinTestnet();
             } else {
-                $useNetwork = NetworkFactory::bitcoin();
+                $useNetwork = BitcoinNetworkFactory::bitcoin();
             }
         } else if ($network === "bitcoincash") {
             if ($regtest) {
-                $useNetwork = new BitcoinCashRegtest();
+                $useNetwork = BitcoinCashNetworkFactory::bitcoinRegtest();
             } else if ($testnet) {
-                $useNetwork = new BitcoinCashTestnet();
+                $useNetwork = BitcoinCashNetworkFactory::bitcoinTestnet();
             } else {
-                $useNetwork = new BitcoinCash();
+                $useNetwork = BitcoinCashNetworkFactory::bitcoin();
             }
         }
 
@@ -379,7 +379,7 @@ abstract class WalletSweeper {
                     $utxo['hash'],
                     $utxo['index'],
                     $utxo['value'],
-                    AddressFactory::fromString($address),
+                    $this->addressReader->fromString($address),
                     ScriptFactory::fromHex($utxo['script_hex']),
                     $data['path'],
                     $data['redeem'],
@@ -429,12 +429,13 @@ abstract class WalletSweeper {
      * @throws \Exception
      */
     protected function signTransaction(TransactionInterface $tx, array $signInfo) {
-        $signer = new Signer($tx, Bitcoin::getEcAdapter());
+        $ecAdapter = Bitcoin::getEcAdapter();
+        $signer = new Signer($tx, $ecAdapter);
 
         $sigHash = SigHash::ALL;
         if ($this->network === "bitcoincash") {
-            $sigHash |= SigHash::BITCOINCASH;
-            $signer->redeemBitcoinCash(true);
+            $sigHash |= BchSigHash::BITCOINCASH;
+            $signer->setCheckerCreator(BchCheckerCreator::fromEcAdapter($ecAdapter));
         }
 
         assert(Util::all(function ($signInfo) {

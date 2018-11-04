@@ -5,8 +5,6 @@ namespace Blocktrail\SDK;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
-
-
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 class WalletV2Sweeper extends WalletSweeper {

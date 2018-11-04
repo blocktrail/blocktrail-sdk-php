@@ -5,7 +5,7 @@ namespace Blocktrail\SDK\Tests\Wallet;
 use BitWasp\Bitcoin\Mnemonic\MnemonicFactory;
 use BitWasp\Buffertools\Buffer;
 use Blocktrail\CryptoJSAES\CryptoJSAES;
-use Blocktrail\SDK\Address\BitcoinAddressReader;
+use BitWasp\Bitcoin\Address\AddressCreator as BitcoinAddressCreator;
 use Blocktrail\SDK\Wallet;
 use Blocktrail\SDK\WalletV3;
 use Btccom\JustEncrypt\Encryption;
@@ -407,7 +407,7 @@ class CreateWalletTest extends WalletTestBase {
 
     public function testV3EncryptedPrimarySeedNullOrBuffer() {
         $sdk = $this->mockSDK();
-        $reader = new BitcoinAddressReader();
+        $reader = new BitcoinAddressCreator();
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Encrypted Primary Seed must be a Buffer or null");
 
@@ -415,7 +415,7 @@ class CreateWalletTest extends WalletTestBase {
     }
     public function testV3EncryptedSecretNullOrBuffer() {
         $sdk = $this->mockSDK();
-        $reader = new BitcoinAddressReader();
+        $reader = new BitcoinAddressCreator();
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Encrypted Secret must be a Buffer or null");
 

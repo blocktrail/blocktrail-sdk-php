@@ -2,7 +2,7 @@
 
 namespace Blocktrail\SDK\Tests\Wallet;
 
-use BitWasp\Bitcoin\Address\AddressFactory;
+use BitWasp\Bitcoin\Address\AddressCreator;
 use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInput;
 use BitWasp\Bitcoin\Transaction\TransactionOutput;
@@ -70,11 +70,12 @@ class BuildTxTest extends WalletTestBase {
         $this->assertEquals($outValue, $outputTotal);
         $this->assertEquals($expectfee, $fee);
 
+        $btcAddrCreator = new AddressCreator();
         // assert the input(s)
         $this->assertEquals(1, count($tx->getInputs()));
         $this->assertEquals($txid, $tx->getInput(0)->getOutPoint()->getTxId()->getHex());
         $this->assertEquals(0, $tx->getInput(0)->getOutPoint()->getVout());
-        $this->assertEquals($address, AddressFactory::fromOutputScript($signInfo[0]->output->getScript())->getAddress());
+        $this->assertEquals($address, $btcAddrCreator->fromOutputScript($signInfo[0]->output->getScript())->getAddress());
         $this->assertEquals($scriptPubKey, $signInfo[0]->output->getScript()->getHex());
         $this->assertEquals($value, $signInfo[0]->output->getValue());
         $this->assertEquals($path, $signInfo[0]->path);
@@ -89,7 +90,7 @@ class BuildTxTest extends WalletTestBase {
 
         // assert the output(s)
         $this->assertEquals(1, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $btcAddrCreator->fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
         $this->assertEquals($outValue, $tx->getOutput(0)->getValue());
     }
 
@@ -172,7 +173,8 @@ class BuildTxTest extends WalletTestBase {
 
         // assert the output(s)
         $this->assertEquals(1, count($tx->getOutputs()));
-        $this->assertEquals("2N7C5Jn1LasbEK9mvHetBYXaDnQACXkarJe", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $btcAddrCreator = new AddressCreator();
+        $this->assertEquals("2N7C5Jn1LasbEK9mvHetBYXaDnQACXkarJe", $btcAddrCreator->fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
         $this->assertEquals(100000, $tx->getOutput(0)->getValue());
 
 
@@ -273,7 +275,8 @@ class BuildTxTest extends WalletTestBase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
         $this->assertEquals(14, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(13)->getScript())->getAddress());
+        $btcAddrCreator = new AddressCreator();
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $btcAddrCreator->fromOutputScript($tx->getOutput(13)->getScript())->getAddress());
         $this->assertEquals(99860000, $tx->getOutput(13)->getValue());
     }
 
@@ -346,11 +349,12 @@ class BuildTxTest extends WalletTestBase {
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
+        $btcAddrCreator = new AddressCreator();
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9999), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
         $this->assertEquals(20, count($tx->getOutputs()));
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($tx->getOutput(19)->getScript())->getAddress());
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $btcAddrCreator->fromOutputScript($tx->getOutput(19)->getScript())->getAddress());
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9980), $tx->getOutput(19)->getValue());
     }
 
@@ -427,12 +431,13 @@ class BuildTxTest extends WalletTestBase {
         $fee = $inputTotal - $outputTotal;
 
         // assert the output(s)
+        $btcAddrCreator = new AddressCreator();
         $this->assertEquals(BlocktrailSDK::toSatoshi(1), $inputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9998), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0002), $fee);
         $this->assertEquals(22, count($tx->getOutputs()));
         $change = $tx->getOutput(21);
-        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", AddressFactory::fromOutputScript($change->getScript())->getAddress());
+        $this->assertEquals("2N6DJMnoS3xaxpCSDRMULgneCghA1dKJBmT", $btcAddrCreator->fromOutputScript($change->getScript())->getAddress());
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.9977), $change->getValue());
     }
 
@@ -676,7 +681,8 @@ class BuildTxTest extends WalletTestBase {
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0019), $outputTotal);
         $this->assertEquals(BlocktrailSDK::toSatoshi(0.0001), $fee);
 
-        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", AddressFactory::fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
-        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", AddressFactory::fromOutputScript($tx->getOutput(1)->getScript())->getAddress());
+        $btcAddrCreator = new AddressCreator();
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $btcAddrCreator->fromOutputScript($tx->getOutput(0)->getScript())->getAddress());
+        $this->assertEquals("2NAUFsSps9S2mEnhaWZoaufwyuCaVPUv8op", $btcAddrCreator->fromOutputScript($tx->getOutput(1)->getScript())->getAddress());
     }
 }

@@ -3,8 +3,10 @@
 namespace Blocktrail\SDK\Tests;
 
 use BitWasp\Bitcoin\Network\NetworkFactory;
-use Blocktrail\SDK\Address\BitcoinAddressReader;
-use Blocktrail\SDK\Address\BitcoinCashAddressReader;
+use BitWasp\Bitcoin\Network\NetworkFactory as BitcoinNetworkFactory;
+use Btccom\BitcoinCash\Network\NetworkFactory as BitcoinCashNetworkFactory;
+use BitWasp\Bitcoin\Address\AddressCreator as BitcoinAddressCreator;
+use Btccom\BitcoinCash\Address\AddressCreator as BitcoinCashAddressCreator;
 use Blocktrail\SDK\Blocktrail;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 use Blocktrail\SDK\Network\BitcoinCash;
@@ -17,18 +19,18 @@ class OutputsNormalizerTest extends \PHPUnit_Framework_TestCase
         switch ($network) {
             case "BTC":
                 if ($testnet) {
-                    return [NetworkFactory::bitcoinTestnet(), new BitcoinAddressReader()];
+                    return [BitcoinNetworkFactory::bitcoinTestnet(), new BitcoinAddressCreator()];
                 }
-                return [NetworkFactory::bitcoin(), new BitcoinAddressReader()];
+                return [BitcoinNetworkFactory::bitcoin(), new BitcoinAddressCreator()];
                 break;
             case "BCC":
                 if ($testnet) {
-                    $network = new BitcoinCashTestnet();
+                    $network = BitcoinCashNetworkFactory::bitcoinCashTestnet();
                 } else {
-                    $network = new BitcoinCash();
+                    $network = BitcoinCashNetworkFactory::bitcoinCash();
                 }
 
-                return [$network, new BitcoinCashAddressReader(true)];
+                return [$network, new BitcoinCashAddressCreator(true)];
                 break;
             default:
                 throw new \RuntimeException("Unknown network");

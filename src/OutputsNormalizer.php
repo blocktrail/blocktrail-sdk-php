@@ -3,35 +3,35 @@
 namespace Blocktrail\SDK;
 
 use BitWasp\Bitcoin\Bitcoin;
-use BitWasp\Bitcoin\Network\Network;
 use BitWasp\Bitcoin\Network\NetworkInterface;
 use BitWasp\Bitcoin\Script\Opcodes;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Buffertools\Buffer;
-use Blocktrail\SDK\Address\AddressReaderBase;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 class OutputsNormalizer
 {
     /**
-     * @var AddressReaderBase
+     * @var BaseAddressCreator
      */
     private $reader;
 
     /**
      * OutputsNormalizer constructor.
-     * @param AddressReaderBase $reader
+     * @param BaseAddressCreator $reader
      */
-    public function __construct(AddressReaderBase $reader) {
+    public function __construct(BaseAddressCreator $reader) {
         $this->reader = $reader;
     }
 
     /**
      * @param array $output
+     * @param NetworkInterface NetworkInterface
      * @return array
      * @throws BlocktrailSDKException
      */
-    protected function readArrayFormat(array $output, Network $network) {
+    protected function readArrayFormat(array $output, NetworkInterface $network) {
         if (array_key_exists("scriptPubKey", $output) && array_key_exists("value", $output)) {
             return [
                 "scriptPubKey" => $output['scriptPubKey'],

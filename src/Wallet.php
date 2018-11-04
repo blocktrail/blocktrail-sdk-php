@@ -2,6 +2,11 @@
 
 namespace Blocktrail\SDK;
 
+use Btccom\BitcoinCash\Address\CashAddress;
+use Btccom\BitcoinCash\Transaction\SignatureHash\SigHash as BchSigHash;
+use Btccom\BitcoinCash\Transaction\Factory\Checker\CheckerCreator as BchCheckerCreator;
+use BitWasp\Bitcoin\Address\AddressCreator as BitcoinAddressCreator;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use BitWasp\Bitcoin\Address\Base58AddressInterface;
 use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
 use BitWasp\Bitcoin\Address\ScriptHashAddress;
@@ -21,8 +26,6 @@ use BitWasp\Bitcoin\Transaction\SignatureHash\SigHash;
 use BitWasp\Bitcoin\Transaction\Transaction;
 use BitWasp\Bitcoin\Transaction\TransactionInterface;
 use BitWasp\Buffertools\Buffer;
-use Blocktrail\SDK\Address\AddressReaderBase;
-use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -155,7 +158,7 @@ abstract class Wallet implements WalletInterface {
     protected $changeIndex;
 
     /**
-     * @var AddressReaderBase
+     * @var BaseAddressCreator
      */
     protected $addressReader;
 
@@ -175,10 +178,11 @@ abstract class Wallet implements WalletInterface {
      * @param string                        $network
      * @param bool                          $testnet
      * @param bool                          $segwit
+     * @param BaseAddressCreator            $addressReader
      * @param string                        $checksum
      * @throws BlocktrailSDKException
      */
-    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, AddressReaderBase $addressReader, $checksum) {
+    public function __construct(BlocktrailSDKInterface $sdk, $identifier, array $primaryPublicKeys, $backupPublicKey, array $blocktrailPublicKeys, $keyIndex, $network, $testnet, $segwit, BaseAddressCreator $addressReader, $checksum) {
         $this->sdk = $sdk;
 
         $this->identifier = $identifier;
@@ -214,7 +218,7 @@ abstract class Wallet implements WalletInterface {
     }
 
     /**
-     * @return AddressReaderBase
+     * @return BaseAddressCreator
      */
     public function getAddressReader() {
         return $this->addressReader;
@@ -741,7 +745,7 @@ abstract class Wallet implements WalletInterface {
 
             if (SignInfo::MODE_SIGN === $utxo->signMode) {
                 if (!$utxo->path) {
-                    $utxo->path = $this->getPathForAddress($utxo->address->getAddress());
+                    $utxo->path = $this->getPathForAddress($utxo->address->getAddress())['path'];
                 }
 
                 if (!$utxo->redeemScript || !$utxo->witnessScript) {
@@ -1063,7 +1067,8 @@ abstract class Wallet implements WalletInterface {
      * @throws \Exception
      */
     protected function signTransaction(Transaction $tx, array $signInfo) {
-        $signer = new Signer($tx, Bitcoin::getEcAdapter());
+        $ecAdapter = Bitcoin::getEcAdapter();
+        $signer = new Signer($tx, $ecAdapter);
 
         assert(Util::all(function ($signInfo) {
             return $signInfo instanceof SignInfo;
@@ -1071,8 +1076,8 @@ abstract class Wallet implements WalletInterface {
 
         $sigHash = SigHash::ALL;
         if ($this->network === "bitcoincash") {
-            $sigHash |= SigHash::BITCOINCASH;
-            $signer->redeemBitcoinCash(true);
+            $sigHash |= BchSigHash::BITCOINCASH;
+            $signer->setCheckerCreator(BchCheckerCreator::fromEcAdapter($ecAdapter));
         }
 
         foreach ($signInfo as $idx => $info) {
@@ -1192,9 +1197,7 @@ abstract class Wallet implements WalletInterface {
      */
     protected function createChecksumVerificationSignature() {
         $privKey = $this->primaryPrivateKey->key();
-
-        $pubKey = $this->primaryPrivateKey->publicKey();
-        $address = $pubKey->getAddress()->getAddress();
+        $address = $this->primaryPrivateKey->key()->getAddress(new BitcoinAddressCreator())->getAddress();
 
         $signer = new MessageSigner(Bitcoin::getEcAdapter());
         $signed = $signer->sign($address, $privKey->getPrivateKey());

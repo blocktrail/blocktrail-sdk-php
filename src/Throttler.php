@@ -3,6 +3,10 @@
 namespace Blocktrail\SDK;
 
 class Throttler {
+    /**
+     * @var Throttler[]
+     */
+    private static $instances = [];
 
     /**
      * @var float|null
@@ -29,16 +33,14 @@ class Throttler {
         $diff = $this->interval - (\microtime(true) - $this->lastTime);
 
         if ($diff > 0) {
-            usleep((int)ceil($diff * 1000 * 1000));
+            usleep((int)ceil($diff * 1e6));
         }
 
         $this->lastTime = \microtime(true);
     }
 
-    private static $instances = [];
-
     public static function getInstance($key, $interval) {
-        if (!isset(self::$instances[$key])) {
+        if (!array_key_exists($key, self::$instances)) {
             self::$instances[$key] = new Throttler($interval);
         }
 
