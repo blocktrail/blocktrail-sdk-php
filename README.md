@@ -2,7 +2,7 @@ BlockTrail PHP SDK
 ==================
 This is the BlockTrail PHP SDK. This SDK contains methods for easily interacting with the BlockTrail API.
 Below are examples to get you started. For additional examples, please see our official documentation
-at https://www.blocktrail.com/api/docs/lang/php
+at https://dev.btc.com/docs/php
 
 
 [![Latest Stable Version](https://poser.pugx.org/blocktrail/blocktrail-sdk/v/stable.svg)](https://packagist.org/packages/blocktrail/blocktrail-sdk)
@@ -41,7 +41,7 @@ echo "1.23456789 BTC to Satoshi: " . BlocktrailSDK::toSatoshi(1.23456789) . " \n
 
 ```
 
-A bit more about this can be found [in our documentation](https://www.blocktrail.com/api/docs/lang/php#api_coin_format).
+A bit more about this can be found [in our documentation](https://dev.btc.com/docs/php).
 
 Requirements
 ------------
@@ -108,17 +108,17 @@ https://github.com/Bit-Wasp/secp256k1-php#to-install
 
 Usage
 -----
-Please visit our official documentation at https://www.blocktrail.com/api/docs/lang/php for the usage.
+Please visit our official documentation at https://dev.btc.com/docs/php for the usage.
 
 Support and Feedback
 --------------------
-Be sure to visit the BlockTrail API official [documentation website](https://www.blocktrail.com/api/docs/lang/php)
+Be sure to visit the BlockTrail API official [documentation website](https://dev.btc.com/docs/php)
 for additional information about our API.
 
 If you find a bug, please submit the issue in Github directly. 
 [BlockTrail-PHP-SDK Issues](https://github.com/blocktrail/blocktrail-sdk-php/issues)
 
-If you need additional assistance, contact one of our developers at [devs@blocktrail.com](mailto:devs@blocktrail.com).
+If you need additional assistance, contact one of our developers at [support@btc.com](mailto:support@btc.com).
 
 Unit Tests and Coding Style
 ---------------------------
