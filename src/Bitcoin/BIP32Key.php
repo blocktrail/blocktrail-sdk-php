@@ -2,7 +2,6 @@
 
 namespace Blocktrail\SDK\Bitcoin;
 
-use BitWasp\Bitcoin\Crypto\EcAdapter\Impl\PhpEcc\Key\PublicKey;
 use BitWasp\Bitcoin\Crypto\EcAdapter\Key\PublicKeyInterface;
 use BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey;
 
@@ -148,7 +147,7 @@ class BIP32Key {
             }
 
             if ($toPublic) {
-                $key = $key->toPublic();
+                $key = $key->withoutPrivateKey();
             }
 
             $this->derivations[$originalPath] = BIP32Key::create($key, $originalPath);

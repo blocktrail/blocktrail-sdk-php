@@ -1,12 +1,9 @@
 <?php
 
-use BitWasp\Bitcoin\Address\AddressFactory;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use Blocktrail\SDK\BlocktrailSDK;
-use Blocktrail\SDK\Connection\Exceptions\ObjectNotFound;
 use Blocktrail\SDK\TransactionBuilder;
 use Blocktrail\SDK\Wallet;
-use Blocktrail\SDK\WalletInterface;
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
@@ -53,9 +50,10 @@ if ($missingFee <= 0.001 * 1e8) {
 
 // send info
 $myAddress = $wallet->getNewAddress();
+$addrReader = $wallet->getAddressReader();
 
 // setup txbuilder
-$txBuilder = new TransactionBuilder();
+$txBuilder = new TransactionBuilder($addrReader);
 
 // set change address to our address
 $txBuilder->setChangeAddress($myAddress);
@@ -90,8 +88,8 @@ if (!in_array(strtolower($continue ?: ""), ['y', 'yes'])) {
 // add UTXOs to txbuilder
 foreach ($utxos as $utxo) {
     $scriptPubKey = ScriptFactory::fromHex($utxo['scriptpubkey_hex']);
-    $address = AddressFactory::fromString($utxo['address']);
-    $path = $wallet->getPathForAddress($address->getAddress());
+    $address = $addrReader->fromString($utxo['address']);
+    $path = $wallet->getPathForAddress($address->getAddress())['path'];
     $scripts = $wallet->getWalletScriptByPath($path);
     $redeemScript = $scripts->getRedeemScript();
     $witnessScript = null;

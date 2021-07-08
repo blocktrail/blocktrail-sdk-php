@@ -1,3 +1,11 @@
+build:
+    nodes:
+        php-scrutinizer-run:
+            project_setup:
+                override: true
+            tests:
+                override: [php-scrutinizer-run]
+
 filter:
     excluded_paths: [examples*, vendor/*, build/*, tests/*]
 

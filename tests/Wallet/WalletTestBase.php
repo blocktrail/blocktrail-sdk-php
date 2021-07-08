@@ -2,12 +2,12 @@
 
 namespace Blocktrail\SDK\Tests\Wallet;
 
+use Btccom\BitcoinCash\Address\CashAddress;
 use BitWasp\Bitcoin\Address\PayToPubKeyHashAddress;
 use BitWasp\Bitcoin\Address\ScriptHashAddress;
 use BitWasp\Bitcoin\Script\Classifier\OutputClassifier;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Bitcoin\Script\ScriptType;
-use Blocktrail\SDK\Address\CashAddress;
 use Blocktrail\SDK\BlocktrailSDK;
 use Blocktrail\SDK\Tests\MockBlocktrailSDK;
 use Blocktrail\SDK\Wallet;

@@ -2,7 +2,7 @@
 
 namespace Blocktrail\SDK;
 
-use Blocktrail\SDK\Address\AddressReaderBase;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use Blocktrail\SDK\Bitcoin\BIP32Key;
 use Blocktrail\SDK\Bitcoin\BIP32Path;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
@@ -33,7 +33,7 @@ interface WalletInterface {
     public function getBackupKey();
 
     /**
-     * @return AddressReaderBase
+     * @return BaseAddressCreator
      */
     public function getAddressReader();
 
@@ -200,7 +200,7 @@ interface WalletInterface {
      * @param null|int  $forceFee
      * @return array
      */
-    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $forceFee = null);
+    public function coinSelection($outputs, $lockUTXO = true, $allowZeroConf = false, $feeStrategy = self::FEE_STRATEGY_OPTIMAL, $forceFee = null);
 
     /**
      * @return int

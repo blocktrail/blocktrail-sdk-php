@@ -6,7 +6,7 @@ use BitWasp\Bitcoin\Address\AddressInterface;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Script\ScriptInterface;
 use BitWasp\Buffertools\Buffer;
-use Blocktrail\SDK\Address\AddressReaderBase;
+use BitWasp\Bitcoin\Address\BaseAddressCreator;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
 
 /**
@@ -38,7 +38,7 @@ class TransactionBuilder {
     private $feeStrategy = Wallet::FEE_STRATEGY_OPTIMAL;
 
     /**
-     * @var AddressReaderBase
+     * @var BaseAddressCreator
      */
     private $addressReader;
 
@@ -49,9 +49,9 @@ class TransactionBuilder {
 
     /**
      * TransactionBuilder constructor.
-     * @param AddressReaderBase $addressReader
+     * @param BaseAddressCreator $addressReader
      */
-    public function __construct(AddressReaderBase $addressReader) {
+    public function __construct(BaseAddressCreator $addressReader) {
         $this->addressReader = $addressReader;
         $this->outputNormalizer = new OutputsNormalizer($this->addressReader);
     }

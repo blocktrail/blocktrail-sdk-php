@@ -7,7 +7,7 @@ use BitWasp\Bitcoin\Script\Parser\Operation;
 use BitWasp\Bitcoin\Script\ScriptFactory;
 use BitWasp\Bitcoin\Transaction\TransactionFactory;
 use BitWasp\Buffertools\Buffer;
-use Blocktrail\SDK\Address\BitcoinAddressReader;
+use BitWasp\Bitcoin\Address\AddressCreator as BitcoinAddressCreator;
 use Blocktrail\SDK\Tests\Wallet\CreateWalletTest;
 use Blocktrail\SDK\Tests\Wallet\WalletTestBase;
 use Blocktrail\SDK\UnspentOutputFinder;
@@ -98,7 +98,7 @@ class WalletV2SweeperTest extends WalletTestBase
         $sweeper->discoverWalletFunds($batchSize);
 
         $tx = $sweeper->sweepWallet("mjpqMuKZA9gYnxXFNdkGLQEMKxokhESvMG", $batchSize);
-        $addrReader = new BitcoinAddressReader();
+        $addrReader = new BitcoinAddressCreator();
         $script = $addrReader->fromString("mjpqMuKZA9gYnxXFNdkGLQEMKxokhESvMG")->getScriptPubKey();
 
         $decoded = TransactionFactory::fromHex($tx);

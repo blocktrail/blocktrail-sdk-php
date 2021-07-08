@@ -4,32 +4,31 @@ namespace Blocktrail\SDK\Tests\Wallet;
 
 
 use BitWasp\Bitcoin\Address\ScriptHashAddress;
-use Blocktrail\SDK\Address\BitcoinCashAddressReader;
-use Blocktrail\SDK\Address\CashAddress;
+use Btccom\BitcoinCash\Address\AddressCreator as BitcoinCashAddressCreator;
+use Btccom\BitcoinCash\Network\Networks\BitcoinCash;
+use Btccom\BitcoinCash\Network\Networks\BitcoinCashTestnet;
+use Btccom\BitcoinCash\Address\CashAddress;
 use Blocktrail\SDK\BlocktrailSDK;
-use Blocktrail\SDK\Network\BitcoinCashRegtest;
+use Btccom\BitcoinCash\Network\Networks\BitcoinCashRegtest;
 use Blocktrail\SDK\Exceptions\BlocktrailSDKException;
-use Blocktrail\SDK\Network\BitcoinCash;
 use Blocktrail\SDK\Wallet;
 use Mockery\Mock;
 
 class BitcoinCashAddressTest extends WalletTestBase
 {
     /**
-     * @expectedException \Blocktrail\SDK\Exceptions\BlocktrailSDKException
+     * @expectedException \BitWasp\Bitcoin\Exceptions\UnrecognizedAddressException
      * @expectedExceptionMessage Address not recognized
      */
     public function testShortCashAddress() {
-        $bch = new BitcoinCash();
         $tbch = new BitcoinCashRegtest();
 
         $address = "bchtest:ppm2qsznhks23z7629mms6s4cwef74vcwvhanqgjxu";
         $short = "ppm2qsznhks23z7629mms6s4cwef74vcwvhanqgjxu";
-        $reader = new BitcoinCashAddressReader(true);
-        $this->assertEquals($address, $reader->fromString($address, $bch)->getAddress($bch));
-        $this->assertEquals($address, $reader->fromString($short, $bch)->getAddress($bch));
+        $reader = new BitcoinCashAddressCreator(true);
+        $this->assertEquals($address, $reader->fromString($address, $tbch)->getAddress($tbch));
+        $this->assertEquals($address, $reader->fromString($short, $tbch)->getAddress($tbch));
 
-        $this->setExpectedException(BlocktrailSDKException::class, "Address not recognized");
         $reader->fromString($short, $tbch);
     }
 
@@ -42,7 +41,7 @@ class BitcoinCashAddressTest extends WalletTestBase
         list($legacyAddressWallet, $client) = $this->initWallet($client);
 
         $legacyAddress = "2MxYE3e7R2e1NBLDicBMXMy9FRUygeTyEGa";
-        $this->assertInstanceOf(BitcoinCashAddressReader::class, $legacyAddressWallet->getAddressReader());
+        $this->assertInstanceOf(BitcoinCashAddressCreator::class, $legacyAddressWallet->getAddressReader());
         $this->assertInstanceOf(ScriptHashAddress::class, $legacyAddressWallet->getAddressReader()->fromString($legacyAddress, $tbcc));
 
         $cashAddress = "bchreg:pqaql0az73r2lrtk43l3w3scuazgvarqdyufw37rsn";
@@ -52,7 +51,7 @@ class BitcoinCashAddressTest extends WalletTestBase
             'use_cashaddress' => true,
         ]);
 
-        $this->assertInstanceOf(BitcoinCashAddressReader::class, $newAddressWallet->getAddressReader());
+        $this->assertInstanceOf(BitcoinCashAddressCreator::class, $newAddressWallet->getAddressReader());
         $this->assertInstanceOf(CashAddress::class, $newAddressWallet->getAddressReader()->fromString($cashAddress, $tbcc));
 
         $convertedLegacy = $client->getLegacyBitcoinCashAddress($cashAddress);
